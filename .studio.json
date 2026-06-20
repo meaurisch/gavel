@@ -1,0 +1,8 @@
+{
+    "prompts":  [
+                    "python-script.md",
+                    "cli-tool.md",
+                    "agent-mode.md"
+                ],
+    "agentMode":  true
+}
