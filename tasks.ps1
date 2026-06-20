@@ -19,10 +19,7 @@ function Setup {
 
 function Run {
     if (Test-Path $venvActivate) { & $venvActivate }
-    # Intended CLI entry point (built by prompts/P0.1 + P1.6 + P3):
-    #   setup-bench run|grade|report
-    Write-Host "setup-bench CLI not built yet. Work through prompts/ starting at P0.1." -ForegroundColor Yellow
-    Write-Host "Once built:  python cli.py --help   (or: setup-bench --help)" -ForegroundColor Gray
+    python cli.py @args
 }
 
 function Watch {

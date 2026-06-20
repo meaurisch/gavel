@@ -10,7 +10,7 @@
 - This is a personal creative project — keep commit messages short and human
 - `_scratch/` exists in the studio root for throwaway experiments — no git, no structure, no pressure
 - All GitHub repos are private
-- Use modular folder structure (src/ with logical subfolders) once a project grows past a few files
+- Use modular folder structure once a project grows past a few files
 - Favor well-known frameworks: Flask/FastAPI for Python backends, Express for Node.js, Streamlit for data apps
 - Always include a `.gitignore` appropriate to the stack
 - Environment config goes in `.env` files — never commit secrets
@@ -19,7 +19,7 @@
 
 - Always use a venv: `python -m venv .venv` — activate before installing anything
 - Pin dependencies in `requirements.txt` — use `pip freeze > requirements.txt` after adding packages
-- Entry point should be runnable as `python main.py` or `python -m src.main`
+- Entry point should be runnable as `python main.py`
 - Use `argparse` for any script that takes arguments
 - Use `logging` instead of bare `print()` for status messages — configure level via `--verbose`
 - For API integrations: `anthropic`, `openai`, or `requests` — these are your go-to libraries
