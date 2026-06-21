@@ -1,0 +1,841 @@
+diff --git a/docs/source/api/search.rst b/docs/source/api/search.rst
+index 6aec2a4..5e94c9c 100644
+--- a/docs/source/api/search.rst
++++ b/docs/source/api/search.rst
+@@ -57,46 +57,49 @@ As a convenience, the :mod:`pyvrp.search` module makes most relevant operators a
+    .. autoclass:: UnaryOperator
+ 
+    .. autoclass:: Exchange10
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: Exchange20
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: Exchange30
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+    
+    .. autoclass:: Exchange11
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: Exchange21
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: Exchange31
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+    
+    .. autoclass:: Exchange22
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: Exchange32
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+    
+    .. autoclass:: Exchange33
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: RelocateWithDepot
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: RemoveAdjacentDepot
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: RemoveOptional
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: InsertOptional
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
++
++   .. autoclass:: ReplaceGroup
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: ReplaceOptional
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+ 
+    .. autoclass:: SwapTails
+-      :exclude-members: evaluate, apply, statistics, supports
++      :exclude-members: evaluate, apply, statistics, supports, init
+diff --git a/meson.build b/meson.build
+index e4d0e82..d793ce1 100644
+--- a/meson.build
++++ b/meson.build
+@@ -58,6 +58,7 @@ libsearch = static_library(
+         SRC_DIR / 'search' / 'RelocateWithDepot.cpp',
+         SRC_DIR / 'search' / 'RemoveAdjacentDepot.cpp',
+         SRC_DIR / 'search' / 'RemoveOptional.cpp',
++        SRC_DIR / 'search' / 'ReplaceGroup.cpp',
+         SRC_DIR / 'search' / 'ReplaceOptional.cpp',
+         SRC_DIR / 'search' / 'SearchSpace.cpp',
+         SRC_DIR / 'search' / 'Solution.cpp',
+diff --git a/pyvrp/cpp/search/InsertOptional.cpp b/pyvrp/cpp/search/InsertOptional.cpp
+index 4e9d6df..ff6d057 100644
+--- a/pyvrp/cpp/search/InsertOptional.cpp
++++ b/pyvrp/cpp/search/InsertOptional.cpp
+@@ -9,6 +9,7 @@ using pyvrp::search::InsertOptional;
+ std::pair<pyvrp::Cost, bool> InsertOptional::evaluate(
+     Route::Node *U, Route::Node *V, CostEvaluator const &costEvaluator)
+ {
++    assert(!U->isDepot());
+     stats_.numEvaluations++;
+ 
+     ProblemData::Client const &uData = data.location(U->client());
+@@ -22,7 +23,7 @@ std::pair<pyvrp::Cost, bool> InsertOptional::evaluate(
+         if (group.required)  // then we have already inserted a client in the LS
+             return std::make_pair(0, false);
+ 
+-        for (auto const client : group.clients())  // if any client is already
++        for (auto const client : group)            // if any client is already
+             if (solution_->nodes[client].route())  // in solution we cannot
+                 return std::make_pair(0, false);   // insert another
+     }
+@@ -48,7 +49,7 @@ void InsertOptional::apply(Route::Node *U, Route::Node *V) const
+     route->insert(V->idx() + 1, U);
+ }
+ 
+-void InsertOptional::init(Solution const &solution)
++void InsertOptional::init(Solution &solution)
+ {
+     stats_ = {};
+     solution_ = &solution;
+@@ -57,8 +58,12 @@ void InsertOptional::init(Solution const &solution)
+ template <>
+ bool pyvrp::search::supports<InsertOptional>(ProblemData const &data)
+ {
+-    for (auto const &client : data.clients())  // need at least one optional
+-        if (!client.required)                  // client
++    for (auto const &group : data.groups())  // if the group is not required
++        if (!group.required)                 // its clients are not either
++            return true;
++
++    for (auto const &client : data.clients())   // or need at least one optional
++        if (!client.required && !client.group)  // client not in a group
+             return true;
+ 
+     return false;
+diff --git a/pyvrp/cpp/search/InsertOptional.h b/pyvrp/cpp/search/InsertOptional.h
+index 4a194a3..88d9a7a 100644
+--- a/pyvrp/cpp/search/InsertOptional.h
++++ b/pyvrp/cpp/search/InsertOptional.h
+@@ -23,7 +23,7 @@ public:
+ 
+     void apply(Route::Node *U, Route::Node *V) const override;
+ 
+-    void init(Solution const &solution) override;
++    void init(Solution &solution) override;
+ };
+ 
+ template <> bool supports<InsertOptional>(ProblemData const &data);
+diff --git a/pyvrp/cpp/search/LocalSearch.cpp b/pyvrp/cpp/search/LocalSearch.cpp
+index 9b77d3d..1db798d 100644
+--- a/pyvrp/cpp/search/LocalSearch.cpp
++++ b/pyvrp/cpp/search/LocalSearch.cpp
+@@ -112,13 +112,19 @@ bool LocalSearch::applyUnaryOps(Route::Node *U,
+         if (shouldApply)
+         {
+             auto *rU = U->route();
++            if (rU)
++                searchSpace_.markPromising(U);
+ 
+             [[maybe_unused]] auto const costBefore
+                 = costEvaluator.penalisedCost(solution_);
+ 
+-            searchSpace_.markPromising(U);
+-
+             op->apply(U);
++            if (!rU)  // then U wasn't in the solution before, and the operator
++            {         // just inserted it.
++                rU = U->route();
++                searchSpace_.markPromising(U);
++            }
++
+             update(rU, rU);
+ 
+             [[maybe_unused]] auto const costAfter
+@@ -196,58 +202,70 @@ void LocalSearch::applyEmptyRouteMoves(Route::Node *U,
+ void LocalSearch::ensureStructuralFeasibility(
+     CostEvaluator const &costEvaluator)
+ {
+-    // Ensure all required clients are present in the solution.
++    std::vector<size_t> groupCount(data.numGroups(), 0);  // tracks membership
++    for (size_t idx = 0; idx != data.numGroups(); ++idx)  // count in solution
++    {
++        auto const &group = data.group(idx);
++        for (auto const client : group)
++            if (solution_.nodes[client].route())
++                groupCount[idx]++;
++    }
++
++    // Ensure all required clients and groups are present in the solution.
+     for (auto const client : searchSpace_.clientOrder())
+     {
+         auto &node = solution_.nodes[client];
+-        ProblemData::Client const &uData = data.location(client);
++        ProblemData::Client const &clientData = data.location(client);
+ 
+-        if (!node.route() && uData.required)  // then we must insert the client
++        if (!node.route() && clientData.required)  // then we must insert
+         {
+             solution_.insert(&node, searchSpace_, costEvaluator, true);
+             update(node.route(), node.route());
+             searchSpace_.markPromising(&node);
+             continue;
+         }
+-    }
+-
+-    // Ensure all required groups are present. Inserts as needed to satisfy
+-    // this constraint.
+-    for (auto const &group : data.groups())
+-    {
+-        size_t inSolCount = 0;
+-        for (auto const client : group.clients())
+-            inSolCount += solution_.nodes[client].route() != nullptr;
+ 
+-        if (group.required && inSolCount == 0)  // then we insert the first
+-        {                                       // group member
+-            auto const &clients = group.clients();
+-            auto &node = solution_.nodes[clients.front()];
++        if (clientData.group)
++        {
++            auto const idx = *clientData.group;
++            auto const &group = data.group(idx);
+ 
+-            solution_.insert(&node, searchSpace_, costEvaluator, true);
+-            update(node.route(), node.route());
+-            searchSpace_.markPromising(&node);
+-            continue;
+-        }
++            if (group.required && groupCount[idx] == 0)  // then we must insert
++            {
++                assert(!node.route());
++                solution_.insert(&node, searchSpace_, costEvaluator, true);
++                update(node.route(), node.route());
++                searchSpace_.markPromising(&node);
++                groupCount[idx]++;
++                continue;
++            }
+ 
+-        // There can be multiple clients from the group in the solution after
+-        // perturbation, since perturbation does not know about client groups.
+-        // We just remove clients until there is only one left.
+-        for (auto client = group.begin();
+-             inSolCount > 1 && client != group.end();
+-             ++client)
+-        {
+-            auto &node = solution_.nodes[*client];
+-            if (node.route())
++            if (node.route() && groupCount[idx] > 1)  // then we must remove
+             {
+                 searchSpace_.markPromising(&node);
+                 auto *route = node.route();
+                 route->remove(node.idx());
+                 update(route, route);
+-                inSolCount--;
++                groupCount[idx]--;
+             }
+         }
+     }
++
++#ifndef NDEBUG
++    // Debug checks to ensure we have restored structural feasibility.
++    for (size_t idx = data.numDepots(); idx != data.numLocations(); ++idx)
++    {
++        auto const &node = solution_.nodes[idx];
++        ProblemData::Client const &clientData = data.location(idx);
++        assert(node.route() || !clientData.required);
++    }
++
++    for (size_t idx = 0; idx != data.numGroups(); ++idx)
++    {
++        auto const &group = data.group(idx);
++        assert(group.required ? groupCount[idx] == 1 : groupCount[idx] <= 1);
++    }
++#endif
+ }
+ 
+ void LocalSearch::update(Route *U, Route *V)
+diff --git a/pyvrp/cpp/search/LocalSearchOperator.h b/pyvrp/cpp/search/LocalSearchOperator.h
+index e9d9edc..f4e3160 100644
+--- a/pyvrp/cpp/search/LocalSearchOperator.h
++++ b/pyvrp/cpp/search/LocalSearchOperator.h
+@@ -61,7 +61,7 @@ public:
+      * Called once after loading the solution to improve. This can be used to
+      * e.g. update local operator state.
+      */
+-    virtual void init([[maybe_unused]] Solution const &solution)
++    virtual void init([[maybe_unused]] Solution &solution)
+     {
+         stats_ = {};  // reset call statistics
+     };
+diff --git a/pyvrp/cpp/search/RemoveOptional.cpp b/pyvrp/cpp/search/RemoveOptional.cpp
+index 23409e7..1cde14c 100644
+--- a/pyvrp/cpp/search/RemoveOptional.cpp
++++ b/pyvrp/cpp/search/RemoveOptional.cpp
+@@ -14,13 +14,8 @@ RemoveOptional::evaluate(Route::Node *U, CostEvaluator const &costEvaluator)
+     if (!U->route() || uData.required)
+         return std::make_pair(0, false);
+ 
+-    if (uData.group)
+-    {
+-        assert(solution_);
+-        auto const &group = data.group(*uData.group);
+-        if (group.required)                   // then we cannot remove
+-            return std::make_pair(0, false);  // the only group member
+-    }
++    if (uData.group && data.group(*uData.group).required)  // cannot remove
++        return std::make_pair(0, false);                   // required member
+ 
+     auto *route = U->route();
+     Cost deltaCost
+@@ -40,17 +35,15 @@ void RemoveOptional::apply(Route::Node *U) const
+     U->route()->remove(U->idx());
+ }
+ 
+-void RemoveOptional::init(Solution const &solution)
+-{
+-    stats_ = {};
+-    solution_ = &solution;
+-}
+-
+ template <>
+ bool pyvrp::search::supports<RemoveOptional>(ProblemData const &data)
+ {
+-    for (auto const &client : data.clients())  // need at least one optional
+-        if (!client.required)                  // client
++    for (auto const &group : data.groups())  // if the group is not required
++        if (!group.required)                 // its clients are not either
++            return true;
++
++    for (auto const &client : data.clients())   // or need at least one optional
++        if (!client.required && !client.group)  // client not in a group
+             return true;
+ 
+     return false;
+diff --git a/pyvrp/cpp/search/RemoveOptional.h b/pyvrp/cpp/search/RemoveOptional.h
+index a4b47ee..a89d9ed 100644
+--- a/pyvrp/cpp/search/RemoveOptional.h
++++ b/pyvrp/cpp/search/RemoveOptional.h
+@@ -14,15 +14,11 @@ class RemoveOptional : public UnaryOperator
+ {
+     using UnaryOperator::UnaryOperator;
+ 
+-    Solution const *solution_ = nullptr;
+-
+ public:
+     std::pair<Cost, bool> evaluate(Route::Node *U,
+                                    CostEvaluator const &costEvaluator) override;
+ 
+     void apply(Route::Node *U) const override;
+-
+-    void init(Solution const &solution) override;
+ };
+ 
+ template <> bool supports<RemoveOptional>(ProblemData const &data);
+diff --git a/pyvrp/cpp/search/ReplaceGroup.cpp b/pyvrp/cpp/search/ReplaceGroup.cpp
+new file mode 100644
+index 0000000..6819d26
+--- /dev/null
++++ b/pyvrp/cpp/search/ReplaceGroup.cpp
+@@ -0,0 +1,65 @@
++#include "ReplaceGroup.h"
++
++#include "ClientSegment.h"
++
++#include <cassert>
++#include <limits>
++
++using pyvrp::search::ReplaceGroup;
++
++std::pair<pyvrp::Cost, bool>
++ReplaceGroup::evaluate(Route::Node *U, CostEvaluator const &costEvaluator)
++{
++    assert(!U->isDepot() && solution_);
++    stats_.numEvaluations++;
++
++    ProblemData::Client const &uData = data.location(U->client());
++    if (U->route() || !uData.group)
++        return std::make_pair(0, false);
++
++    auto const &group = data.group(*uData.group);
++    assert(group.mutuallyExclusive);
++
++    Cost deltaCost = 0;
++    for (auto const client : group)
++        if (solution_->nodes[client].route())
++        {
++            assert(client != U->client());
++            V_ = &solution_->nodes[client];
++            auto *route = V_->route();
++
++            costEvaluator.deltaCost(  // evaluate replacing V with U
++                deltaCost,
++                Route::Proposal(route->before(V_->idx() - 1),
++                                ClientSegment(data, U->client()),
++                                route->after(V_->idx() + 1)));
++
++            // At most one group member is in the solution at any one time, so
++            // we can break now.
++            break;
++        }
++
++    return std::make_pair(deltaCost, deltaCost < 0);
++}
++
++void ReplaceGroup::apply(Route::Node *U) const
++{
++    assert(!U->route() && V_);
++    stats_.numApplications++;
++
++    auto *route = V_->route();
++    auto const idx = V_->idx();
++    route->remove(idx);
++    route->insert(idx, U);
++}
++
++void ReplaceGroup::init(Solution &solution)
++{
++    stats_ = {};
++    solution_ = &solution;
++}
++
++template <> bool pyvrp::search::supports<ReplaceGroup>(ProblemData const &data)
++{
++    return data.numGroups() > 0;
++}
+diff --git a/pyvrp/cpp/search/ReplaceGroup.h b/pyvrp/cpp/search/ReplaceGroup.h
+new file mode 100644
+index 0000000..61fb015
+--- /dev/null
++++ b/pyvrp/cpp/search/ReplaceGroup.h
+@@ -0,0 +1,33 @@
++#ifndef PYVRP_SEARCH_REPLACEGROUP_H
++#define PYVRP_SEARCH_REPLACEGROUP_H
++
++#include "LocalSearchOperator.h"
++
++namespace pyvrp::search
++{
++/**
++ * ReplaceGroup(data: ProblemData)
++ *
++ * Evaluates replacing the current mutually exclusive group member :math:`V`
++ * with :math:`U`.
++ */
++class ReplaceGroup : public UnaryOperator
++{
++    using UnaryOperator::UnaryOperator;
++
++    Solution *solution_ = nullptr;
++    Route::Node *V_ = nullptr;
++
++public:
++    std::pair<Cost, bool> evaluate(Route::Node *U,
++                                   CostEvaluator const &costEvaluator) override;
++
++    void apply(Route::Node *U) const override;
++
++    void init(Solution &solution) override;
++};
++
++template <> bool supports<ReplaceGroup>(ProblemData const &data);
++}  // namespace pyvrp::search
++
++#endif  // PYVRP_SEARCH_REPLACEGROUP_H
+diff --git a/pyvrp/cpp/search/ReplaceOptional.cpp b/pyvrp/cpp/search/ReplaceOptional.cpp
+index 95ca1a5..73512d3 100644
+--- a/pyvrp/cpp/search/ReplaceOptional.cpp
++++ b/pyvrp/cpp/search/ReplaceOptional.cpp
+@@ -16,9 +16,7 @@ std::pair<pyvrp::Cost, bool> ReplaceOptional::evaluate(
+ 
+     ProblemData::Client const &uData = data.location(U->client());
+     ProblemData::Client const &vData = data.location(V->client());
+-    if (vData.required || uData.group != vData.group)
+-        // Cannot replace required clients, or clients that are not in the
+-        // same mutually exclusive group.
++    if (vData.required || uData.group || vData.group)
+         return std::make_pair(0, false);
+ 
+     auto *route = V->route();
+@@ -45,8 +43,8 @@ void ReplaceOptional::apply(Route::Node *U, Route::Node *V) const
+ template <>
+ bool pyvrp::search::supports<ReplaceOptional>(ProblemData const &data)
+ {
+-    for (auto const &client : data.clients())  // need at least one optional
+-        if (!client.required)                  // client
++    for (auto const &client : data.clients())   // need at least one optional
++        if (!client.required && !client.group)  // client not in a group
+             return true;
+ 
+     return false;
+diff --git a/pyvrp/cpp/search/bindings.cpp b/pyvrp/cpp/search/bindings.cpp
+index 7bb6f92..3a622c5 100644
+--- a/pyvrp/cpp/search/bindings.cpp
++++ b/pyvrp/cpp/search/bindings.cpp
+@@ -6,6 +6,7 @@
+ #include "RelocateWithDepot.h"
+ #include "RemoveAdjacentDepot.h"
+ #include "RemoveOptional.h"
++#include "ReplaceGroup.h"
+ #include "ReplaceOptional.h"
+ #include "Route.h"
+ #include "SearchSpace.h"
+@@ -31,6 +32,7 @@ using pyvrp::search::PerturbationParams;
+ using pyvrp::search::RelocateWithDepot;
+ using pyvrp::search::RemoveAdjacentDepot;
+ using pyvrp::search::RemoveOptional;
++using pyvrp::search::ReplaceGroup;
+ using pyvrp::search::ReplaceOptional;
+ using pyvrp::search::Route;
+ using pyvrp::search::SearchSpace;
+@@ -82,6 +84,22 @@ PYBIND11_MODULE(_search, m)
+         .def("init", &RemoveOptional::init, py::arg("solution"))
+         .def_static("supports", &supports<RemoveOptional>, py::arg("data"));
+ 
++    py::class_<ReplaceGroup, UnaryOperator>(
++        m, "ReplaceGroup", DOC(pyvrp, search, ReplaceGroup))
++        .def(py::init<pyvrp::ProblemData const &>(),
++             py::arg("data"),
++             py::keep_alive<1, 2>())  // keep data alive
++        .def_property_readonly("statistics",
++                               &ReplaceGroup::statistics,
++                               py::return_value_policy::reference_internal)
++        .def("evaluate",
++             &ReplaceGroup::evaluate,
++             py::arg("U"),
++             py::arg("cost_evaluator"))
++        .def("apply", &ReplaceGroup::apply, py::arg("U"))
++        .def("init", &ReplaceGroup::init, py::arg("solution"))
++        .def_static("supports", &supports<ReplaceGroup>, py::arg("data"));
++
+     py::class_<InsertOptional, BinaryOperator>(
+         m, "InsertOptional", DOC(pyvrp, search, InsertOptional))
+         .def(py::init<pyvrp::ProblemData const &>(),
+diff --git a/pyvrp/search/__init__.py b/pyvrp/search/__init__.py
+index 1d8cf28..a45657d 100644
+--- a/pyvrp/search/__init__.py
++++ b/pyvrp/search/__init__.py
+@@ -18,6 +18,7 @@ from ._search import PerturbationParams as PerturbationParams
+ from ._search import RelocateWithDepot as RelocateWithDepot
+ from ._search import RemoveAdjacentDepot as RemoveAdjacentDepot
+ from ._search import RemoveOptional as RemoveOptional
++from ._search import ReplaceGroup as ReplaceGroup
+ from ._search import ReplaceOptional as ReplaceOptional
+ from ._search import SwapTails as SwapTails
+ from ._search import UnaryOperator as UnaryOperator
+@@ -36,4 +37,5 @@ OPERATORS: list[Type[UnaryOperator | BinaryOperator]] = [
+     RemoveOptional,
+     InsertOptional,
+     ReplaceOptional,
++    ReplaceGroup,
+ ]
+diff --git a/pyvrp/search/_search.pyi b/pyvrp/search/_search.pyi
+index 3147db6..9950761 100644
+--- a/pyvrp/search/_search.pyi
++++ b/pyvrp/search/_search.pyi
+@@ -41,6 +41,7 @@ class BinaryOperator:
+ 
+ class RemoveAdjacentDepot(UnaryOperator): ...
+ class RemoveOptional(UnaryOperator): ...
++class ReplaceGroup(UnaryOperator): ...
+ class InsertOptional(BinaryOperator): ...
+ class ReplaceOptional(BinaryOperator): ...
+ class Exchange10(BinaryOperator): ...
+diff --git a/pyvrp/search/neighbourhood.py b/pyvrp/search/neighbourhood.py
+index 2efb699..4c51f65 100644
+--- a/pyvrp/search/neighbourhood.py
++++ b/pyvrp/search/neighbourhood.py
+@@ -82,6 +82,16 @@ def compute_neighbours(
+     if params.symmetric_proximity:
+         proximity = np.minimum(proximity, proximity.T)
+ 
++    for group in data.groups():
++        if group.mutually_exclusive:
++            # Clients in mutually exclusive groups cannot neighbour each other,
++            # since only one of them can be in the solution at any given time.
++            # We use max float, not infty, to ensure these clients are ordered
++            # before the depots: we want to avoid same group neighbours, but it
++            # is not problematic if we need to have them.
++            idcs = np.ix_(group.clients, group.clients)
++            proximity[idcs] = np.finfo(np.float64).max
++
+     np.fill_diagonal(proximity, np.inf)  # cannot be in own neighbourhood
+     proximity[: data.num_depots, :] = np.inf  # depots have no neighbours
+     proximity[:, : data.num_depots] = np.inf  # clients do not neighbour depots
+diff --git a/tests/search/test_InsertOptional.py b/tests/search/test_InsertOptional.py
+index 5201e1a..51459c8 100644
+--- a/tests/search/test_InsertOptional.py
++++ b/tests/search/test_InsertOptional.py
+@@ -63,11 +63,25 @@ def test_supports(
+     ok_small_mutually_exclusive_groups,
+ ):
+     """
+-    Tests that InsertOptional supports instances with optional clients.
++    Tests that InsertOptional supports instances with optional clients, if
++    those are not in a required group.
+     """
+     assert_(not InsertOptional.supports(ok_small))
+     assert_(InsertOptional.supports(ok_small_prizes))
+-    assert_(InsertOptional.supports(ok_small_mutually_exclusive_groups))
++
++    data = ProblemData(  # instance with optional group
++        clients=[Client(x=0, y=0, group=0, required=False)],
++        depots=[Depot(x=0, y=0)],
++        vehicle_types=[VehicleType()],
++        distance_matrices=[np.zeros((2, 2), dtype=int)],
++        duration_matrices=[np.zeros((2, 2), dtype=int)],
++        groups=[ClientGroup(clients=[1], required=False)],
++    )
++
++    # InsertOptional does not support instances with required groups, but it
++    # does support those with optional groups.
++    assert_(not InsertOptional.supports(ok_small_mutually_exclusive_groups))
++    assert_(InsertOptional.supports(data))
+ 
+ 
+ def test_group_skip_required(ok_small_mutually_exclusive_groups):
+diff --git a/tests/search/test_LocalSearch.py b/tests/search/test_LocalSearch.py
+index e14373f..302712d 100644
+--- a/tests/search/test_LocalSearch.py
++++ b/tests/search/test_LocalSearch.py
+@@ -24,7 +24,7 @@ from pyvrp.search import (
+     RelocateWithDepot,
+     RemoveAdjacentDepot,
+     RemoveOptional,
+-    ReplaceOptional,
++    ReplaceGroup,
+     compute_neighbours,
+ )
+ from pyvrp.search._search import LocalSearch as cpp_LocalSearch
+@@ -314,7 +314,7 @@ def test_swap_if_improving_mutually_exclusive_group(
+     perturbation = PerturbationManager(PerturbationParams(0, 0))
+ 
+     ls = LocalSearch(data, rng, neighbours, perturbation)
+-    ls.add_operator(ReplaceOptional(data))
++    ls.add_operator(ReplaceGroup(data))
+ 
+     cost_eval = CostEvaluator([20], 6, 0)
+     sol = Solution(data, [[1, 4]])
+@@ -481,8 +481,8 @@ def test_operators_property(ok_small):
+     [
+         # {1, 2, 3, 4} are all required clients.
+         ("ok_small", {1, 2, 3, 4}),
+-        # 1 from required group {1, 2, 3}, 4 is a required client.
+-        ("ok_small_mutually_exclusive_groups", {1, 4}),
++        # 3 from required group {1, 2, 3}, 4 is a required client.
++        ("ok_small_mutually_exclusive_groups", {3, 4}),
+     ],
+ )
+ def test_inserts_required_missing(instance, exp_clients: set[int], request):
+diff --git a/tests/search/test_RemoveOptional.py b/tests/search/test_RemoveOptional.py
+index f0ade90..407bb69 100644
+--- a/tests/search/test_RemoveOptional.py
++++ b/tests/search/test_RemoveOptional.py
+@@ -1,7 +1,14 @@
+ import numpy as np
+ from numpy.testing import assert_, assert_equal
+ 
+-from pyvrp import Client, CostEvaluator, Depot, ProblemData, VehicleType
++from pyvrp import (
++    Client,
++    ClientGroup,
++    CostEvaluator,
++    Depot,
++    ProblemData,
++    VehicleType,
++)
+ from pyvrp.search import RemoveOptional
+ from tests.helpers import make_search_route
+ 
+@@ -47,11 +54,24 @@ def test_supports(
+ ):
+     """
+     Tests that RemoveOptional supports prize-collecting instances, but not
+-    instances with only required clients.
++    instances with only required clients or groups.
+     """
+     assert_(not RemoveOptional.supports(ok_small))
+     assert_(RemoveOptional.supports(ok_small_prizes))
+-    assert_(RemoveOptional.supports(ok_small_mutually_exclusive_groups))
++
++    data = ProblemData(  # instance with optional group
++        clients=[Client(x=0, y=0, group=0, required=False)],
++        depots=[Depot(x=0, y=0)],
++        vehicle_types=[VehicleType()],
++        distance_matrices=[np.zeros((2, 2), dtype=int)],
++        duration_matrices=[np.zeros((2, 2), dtype=int)],
++        groups=[ClientGroup(clients=[1], required=False)],
++    )
++
++    # RemoveOptional does not support instances with required groups, but it
++    # does support those with optional groups.
++    assert_(not RemoveOptional.supports(ok_small_mutually_exclusive_groups))
++    assert_(RemoveOptional.supports(data))
+ 
+ 
+ def test_fixed_vehicle_cost():
+@@ -132,3 +152,36 @@ def test_empty_route_delta_cost_bug():
+     # not include the empty route's costs.
+     route = make_search_route(data, [2])
+     assert_equal(op.evaluate(route[1], cost_eval), (-4, True))
++
++
++def test_cannot_remove_required_group():
++    """
++    Tests that RemoveOptional cannot remove members from required groups, since
++    that could render the solution structurally infeasible.
++    """
++    data = ProblemData(
++        depots=[Depot(x=0, y=0)],
++        clients=[
++            Client(x=0, y=0, group=0, required=False),
++            Client(x=0, y=0, group=1, required=False),
++        ],
++        vehicle_types=[VehicleType()],
++        duration_matrices=[np.where(np.eye(3), 0, 1)],
++        distance_matrices=[np.where(np.eye(3), 0, 1)],
++        groups=[
++            ClientGroup([1], required=False),
++            ClientGroup([2], required=True),
++        ],
++    )
++
++    # Mix of required and optional groups. RemoveOptional supports this.
++    assert_(RemoveOptional.supports(data))
++
++    op = RemoveOptional(data)
++    cost_eval = CostEvaluator([], 1, 1)
++    route = make_search_route(data, [1, 2])
++
++    # The first client in the route is from the optional group and can be
++    # removed. The second client is from the required group, and cannot.
++    assert_equal(op.evaluate(route[1], cost_eval), (-1, True))
++    assert_equal(op.evaluate(route[2], cost_eval), (0, False))
+diff --git a/tests/search/test_ReplaceGroup.py b/tests/search/test_ReplaceGroup.py
+new file mode 100644
+index 0000000..8fe2baf
+--- /dev/null
++++ b/tests/search/test_ReplaceGroup.py
+@@ -0,0 +1,46 @@
++from numpy.testing import assert_, assert_equal
++
++from pyvrp import CostEvaluator
++from pyvrp import Solution as PyVRPSolution
++from pyvrp.search import ReplaceGroup
++from pyvrp.search._search import Node, Solution
++
++
++def test_replace(ok_small_mutually_exclusive_groups):
++    """
++    Tests that ReplaceGroup replace clients within the same group.
++    """
++    data = ok_small_mutually_exclusive_groups
++    cost_eval = CostEvaluator([0], 0, 0)
++
++    sol = Solution(data)
++    sol.load(PyVRPSolution(data, [[1, 4]]))
++    assert_equal(str(sol.routes[0]), "1 4")
++
++    op = ReplaceGroup(data)
++    op.init(sol)
++
++    # Replacing client 1 with 2 is slightly improving:
++    # delta = dist(0, 2) + dist(2, 4) - dist(0, 1) - dist(1, 4)
++    #       = 1944 + 1090 - 1544 - 1593
++    #       = -103.
++    node = Node(loc=2)
++    assert_equal(op.evaluate(node, cost_eval), (-103, True))
++
++    op.apply(node)
++    assert_equal(str(sol.routes[0]), "2 4")
++
++
++def test_supports(
++    gtsp,
++    ok_small,
++    ok_small_prizes,
++    ok_small_mutually_exclusive_groups,
++):
++    """
++    Tests that ReplaceGroup only supports instances with groups.
++    """
++    assert_(ReplaceGroup.supports(gtsp))
++    assert_(ReplaceGroup.supports(ok_small_mutually_exclusive_groups))
++    assert_(not ReplaceGroup.supports(ok_small))
++    assert_(not ReplaceGroup.supports(ok_small_prizes))
+diff --git a/tests/search/test_ReplaceOptional.py b/tests/search/test_ReplaceOptional.py
+index 3f2117f..b88e60e 100644
+--- a/tests/search/test_ReplaceOptional.py
++++ b/tests/search/test_ReplaceOptional.py
+@@ -91,31 +91,9 @@ def test_supports(
+     ok_small_mutually_exclusive_groups,
+ ):
+     """
+-    Tests that ReplaceOptional supports instances with optional clients.
++    Tests that ReplaceOptional supports instances with optional clients, but
++    not when those clients are in groups.
+     """
+     assert_(not ReplaceOptional.supports(ok_small))
++    assert_(not ReplaceOptional.supports(ok_small_mutually_exclusive_groups))
+     assert_(ReplaceOptional.supports(ok_small_prizes))
+-    assert_(ReplaceOptional.supports(ok_small_mutually_exclusive_groups))
+-
+-
+-def test_replaces_same_group(ok_small_mutually_exclusive_groups):
+-    """
+-    Tests that ReplaceOptional can replace clients within the same group, and
+-    skips other groups.
+-    """
+-    data = ok_small_mutually_exclusive_groups
+-    route = make_search_route(data, [1, 4])
+-
+-    op = ReplaceOptional(data)
+-
+-    # Replacing client 1 with 2 is slightly improving:
+-    # delta = dist(0, 2) + dist(2, 4) - dist(0, 1) - dist(1, 4)
+-    #       = 1944 + 1090 - 1544 - 1593
+-    #       = -103.
+-    node = Node(loc=2)
+-    cost_eval = CostEvaluator([0], 0, 0)
+-    assert_equal(op.evaluate(node, route[1], cost_eval), (-103, True))
+-
+-    # Cannot replace a group client with a client from outside the group.
+-    node = Node(loc=4)
+-    assert_equal(op.evaluate(node, route[1], cost_eval), (0, False))
+diff --git a/tests/search/test_neighbourhood.py b/tests/search/test_neighbourhood.py
+index defd6d6..d0d5291 100644
+--- a/tests/search/test_neighbourhood.py
++++ b/tests/search/test_neighbourhood.py
+@@ -179,6 +179,22 @@ def test_proximity_with_prizes(prize_collecting):
+     assert_(count_20 > count_36)
+ 
+ 
++def test_proximity_with_mutually_exclusive_groups(
++    ok_small_mutually_exclusive_groups,
++):
++    """
++    Tests that clients that are a member of a mutually exclusive client group
++    are not in each other's neighbourhood.
++    """
++    params = NeighbourhoodParams(0, 0, num_neighbours=1)
++    neighbours = compute_neighbours(ok_small_mutually_exclusive_groups, params)
++
++    group = ok_small_mutually_exclusive_groups.group(0)
++    members = group.clients
++    for client in members:
++        assert_(all(other not in neighbours[client] for other in members))
++
++
+ def test_different_routing_costs(ok_small):
+     """
+     High-level smoke test that checks that the granular neighbourhood takes

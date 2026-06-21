@@ -1,0 +1,19 @@
+id: custom
+description: "User's own agentic setup (conductor + executor + validators + reviewers)"
+harnesses:
+  copilot:
+    - src: content/conductor.agent.md
+      dest: .github/agents/conductor.agent.md
+    - src: content/executor.agent.md
+      dest: .github/agents/executor.agent.md
+    - src: content/planner.agent.md
+      dest: .github/agents/planner.agent.md
+    - src: content/task-reviewer.agent.md
+      dest: .github/agents/task-reviewer.agent.md
+    - src: content/task-validator.agent.md
+      dest: .github/agents/task-validator.agent.md
+    - src: content/overall-reviewer.agent.md
+      dest: .github/agents/overall-reviewer.agent.md
+    - src: content/overall-validator.agent.md
+      dest: .github/agents/overall-validator.agent.md
+  claude-code: []

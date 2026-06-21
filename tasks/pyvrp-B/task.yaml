@@ -1,0 +1,8 @@
+id: pyvrp-B
+repo_url: https://github.com/PyVRP/PyVRP
+base_commit: de48e2eca5b6bb56a61517848d17d4428fcbd220
+instruction: |
+  Add unary operator support to the local search framework. Currently only binary operators (which exchange segments between two routes) exist. Implement a UnaryOperator base that operates on a single route, then add two concrete unary operators: RemoveOptional (removes optional clients from routes when doing so improves cost) and RemoveAdjacentDepot (removes unnecessary depot visits between consecutive route segments). Implement in C++, expose via pybind11, register in LocalSearch, and export from the Python search module.
+run_cmd: "pytest tests/search/test_RemoveOptional.py tests/search/test_RemoveAdjacentDepot.py -v"
+held_out_tests_path: tasks/pyvrp-B/held_out_tests
+reference_diff_path: tasks/pyvrp-B/reference.diff

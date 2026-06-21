@@ -1,0 +1,1019 @@
+diff --git a/docs/source/api/search.rst b/docs/source/api/search.rst
+index 5da430a..6aec2a4 100644
+--- a/docs/source/api/search.rst
++++ b/docs/source/api/search.rst
+@@ -41,7 +41,7 @@ Operators
+ ---------
+ 
+ Instances of these operators can be added to the :class:`~pyvrp.search.LocalSearch.LocalSearch` object via the :meth:`~pyvrp.search.LocalSearch.LocalSearch.add_operator` method.
+-Each operator inherits from :class:`~pyvrp.search._search.BinaryOperator`.
++Each operator inherits from :class:`~pyvrp.search._search.BinaryOperator` or :class:`~pyvrp.search._search.UnaryOperator`.
+ As a convenience, the :mod:`pyvrp.search` module makes most relevant operators available as ``OPERATORS``:
+ 
+ .. code-block:: python
+@@ -54,6 +54,8 @@ As a convenience, the :mod:`pyvrp.search` module makes most relevant operators a
+ 
+    .. autoclass:: BinaryOperator
+ 
++   .. autoclass:: UnaryOperator
++
+    .. autoclass:: Exchange10
+       :exclude-members: evaluate, apply, statistics, supports
+ 
+@@ -84,6 +86,12 @@ As a convenience, the :mod:`pyvrp.search` module makes most relevant operators a
+    .. autoclass:: RelocateWithDepot
+       :exclude-members: evaluate, apply, statistics, supports
+ 
++   .. autoclass:: RemoveAdjacentDepot
++      :exclude-members: evaluate, apply, statistics, supports
++
++   .. autoclass:: RemoveOptional
++      :exclude-members: evaluate, apply, statistics, supports
++
+    .. autoclass:: InsertOptional
+       :exclude-members: evaluate, apply, statistics, supports
+ 
+diff --git a/meson.build b/meson.build
+index 949f393..e4d0e82 100644
+--- a/meson.build
++++ b/meson.build
+@@ -56,6 +56,8 @@ libsearch = static_library(
+         SRC_DIR / 'search' / 'PerturbationManager.cpp',
+         SRC_DIR / 'search' / 'Route.cpp',
+         SRC_DIR / 'search' / 'RelocateWithDepot.cpp',
++        SRC_DIR / 'search' / 'RemoveAdjacentDepot.cpp',
++        SRC_DIR / 'search' / 'RemoveOptional.cpp',
+         SRC_DIR / 'search' / 'ReplaceOptional.cpp',
+         SRC_DIR / 'search' / 'SearchSpace.cpp',
+         SRC_DIR / 'search' / 'Solution.cpp',
+diff --git a/pyvrp/cpp/search/LocalSearch.cpp b/pyvrp/cpp/search/LocalSearch.cpp
+index 20f3c16..9b77d3d 100644
+--- a/pyvrp/cpp/search/LocalSearch.cpp
++++ b/pyvrp/cpp/search/LocalSearch.cpp
+@@ -12,6 +12,7 @@ using pyvrp::Solution;
+ using pyvrp::search::BinaryOperator;
+ using pyvrp::search::LocalSearch;
+ using pyvrp::search::SearchSpace;
++using pyvrp::search::UnaryOperator;
+ 
+ pyvrp::Solution LocalSearch::operator()(pyvrp::Solution const &solution,
+                                         CostEvaluator const &costEvaluator,
+@@ -23,6 +24,9 @@ pyvrp::Solution LocalSearch::operator()(pyvrp::Solution const &solution,
+ 
+     solution_.load(solution);
+ 
++    for (auto *op : unaryOps_)
++        op->init(solution_);
++
+     for (auto *op : binaryOps_)
+         op->init(solution_);
+ 
+@@ -39,7 +43,7 @@ pyvrp::Solution LocalSearch::operator()(pyvrp::Solution const &solution,
+ 
+ void LocalSearch::search(CostEvaluator const &costEvaluator)
+ {
+-    if (binaryOps_.empty())
++    if (unaryOps_.empty() && binaryOps_.empty())
+         return;
+ 
+     searchCompleted_ = false;
+@@ -56,6 +60,8 @@ void LocalSearch::search(CostEvaluator const &costEvaluator)
+             auto const lastTest = lastTest_[U->client()];
+             lastTest_[U->client()] = numUpdates_;
+ 
++            applyUnaryOps(U, costEvaluator);
++
+             for (auto const vClient : searchSpace_.neighboursOf(U->client()))
+             {
+                 auto *V = &solution_.nodes[vClient];
+@@ -93,9 +99,43 @@ void LocalSearch::shuffle(RandomNumberGenerator &rng)
+     perturbationManager_.shuffle(rng);
+     searchSpace_.shuffle(rng);
+ 
++    rng.shuffle(unaryOps_.begin(), unaryOps_.end());
+     rng.shuffle(binaryOps_.begin(), binaryOps_.end());
+ }
+ 
++bool LocalSearch::applyUnaryOps(Route::Node *U,
++                                CostEvaluator const &costEvaluator)
++{
++    for (auto *op : unaryOps_)
++    {
++        auto const [deltaCost, shouldApply] = op->evaluate(U, costEvaluator);
++        if (shouldApply)
++        {
++            auto *rU = U->route();
++
++            [[maybe_unused]] auto const costBefore
++                = costEvaluator.penalisedCost(solution_);
++
++            searchSpace_.markPromising(U);
++
++            op->apply(U);
++            update(rU, rU);
++
++            [[maybe_unused]] auto const costAfter
++                = costEvaluator.penalisedCost(solution_);
++
++            // When there is an improving move, the delta cost evaluation must
++            // be exact. The resulting cost is then the sum of the cost before
++            // the move, plus the delta cost.
++            assert(costAfter == costBefore + deltaCost);
++
++            return true;
++        }
++    }
++
++    return false;
++}
++
+ bool LocalSearch::applyBinaryOps(Route::Node *U,
+                                  Route::Node *V,
+                                  CostEvaluator const &costEvaluator)
+@@ -229,11 +269,21 @@ void LocalSearch::update(Route *U, Route *V)
+     }
+ }
+ 
++void LocalSearch::addOperator(UnaryOperator &op)
++{
++    unaryOps_.emplace_back(&op);
++}
++
+ void LocalSearch::addOperator(BinaryOperator &op)
+ {
+     binaryOps_.emplace_back(&op);
+ }
+ 
++std::vector<UnaryOperator *> const &LocalSearch::unaryOperators() const
++{
++    return unaryOps_;
++}
++
+ std::vector<BinaryOperator *> const &LocalSearch::binaryOperators() const
+ {
+     return binaryOps_;
+@@ -261,6 +311,7 @@ LocalSearch::Statistics LocalSearch::statistics() const
+         numImproving += stats.numApplications;
+     };
+ 
++    std::for_each(unaryOps_.begin(), unaryOps_.end(), count);
+     std::for_each(binaryOps_.begin(), binaryOps_.end(), count);
+ 
+     assert(numImproving <= numUpdates_);
+diff --git a/pyvrp/cpp/search/LocalSearch.h b/pyvrp/cpp/search/LocalSearch.h
+index da245d7..a813e4c 100644
+--- a/pyvrp/cpp/search/LocalSearch.h
++++ b/pyvrp/cpp/search/LocalSearch.h
+@@ -31,6 +31,7 @@ class LocalSearch
+     // each LS invocation.
+     PerturbationManager &perturbationManager_;
+ 
++    std::vector<UnaryOperator *> unaryOps_;
+     std::vector<BinaryOperator *> binaryOps_;
+ 
+     std::vector<int> lastTest_;    // tracks last client evaluations
+@@ -39,6 +40,9 @@ class LocalSearch
+     size_t numUpdates_ = 0;         // modification counter
+     bool searchCompleted_ = false;  // No further improving move found?
+ 
++    // Tests the node U.
++    bool applyUnaryOps(Route::Node *U, CostEvaluator const &costEvaluator);
++
+     // Tests the node pair (U, V).
+     bool applyBinaryOps(Route::Node *U,
+                         Route::Node *V,
+@@ -87,11 +91,22 @@ public:
+         size_t const numUpdates;
+     };
+ 
++    /**
++     * Adds a local search operator that works on client nodes U.
++     */
++    void addOperator(UnaryOperator &op);
++
+     /**
+      * Adds a local search operator that works on client node pairs U and V.
+      */
+     void addOperator(BinaryOperator &op);
+ 
++    /**
++     * Returns the unary operators in use. Note that there is no defined
++     * ordering.
++     */
++    std::vector<UnaryOperator *> const &unaryOperators() const;
++
+     /**
+      * Returns the binary operators in use. Note that there is no defined
+      * ordering.
+diff --git a/pyvrp/cpp/search/LocalSearchOperator.h b/pyvrp/cpp/search/LocalSearchOperator.h
+index f1d521a..e9d9edc 100644
+--- a/pyvrp/cpp/search/LocalSearchOperator.h
++++ b/pyvrp/cpp/search/LocalSearchOperator.h
+@@ -76,6 +76,7 @@ public:
+     virtual ~LocalSearchOperator() = default;
+ };
+ 
++using UnaryOperator = LocalSearchOperator<Route::Node *>;
+ using BinaryOperator = LocalSearchOperator<Route::Node *, Route::Node *>;
+ 
+ /**
+diff --git a/pyvrp/cpp/search/RemoveAdjacentDepot.cpp b/pyvrp/cpp/search/RemoveAdjacentDepot.cpp
+new file mode 100644
+index 0000000..cad3c86
+--- /dev/null
++++ b/pyvrp/cpp/search/RemoveAdjacentDepot.cpp
+@@ -0,0 +1,77 @@
++#include "RemoveAdjacentDepot.h"
++
++#include <cassert>
++#include <limits>
++
++using pyvrp::search::RemoveAdjacentDepot;
++
++std::pair<pyvrp::Cost, bool>
++RemoveAdjacentDepot::evaluate(Route::Node *U,
++                              CostEvaluator const &costEvaluator)
++{
++    assert(!U->isDepot());
++    stats_.numEvaluations++;
++
++    if (!U->route())
++        return std::make_pair(0, false);
++
++    auto const *route = U->route();
++    Cost bestCost = std::numeric_limits<Cost>::max();
++
++    if (p(U)->isReloadDepot())
++    {
++        Cost deltaCost = 0;
++        costEvaluator.deltaCost<true>(
++            deltaCost,
++            Route::Proposal(route->before(U->idx() - 2),
++                            route->after(U->idx())));
++
++        if (deltaCost < bestCost)
++        {
++            bestCost = deltaCost;
++            move_ = MoveType::REMOVE_PREV;
++        }
++    }
++
++    if (n(U)->isReloadDepot())
++    {
++        Cost deltaCost = 0;
++        costEvaluator.deltaCost<true>(
++            deltaCost,
++            Route::Proposal(route->before(U->idx()),
++                            route->after(U->idx() + 2)));
++
++        if (deltaCost < bestCost)
++        {
++            bestCost = deltaCost;
++            move_ = MoveType::REMOVE_NEXT;
++        }
++    }
++
++    // Apply this move it's either better or neutral. It can be neutral if e.g.
++    // the same depot is visited consecutively, but that's unnecessary.
++    return std::make_pair(bestCost, bestCost <= 0);
++}
++
++void RemoveAdjacentDepot::apply(Route::Node *U) const
++{
++    stats_.numApplications++;
++    auto *route = U->route();
++
++    if (move_ == MoveType::REMOVE_PREV)
++        route->remove(U->idx() - 1);
++
++    if (move_ == MoveType::REMOVE_NEXT)
++        route->remove(U->idx() + 1);
++}
++
++template <>
++bool pyvrp::search::supports<RemoveAdjacentDepot>(ProblemData const &data)
++{
++    // We need at least one vehicle type for which reloading is enabled.
++    for (auto const &vehType : data.vehicleTypes())
++        if (!vehType.reloadDepots.empty() && vehType.maxReloads != 0)
++            return true;
++
++    return false;
++}
+diff --git a/pyvrp/cpp/search/RemoveAdjacentDepot.h b/pyvrp/cpp/search/RemoveAdjacentDepot.h
+new file mode 100644
+index 0000000..7eaa89a
+--- /dev/null
++++ b/pyvrp/cpp/search/RemoveAdjacentDepot.h
+@@ -0,0 +1,35 @@
++#ifndef PYVRP_SEARCH_REMOVEADJACENTDEPOT_H
++#define PYVRP_SEARCH_REMOVEADJACENTDEPOT_H
++
++#include "LocalSearchOperator.h"
++
++namespace pyvrp::search
++{
++/**
++ * RemoveAdjacentDepot(data: ProblemData)
++ *
++ * Evaluates removing an adjacent reload depot of a node :math:`U`.
++ */
++class RemoveAdjacentDepot : public UnaryOperator
++{
++    using UnaryOperator::UnaryOperator;
++
++    enum class MoveType
++    {
++        REMOVE_PREV,
++        REMOVE_NEXT,
++    };
++
++    MoveType move_;
++
++public:
++    std::pair<Cost, bool> evaluate(Route::Node *U,
++                                   CostEvaluator const &costEvaluator) override;
++
++    void apply(Route::Node *U) const override;
++};
++
++template <> bool supports<RemoveAdjacentDepot>(ProblemData const &data);
++}  // namespace pyvrp::search
++
++#endif  // PYVRP_SEARCH_REMOVEADJACENTDEPOT_H
+diff --git a/pyvrp/cpp/search/RemoveOptional.cpp b/pyvrp/cpp/search/RemoveOptional.cpp
+new file mode 100644
+index 0000000..23409e7
+--- /dev/null
++++ b/pyvrp/cpp/search/RemoveOptional.cpp
+@@ -0,0 +1,57 @@
++#include "RemoveOptional.h"
++
++#include <cassert>
++
++using pyvrp::search::RemoveOptional;
++
++std::pair<pyvrp::Cost, bool>
++RemoveOptional::evaluate(Route::Node *U, CostEvaluator const &costEvaluator)
++{
++    assert(U->client());
++    stats_.numEvaluations++;
++
++    ProblemData::Client const &uData = data.location(U->client());
++    if (!U->route() || uData.required)
++        return std::make_pair(0, false);
++
++    if (uData.group)
++    {
++        assert(solution_);
++        auto const &group = data.group(*uData.group);
++        if (group.required)                   // then we cannot remove
++            return std::make_pair(0, false);  // the only group member
++    }
++
++    auto *route = U->route();
++    Cost deltaCost
++        = uData.prize
++          - Cost(route->numClients() == 1) * route->fixedVehicleCost();
++
++    costEvaluator.deltaCost(deltaCost,
++                            Route::Proposal(route->before(U->idx() - 1),
++                                            route->after(U->idx() + 1)));
++
++    return std::make_pair(deltaCost, deltaCost < 0);
++}
++
++void RemoveOptional::apply(Route::Node *U) const
++{
++    stats_.numApplications++;
++    U->route()->remove(U->idx());
++}
++
++void RemoveOptional::init(Solution const &solution)
++{
++    stats_ = {};
++    solution_ = &solution;
++}
++
++template <>
++bool pyvrp::search::supports<RemoveOptional>(ProblemData const &data)
++{
++    for (auto const &client : data.clients())  // need at least one optional
++        if (!client.required)                  // client
++            return true;
++
++    return false;
++}
+diff --git a/pyvrp/cpp/search/RemoveOptional.h b/pyvrp/cpp/search/RemoveOptional.h
+new file mode 100644
+index 0000000..a4b47ee
+--- /dev/null
++++ b/pyvrp/cpp/search/RemoveOptional.h
+@@ -0,0 +1,31 @@
++#ifndef PYVRP_SEARCH_REMOVEOPTIONAL_H
++#define PYVRP_SEARCH_REMOVEOPTIONAL_H
++
++#include "LocalSearchOperator.h"
++
++namespace pyvrp::search
++{
++/**
++ * RemoveOptional(data: ProblemData)
++ *
++ * Evaluates removing an optional client node :math:`U`.
++ */
++class RemoveOptional : public UnaryOperator
++{
++    using UnaryOperator::UnaryOperator;
++
++    Solution const *solution_ = nullptr;
++
++public:
++    std::pair<Cost, bool> evaluate(Route::Node *U,
++                                   CostEvaluator const &costEvaluator) override;
++
++    void apply(Route::Node *U) const override;
++
++    void init(Solution const &solution) override;
++};
++
++template <> bool supports<RemoveOptional>(ProblemData const &data);
++}  // namespace pyvrp::search
++
++#endif  // PYVRP_SEARCH_REMOVEOPTIONAL_H
+diff --git a/pyvrp/cpp/search/bindings.cpp b/pyvrp/cpp/search/bindings.cpp
+index 4cea9a4..cb97dff 100644
+--- a/pyvrp/cpp/search/bindings.cpp
++++ b/pyvrp/cpp/search/bindings.cpp
+@@ -4,6 +4,8 @@
+ #include "LocalSearch.h"
+ #include "PerturbationManager.h"
+ #include "RelocateWithDepot.h"
++#include "RemoveAdjacentDepot.h"
++#include "RemoveOptional.h"
+ #include "ReplaceOptional.h"
+ #include "Route.h"
+ #include "SearchSpace.h"
+@@ -27,15 +29,19 @@ using pyvrp::search::OperatorStatistics;
+ using pyvrp::search::PerturbationManager;
+ using pyvrp::search::PerturbationParams;
+ using pyvrp::search::RelocateWithDepot;
++using pyvrp::search::RemoveAdjacentDepot;
++using pyvrp::search::RemoveOptional;
+ using pyvrp::search::ReplaceOptional;
+ using pyvrp::search::Route;
+ using pyvrp::search::SearchSpace;
+ using pyvrp::search::Solution;
+ using pyvrp::search::supports;
+ using pyvrp::search::SwapTails;
++using pyvrp::search::UnaryOperator;
+ 
+ PYBIND11_MODULE(_search, m)
+ {
++    py::class_<UnaryOperator>(m, "UnaryOperator");
+     py::class_<BinaryOperator>(m, "BinaryOperator");
+ 
+     py::class_<OperatorStatistics>(
+@@ -43,6 +49,39 @@ PYBIND11_MODULE(_search, m)
+         .def_readonly("num_evaluations", &OperatorStatistics::numEvaluations)
+         .def_readonly("num_applications", &OperatorStatistics::numApplications);
+ 
++    py::class_<RemoveAdjacentDepot, UnaryOperator>(
++        m, "RemoveAdjacentDepot", DOC(pyvrp, search, RemoveAdjacentDepot))
++        .def(py::init<pyvrp::ProblemData const &>(),
++             py::arg("data"),
++             py::keep_alive<1, 2>())  // keep data alive
++        .def_property_readonly("statistics",
++                               &RemoveAdjacentDepot::statistics,
++                               py::return_value_policy::reference_internal)
++        .def("evaluate",
++             &RemoveAdjacentDepot::evaluate,
++             py::arg("U"),
++             py::arg("cost_evaluator"))
++        .def("apply", &RemoveAdjacentDepot::apply, py::arg("U"))
++        .def("init", &RemoveAdjacentDepot::init, py::arg("solution"))
++        .def_static(
++            "supports", &supports<RemoveAdjacentDepot>, py::arg("data"));
++
++    py::class_<RemoveOptional, UnaryOperator>(
++        m, "RemoveOptional", DOC(pyvrp, search, RemoveOptional))
++        .def(py::init<pyvrp::ProblemData const &>(),
++             py::arg("data"),
++             py::keep_alive<1, 2>())  // keep data alive
++        .def_property_readonly("statistics",
++                               &RemoveOptional::statistics,
++                               py::return_value_policy::reference_internal)
++        .def("evaluate",
++             &RemoveOptional::evaluate,
++             py::arg("U"),
++             py::arg("cost_evaluator"))
++        .def("apply", &RemoveOptional::apply, py::arg("U"))
++        .def("init", &RemoveOptional::init, py::arg("solution"))
++        .def_static("supports", &supports<RemoveOptional>, py::arg("data"));
++
+     py::class_<InsertOptional, BinaryOperator>(
+         m, "InsertOptional", DOC(pyvrp, search, InsertOptional))
+         .def(py::init<pyvrp::ProblemData const &>(),
+@@ -357,11 +396,18 @@ PYBIND11_MODULE(_search, m)
+                       &LocalSearch::setNeighbours,
+                       py::return_value_policy::reference_internal)
+         .def_property_readonly("statistics", &LocalSearch::statistics)
++        .def_property_readonly("unary_operators",
++                               &LocalSearch::unaryOperators,
++                               py::return_value_policy::reference_internal)
+         .def_property_readonly("binary_operators",
+                                &LocalSearch::binaryOperators,
+                                py::return_value_policy::reference_internal)
+         .def("add_operator",
+-             &LocalSearch::addOperator,
++             py::overload_cast<UnaryOperator &>(&LocalSearch::addOperator),
++             py::arg("op"),
++             py::keep_alive<1, 2>())
++        .def("add_operator",
++             py::overload_cast<BinaryOperator &>(&LocalSearch::addOperator),
+              py::arg("op"),
+              py::keep_alive<1, 2>())
+         .def("__call__",
+diff --git a/pyvrp/search/LocalSearch.py b/pyvrp/search/LocalSearch.py
+index 27ac500..53e0715 100644
+--- a/pyvrp/search/LocalSearch.py
++++ b/pyvrp/search/LocalSearch.py
+@@ -8,6 +8,7 @@ from pyvrp.search._search import (
+     BinaryOperator,
+     LocalSearchStatistics,
+     PerturbationManager,
++    UnaryOperator,
+ )
+ from pyvrp.search._search import LocalSearch as _LocalSearch
+ 
+@@ -40,7 +41,7 @@ class LocalSearch:
+         self._ls = _LocalSearch(data, neighbours, perturbation_manager)
+         self._rng = rng
+ 
+-    def add_operator(self, op: BinaryOperator):
++    def add_operator(self, op: UnaryOperator | BinaryOperator):
+         """
+         Adds an operator to this local search object. The operator will be used
+         to improve a solution.
+@@ -67,6 +68,13 @@ class LocalSearch:
+         """
+         self._ls.neighbours = neighbours
+ 
++    @property
++    def unary_operators(self) -> list[UnaryOperator]:
++        """
++        Returns the unary operators in use.
++        """
++        return self._ls.unary_operators
++
+     @property
+     def binary_operators(self) -> list[BinaryOperator]:
+         """
+diff --git a/pyvrp/search/__init__.py b/pyvrp/search/__init__.py
+index 905a9cf..1d8cf28 100644
+--- a/pyvrp/search/__init__.py
++++ b/pyvrp/search/__init__.py
+@@ -16,12 +16,15 @@ from ._search import InsertOptional as InsertOptional
+ from ._search import PerturbationManager as PerturbationManager
+ from ._search import PerturbationParams as PerturbationParams
+ from ._search import RelocateWithDepot as RelocateWithDepot
++from ._search import RemoveAdjacentDepot as RemoveAdjacentDepot
++from ._search import RemoveOptional as RemoveOptional
+ from ._search import ReplaceOptional as ReplaceOptional
+ from ._search import SwapTails as SwapTails
++from ._search import UnaryOperator as UnaryOperator
+ from .neighbourhood import NeighbourhoodParams as NeighbourhoodParams
+ from .neighbourhood import compute_neighbours as compute_neighbours
+ 
+-OPERATORS: list[Type[BinaryOperator]] = [
++OPERATORS: list[Type[UnaryOperator | BinaryOperator]] = [
+     Exchange10,
+     Exchange20,
+     Exchange11,
+@@ -29,6 +32,8 @@ OPERATORS: list[Type[BinaryOperator]] = [
+     Exchange22,
+     SwapTails,
+     RelocateWithDepot,
++    RemoveAdjacentDepot,
++    RemoveOptional,
+     InsertOptional,
+     ReplaceOptional,
+ ]
+diff --git a/pyvrp/search/_search.pyi b/pyvrp/search/_search.pyi
+index 7cefa9e..48b6f46 100644
+--- a/pyvrp/search/_search.pyi
++++ b/pyvrp/search/_search.pyi
+@@ -13,6 +13,20 @@ class OperatorStatistics:
+     num_evaluations: int
+     num_applications: int
+ 
++class UnaryOperator:
++    def __init__(self, data: ProblemData) -> None: ...
++    @property
++    def statistics(self) -> OperatorStatistics: ...
++    def evaluate(
++        self,
++        U: Node,
++        cost_evaluator: CostEvaluator,
++    ) -> tuple[int, bool]: ...
++    def apply(self, U: Node) -> None: ...
++    def init(self, solution: Solution) -> None: ...
++    @staticmethod
++    def supports(data: ProblemData) -> bool: ...
++
+ class BinaryOperator:
+     def __init__(self, data: ProblemData) -> None: ...
+     @property
+@@ -25,6 +39,8 @@ class BinaryOperator:
+     @staticmethod
+     def supports(data: ProblemData) -> bool: ...
+ 
++class RemoveAdjacentDepot(UnaryOperator): ...
++class RemoveOptional(UnaryOperator): ...
+ class InsertOptional(BinaryOperator): ...
+ class ReplaceOptional(BinaryOperator): ...
+ class Exchange10(BinaryOperator): ...
+@@ -97,12 +113,14 @@ class LocalSearch:
+         neighbours: list[list[int]],
+         perturbation_manager: PerturbationManager = ...,
+     ) -> None: ...
+-    def add_operator(self, op: BinaryOperator) -> None: ...
++    def add_operator(self, op: UnaryOperator | BinaryOperator) -> None: ...
+     @property
+     def neighbours(self) -> list[list[int]]: ...
+     @neighbours.setter
+     def neighbours(self, neighbours: list[list[int]]) -> None: ...
+     @property
++    def unary_operators(self) -> list[UnaryOperator]: ...
++    @property
+     def binary_operators(self) -> list[BinaryOperator]: ...
+     @property
+     @property
+diff --git a/pyvrp/solve.py b/pyvrp/solve.py
+index b77c837..b0e9e43 100644
+--- a/pyvrp/solve.py
++++ b/pyvrp/solve.py
+@@ -17,6 +17,7 @@ from pyvrp.search import (
+     NeighbourhoodParams,
+     PerturbationManager,
+     PerturbationParams,
++    UnaryOperator,
+     compute_neighbours,
+ )
+ 
+@@ -52,7 +53,7 @@ class SolveParams:
+         ils: IteratedLocalSearchParams = IteratedLocalSearchParams(),
+         penalty: PenaltyParams = PenaltyParams(),
+         neighbourhood: NeighbourhoodParams = NeighbourhoodParams(),
+-        operators: list[type[BinaryOperator]] = OPERATORS,
++        operators: list[type[UnaryOperator | BinaryOperator]] = OPERATORS,
+         display_interval: float = 5.0,
+         perturbation: PerturbationParams = PerturbationParams(),
+     ):
+diff --git a/tests/search/test_LocalSearch.py b/tests/search/test_LocalSearch.py
+index 2572dcf..e14373f 100644
+--- a/tests/search/test_LocalSearch.py
++++ b/tests/search/test_LocalSearch.py
+@@ -22,6 +22,8 @@ from pyvrp.search import (
+     PerturbationManager,
+     PerturbationParams,
+     RelocateWithDepot,
++    RemoveAdjacentDepot,
++    RemoveOptional,
+     ReplaceOptional,
+     compute_neighbours,
+ )
+@@ -455,15 +457,24 @@ def test_operators_property(ok_small):
+ 
+     # The local search has not yet been equipped with operators, so it should
+     # start empty.
++    assert_equal(len(ls.unary_operators), 0)
+     assert_equal(len(ls.binary_operators), 0)
+ 
+     # Now we add a binary operator. The local search does not take ownership,
+     # so its only operator should be the exact object we just created.
+     op = Exchange10(ok_small)
+     ls.add_operator(op)
++    assert_equal(len(ls.unary_operators), 0)
+     assert_equal(len(ls.binary_operators), 1)
+     assert_(ls.binary_operators[0] is op)
+ 
++    # And similarly for a unary operator.
++    op = RemoveAdjacentDepot(ok_small)
++    ls.add_operator(op)
++    assert_equal(len(ls.unary_operators), 1)
++    assert_equal(len(ls.binary_operators), 1)
++    assert_(ls.unary_operators[0] is op)
++
+ 
+ @pytest.mark.parametrize(
+     ("instance", "exp_clients"),
+@@ -582,16 +593,41 @@ def test_does_not_insert_optional_groups():
+ 
+     rng = RandomNumberGenerator(seed=2)
+     ls = LocalSearch(data, rng, compute_neighbours(data))
+-    ls.add_operator(Exchange10(data))
++    ls.add_operator(InsertOptional(data))
++    ls.add_operator(RemoveOptional(data))
+ 
+-    # Start with a full solution. After local search, the solution should be
++    # Start with the group present. After local search, the solution should be
+     # empty because the group is not worth keeping around.
+-    sol = Solution(data, [[1, 2]])
++    sol = Solution(data, [[1]])
+     cost_eval = CostEvaluator([], 0, 0)
+     improved = ls(sol, cost_eval, exhaustive=True)
+     assert_equal(improved.num_clients(), 0)
+ 
+ 
++def test_removes_useless_consecutive_depots(ok_small_multiple_trips):
++    """
++    Tests that the local search removes consecutive visits to the same reload
++    depot.
++    """
++    veh_type = ok_small_multiple_trips.vehicle_type(0).replace(max_reloads=2)
++    data = ok_small_multiple_trips.replace(vehicle_types=[veh_type])
++
++    rng = RandomNumberGenerator(seed=2)
++    ls = LocalSearch(data, rng, compute_neighbours(data))
++    ls.add_operator(RemoveAdjacentDepot(data))
++
++    # Set up a route with an empty trip, so a consecutive reload depot visit.
++    trips = [Trip(data, visits, vehicle_type=0) for visits in [[1], [], [2]]]
++    route = Route(data, trips, vehicle_type=0)
++    assert_equal(str(route), "1 |  | 2")
++
++    # The local search should remove this consecutive depot visit.
++    sol = Solution(data, [route])
++    cost_eval = CostEvaluator([1], 1, 1)
++    improved = ls(sol, cost_eval, exhaustive=True)
++    assert_(" |  | " not in str(improved))
++
++
+ def test_insert_missing_groups_and_clients(ok_small_mutually_exclusive_groups):
+     """
+     Tests that the local search establishes basic structural feasibility, by
+diff --git a/tests/search/test_RemoveAdjacentDepot.py b/tests/search/test_RemoveAdjacentDepot.py
+new file mode 100644
+index 0000000..bae918d
+--- /dev/null
++++ b/tests/search/test_RemoveAdjacentDepot.py
+@@ -0,0 +1,118 @@
++from numpy.testing import assert_, assert_equal
++
++from pyvrp import CostEvaluator, Depot
++from pyvrp.search import RemoveAdjacentDepot
++from pyvrp.search._search import Node
++from tests.helpers import make_search_route
++
++
++def test_cannot_evaluate_unassigned(ok_small_multiple_trips):
++    """
++    Tests that RemoveAdjacentDepot cannot evaluate unassigned client nodes.
++    """
++    data = ok_small_multiple_trips
++    cost_eval = CostEvaluator([1], 1, 1)
++    op = RemoveAdjacentDepot(data)
++
++    unassigned = Node(loc=1)
++    assert_equal(op.evaluate(unassigned, cost_eval), (0, False))
++
++
++def test_removes_best_adjacent_depot(ok_small_multiple_trips):
++    """
++    Tests that RemoveAdjacentDepot removes the best adjacent reload depot.
++    """
++    veh_type = ok_small_multiple_trips.vehicle_type(0).replace(max_reloads=2)
++    data = ok_small_multiple_trips.replace(vehicle_types=[veh_type])
++    route = make_search_route(data, [1, 0, 2, 0, 3])
++
++    cost_eval = CostEvaluator([0], 0, 0)
++    op = RemoveAdjacentDepot(data)
++
++    # Client 1 has a depot after it, that can be removed. Delta cost is purely
++    # distance based:
++    #   delta = dist(1, 2) - dist(1, 0) - dist(0, 2)
++    #         = 1_992 - 1_726 - 1_944
++    #         = -1_678.
++    assert_equal(op.evaluate(route[1], cost_eval), (-1_678, True))
++
++    # Client 2 has a depot before and after it. Removing the depot after it is
++    # better, so that's the move we should apply.
++    assert_equal(op.evaluate(route[3], cost_eval), (-3_275, True))
++
++    # Client 3 has a depot before it. Removing that depot is the same move as
++    # we evaluated for client 2, so we should find the same delta cost.
++    assert_equal(op.evaluate(route[5], cost_eval), (-3_275, True))
++
++    # Applying the last evaluated move removes the depot between 2 and 3.
++    op.apply(route[5])
++    assert_equal(str(route), "1 | 2 3")
++
++
++def test_removes_consecutive_depots(ok_small_multiple_trips):
++    """
++    Tests that RemoveAdjacentDepot removes consecutive adjacent reload depots.
++    """
++    veh_type = ok_small_multiple_trips.vehicle_type(0).replace(max_reloads=2)
++    data = ok_small_multiple_trips.replace(vehicle_types=[veh_type])
++    route = make_search_route(data, [1, 0, 0, 2])
++
++    cost_eval = CostEvaluator([0], 0, 0)
++    op = RemoveAdjacentDepot(data)
++
++    # The move is cost neutral, but should be applied anyway.
++    delta_cost, should_apply = op.evaluate(route[1], cost_eval)
++    assert_equal(delta_cost, 0)
++    assert_(should_apply)
++
++
++def test_supports(ok_small, ok_small_multiple_trips, mtvrptw_release_times):
++    """
++    Tests that RemoveAdjacentDepot supports instances with reloading.
++    """
++    assert_(not RemoveAdjacentDepot.supports(ok_small))
++    assert_(RemoveAdjacentDepot.supports(ok_small_multiple_trips))
++    assert_(RemoveAdjacentDepot.supports(mtvrptw_release_times))
++
++
++def test_remove_reload_depot(ok_small_multiple_trips):
++    """
++    Tests that RemoveAdjacentDepot correctly evaluates removing a reload depot.
++    """
++    data = ok_small_multiple_trips
++    route = make_search_route(data, [1, 2, 0, 3, 4])
++
++    assert_(not route.has_excess_load())
++    assert_(route[3].is_reload_depot())
++
++    # If we remove the reload depot, we gain 8 excess load. That costs 8_000
++    # with this cost evaluator. Additionally, we have some changes in distance
++    # cost, as follows:
++    #              dist(2, 3) = 621
++    # dist(2, 0) + dist(0, 3) = 1965 + 1931
++    #              dist delta = -3275
++    op = RemoveAdjacentDepot(data)
++    cost_eval = CostEvaluator([1000], 0, 0)
++    assert_equal(op.evaluate(route[2], cost_eval), (8_000 - 3_275, False))
++
++
++def test_remove_reload_depots_service_duration(ok_small_multiple_trips):
++    """
++    Tests that removing one of multiple, consecutive reload depots is also
++    evaluated correctly in case the reload depots have service duration.
++    """
++    veh_type = ok_small_multiple_trips.vehicle_type(0)
++    data = ok_small_multiple_trips.replace(
++        depots=[Depot(x=2334, y=726, service_duration=90)],
++        vehicle_types=[veh_type.replace(max_reloads=2, unit_duration_cost=1)],
++    )
++
++    op = RemoveAdjacentDepot(data)
++    cost_eval = CostEvaluator([0], 0, 0)
++
++    # Reloads twice in a row. Removing either of the reloads should only impact
++    # duration cost, by removing the associated depot service duration. We
++    # evaluate from the adjacent client nodes.
++    route = make_search_route(data, [1, 2, 0, 0, 3, 4])
++    assert_equal(op.evaluate(route[2], cost_eval), (-90, True))
++    assert_equal(op.evaluate(route[5], cost_eval), (-90, True))
+diff --git a/tests/search/test_RemoveOptional.py b/tests/search/test_RemoveOptional.py
+new file mode 100644
+index 0000000..f0ade90
+--- /dev/null
++++ b/tests/search/test_RemoveOptional.py
+@@ -0,0 +1,134 @@
++import numpy as np
++from numpy.testing import assert_, assert_equal
++
++from pyvrp import Client, CostEvaluator, Depot, ProblemData, VehicleType
++from pyvrp.search import RemoveOptional
++from tests.helpers import make_search_route
++
++
++def test_does_not_remove_required_clients():
++    """
++    Tests that RemoveOptional does not remove required clients, even when that
++    might result in a significant cost improvement.
++    """
++    data = ProblemData(
++        clients=[
++            # This client cannot be removed, even though it causes significant
++            # load violations.
++            Client(x=1, y=1, delivery=[100], required=True),
++            # This client can and should be removed, because the prize is not
++            # worth the detour.
++            Client(x=2, y=2, delivery=[0], prize=0, required=False),
++        ],
++        depots=[Depot(x=0, y=0)],
++        vehicle_types=[VehicleType(1, capacity=[50])],
++        distance_matrices=[np.where(np.eye(3), 0, 10)],
++        duration_matrices=[np.zeros((3, 3), dtype=int)],
++    )
++
++    route = make_search_route(data, [1, 2])
++    cost_eval = CostEvaluator([100], 100, 0)
++    op = RemoveOptional(data)
++
++    # Test that the the operator cannot remove the first required client, but
++    # does want to remove the second.
++    assert_equal(op.evaluate(route[1], cost_eval), (0, False))
++    assert_equal(op.evaluate(route[2], cost_eval), (-10, True))
++
++    # Should remove the second client.
++    op.apply(route[2])
++    assert_equal(str(route), "1")
++
++
++def test_supports(
++    ok_small,
++    ok_small_prizes,
++    ok_small_mutually_exclusive_groups,
++):
++    """
++    Tests that RemoveOptional supports prize-collecting instances, but not
++    instances with only required clients.
++    """
++    assert_(not RemoveOptional.supports(ok_small))
++    assert_(RemoveOptional.supports(ok_small_prizes))
++    assert_(RemoveOptional.supports(ok_small_mutually_exclusive_groups))
++
++
++def test_fixed_vehicle_cost():
++    """
++    Tests that RemoveOptional subtracts the fixed vehicle cost if the route
++    will become empty.
++    """
++    cost_eval = CostEvaluator([], 0, 0)
++    data = ProblemData(
++        clients=[
++            Client(x=1, y=1, required=False),
++            Client(x=1, y=0, required=False),
++        ],
++        depots=[Depot(x=0, y=0)],
++        vehicle_types=[VehicleType(fixed_cost=7), VehicleType(fixed_cost=13)],
++        distance_matrices=[np.zeros((3, 3), dtype=int)],
++        duration_matrices=[np.zeros((3, 3), dtype=int)],
++    )
++
++    op = RemoveOptional(data)
++
++    # All distances, durations, and loads are equal. So the only cost change
++    # can happen due to vehicle changes. In this, case we evaluate removing the
++    # only client on a route. That makes the route empty, and removes the fixed
++    # vehicle cost of 7 for this vehicle type.
++    route = make_search_route(data, [1], vehicle_type=0)
++    assert_equal(op.evaluate(route[1], cost_eval), (-7, True))
++
++    # Same story for this route, but now we have a different vehicle type with
++    # fixed cost 13.
++    route = make_search_route(data, [1], vehicle_type=1)
++    assert_equal(op.evaluate(route[1], cost_eval), (-13, True))
++
++
++def test_remove(ok_small_prizes):
++    """
++    Tests that RemoveOptional works correctly on a specific example.
++    """
++    cost_eval = CostEvaluator([1], 1, 0)
++    route = make_search_route(ok_small_prizes, [1, 2])
++
++    op = RemoveOptional(ok_small_prizes)
++
++    # Purely distance. Removes arcs 1 -> 2 -> 0, adds arcs 1 -> 0. This change
++    # has delta distance of 1726 - 1992 - 1965 = -2231, and a prize delta of
++    # 15: -2231 + 15 = -2216.
++    assert_equal(op.evaluate(route[2], cost_eval), (-2216, True))
++
++
++def test_empty_route_delta_cost_bug():
++    """
++    Tests that a bug identified in #853 has been fixed. Before fixing this bug,
++    when removing a client introduced an empty route, that incorrectly included
++    the empty route's costs. In practice, we want empty routes to have zero
++    cost, even if they violate constraints.
++    """
++    mat = [
++        [0, 5, 1],
++        [5, 0, 1],
++        [1, 1, 0],
++    ]
++    data = ProblemData(
++        depots=[Depot(x=0, y=0), Depot(x=0, y=0)],
++        clients=[Client(x=0, y=0, required=False)],
++        vehicle_types=[
++            # Vehicle type has time warp because just travelling between depots
++            # violates the shift_duration constraint.
++            VehicleType(1, start_depot=0, end_depot=1, shift_duration=0),
++        ],
++        duration_matrices=[mat],
++        distance_matrices=[mat],
++    )
++
++    op = RemoveOptional(data)
++    cost_eval = CostEvaluator([], 1, 1)
++
++    # Similarly, if removing a client results in an empty route, then we should
++    # not include the empty route's costs.
++    route = make_search_route(data, [2])
++    assert_equal(op.evaluate(route[1], cost_eval), (-4, True))

@@ -1,0 +1,8 @@
+id: pyvrp-C
+repo_url: https://github.com/PyVRP/PyVRP
+base_commit: e37b47c0332dbf9df622e4972a52d3faee5c0c09
+instruction: |
+  Add a PiecewiseLinearFunction class to pyvrp. The class should represent a piecewise linear function defined by breakpoints and slopes, supporting efficient evaluation via binary search. It will be used for modelling non-linear duration costs. Implement in C++ as a header in pyvrp/cpp/, expose to Python via pybind11 bindings, and add the class to the pyvrp package exports.
+run_cmd: "pytest tests/test_PiecewiseLinearFunction.py -v"
+held_out_tests_path: tasks/pyvrp-C/held_out_tests
+reference_diff_path: tasks/pyvrp-C/reference.diff

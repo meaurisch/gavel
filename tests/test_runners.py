@@ -8,39 +8,13 @@ from core.worktree import create_worktree, destroy_worktree
 from runners.base import Runner, collect
 from runners.nop import NopRunner
 from runners.oracle import OracleRunner
-
-
-@pytest.fixture()
-def tiny_repo(tmp_path: Path) -> Path:
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    subprocess.run(["git", "init"], cwd=str(repo), check=True, capture_output=True)
-    subprocess.run(
-        ["git", "config", "user.email", "test@test.com"],
-        cwd=str(repo), check=True, capture_output=True,
-    )
-    subprocess.run(
-        ["git", "config", "user.name", "Test"],
-        cwd=str(repo), check=True, capture_output=True,
-    )
-    (repo / "hello.txt").write_text("hello\n")
-    subprocess.run(["git", "add", "hello.txt"], cwd=str(repo), check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "initial"], cwd=str(repo), check=True, capture_output=True)
-    return repo
-
-
-def _head_commit(repo: Path) -> str:
-    result = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=str(repo), check=True, capture_output=True, text=True,
-    )
-    return result.stdout.strip()
+from tests.conftest import head_commit
 
 
 # --- worktree lifecycle ---
 
 def test_worktree_create_destroy(tiny_repo: Path):
-    commit = _head_commit(tiny_repo)
+    commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)
     assert wt.exists()
     assert (wt / "hello.txt").read_text() == "hello\n"
@@ -66,7 +40,7 @@ def test_worktree_at_base_commit(tiny_repo: Path):
 # --- collect ---
 
 def test_collect_captures_new_files(tiny_repo: Path):
-    commit = _head_commit(tiny_repo)
+    commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)
     try:
         (wt / "new_file.py").write_text("print('hello')\n")
@@ -80,7 +54,7 @@ def test_collect_captures_new_files(tiny_repo: Path):
 # --- nop ---
 
 def test_nop_produces_empty_diff(tiny_repo: Path):
-    commit = _head_commit(tiny_repo)
+    commit = head_commit(tiny_repo)
     setup = SetupSpec(id="off", files={})
     trial = Trial(id="t-nop", task_id="test-task", setup_id="off", model="none", runner="nop", rep=0)
     wt = create_worktree(tiny_repo, commit)
@@ -98,7 +72,7 @@ def test_nop_produces_empty_diff(tiny_repo: Path):
 # --- oracle ---
 
 def test_oracle_produces_expected_diff(tiny_repo: Path, tmp_path: Path):
-    commit = _head_commit(tiny_repo)
+    commit = head_commit(tiny_repo)
     ref_diff = tmp_path / "reference.diff"
     ref_diff.write_text(
         "--- a/hello.txt\n"
@@ -135,7 +109,7 @@ def test_oracle_produces_expected_diff(tiny_repo: Path, tmp_path: Path):
 # --- setup files ---
 
 def test_prepare_lays_down_setup_files(tiny_repo: Path):
-    commit = _head_commit(tiny_repo)
+    commit = head_commit(tiny_repo)
     setup = SetupSpec(id="vanilla", files={"CLAUDE.md": ["# Instructions", "Do the thing"]})
     trial = Trial(id="t-setup", task_id="test-task", setup_id="vanilla", model="none", runner="nop", rep=0)
     wt = create_worktree(tiny_repo, commit)

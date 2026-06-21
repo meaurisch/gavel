@@ -1,0 +1,3 @@
+id: baseline
+description: "No instructions — pure ablation control"
+noop: true

@@ -1,0 +1,12 @@
+id: karpathy
+description: Andrej Karpathy's coding discipline (forrestchang/andrej-karpathy-skills)
+source:
+  repo: forrestchang/andrej-karpathy-skills
+  commit: 2c606141936f1eeef17fa3043a72095b4765b9c2
+harnesses:
+  claude-code:
+  - src: vendor/CLAUDE.md
+    dest: CLAUDE.md
+  copilot:
+  - src: vendor/CLAUDE.md
+    dest: .github/copilot-instructions.md

@@ -1,0 +1,9 @@
+id: repo-instructions
+description: "User's own repo-specific instructions (no external pack)"
+harnesses:
+  claude-code:
+    - src: content/CLAUDE.md
+      dest: CLAUDE.md
+  copilot:
+    - src: content/copilot-instructions.md
+      dest: .github/copilot-instructions.md

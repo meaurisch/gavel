@@ -1,0 +1,8 @@
+id: pyvrp-A
+repo_url: https://github.com/PyVRP/PyVRP
+base_commit: 5871a0c1a8827bd84067bd4edf27fa6fa1cbfbdd
+instruction: |
+  Add a ReplaceGroup local-search operator to pyvrp.search. The operator should improve solutions for VRP variants with mutually-exclusive client groups by finding better placements for entire groups within routes. Implement the operator in C++, expose it via pybind11 bindings, register it in LocalSearch, and make it available from the Python search module.
+run_cmd: "pytest tests/search/test_ReplaceGroup.py -v"
+held_out_tests_path: tasks/pyvrp-A/held_out_tests
+reference_diff_path: tasks/pyvrp-A/reference.diff

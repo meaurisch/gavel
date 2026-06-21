@@ -1,0 +1,120 @@
+"""Trial executor — runs the per-trial pipeline."""
+
+import logging
+import sqlite3
+import time
+from pathlib import Path
+
+from core.db import (
+    insert_cost_record,
+    insert_gate_result,
+    insert_run_result,
+    insert_trial,
+    trial_exists,
+)
+from core.matrix import HARNESS_MAP
+from core.models import CostRecord, Trial
+from core.setup_loader import load_setup
+from core.task_loader import load_task, resolve_repo_path
+from core.worktree import create_worktree, destroy_worktree
+from grading.gate import apply as gate_apply
+from runners.claude_code import ClaudeCodeRunner
+from runners.manual import ManualRunner
+from runners.nop import NopRunner
+from runners.oracle import OracleRunner
+
+logger = logging.getLogger(__name__)
+
+
+def make_runner(runner_name: str, task):
+    match runner_name:
+        case "claude-code":
+            return ClaudeCodeRunner(task)
+        case "oracle":
+            return OracleRunner(task)
+        case "nop":
+            return NopRunner()
+        case "manual":
+            return ManualRunner(task)
+        case _:
+            raise ValueError(f"Unknown runner: {runner_name}")
+
+
+def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
+    summary = {
+        "passed": None,
+        "usd": 0.0,
+        "tokens": 0,
+        "wall_seconds": 0.0,
+        "error": None,
+    }
+
+    task = load_task(trial.task_id)
+    harness = HARNESS_MAP.get(trial.runner, "claude-code")
+    setup = load_setup(trial.setup_id, harness)
+    repo_path = resolve_repo_path(task)
+
+    wt_path = None
+    try:
+        wt_path = create_worktree(repo_path, task.base_commit)
+
+        runner = make_runner(trial.runner, task)
+        runner.prepare(trial, wt_path, setup)
+        run_result = runner.execute(trial, wt_path)
+        summary["wall_seconds"] = run_result.wall_seconds
+
+        cost: CostRecord | None = None
+        if isinstance(runner, ClaudeCodeRunner) and runner.last_cost is not None:
+            cost = runner.last_cost
+            summary["usd"] = cost.usd_equiv
+            summary["tokens"] = cost.input_tokens + cost.output_tokens
+
+        gate_result = gate_apply(trial, wt_path, task)
+        summary["passed"] = gate_result.passed
+
+        insert_trial(conn, trial)
+        insert_run_result(conn, run_result)
+        if cost is not None:
+            insert_cost_record(conn, cost)
+        insert_gate_result(conn, gate_result)
+
+    except Exception as e:
+        summary["error"] = str(e)
+        logger.error("Trial %s failed: %s", trial.id, e, exc_info=True)
+    finally:
+        if wt_path is not None and wt_path.exists():
+            try:
+                destroy_worktree(wt_path)
+            except Exception as e:
+                logger.warning("Failed to destroy worktree %s: %s", wt_path, e)
+
+    return summary
+
+
+def execute_all(
+    trials: list[Trial],
+    conn: sqlite3.Connection,
+    delay: float = 0.0,
+    on_progress=None,
+) -> list[dict]:
+    results = []
+    for i, trial in enumerate(trials):
+        if trial_exists(conn, trial.id):
+            logger.info("Skipping %s (already exists)", trial.id)
+            summary = {"skipped": True}
+            results.append(summary)
+            if on_progress:
+                on_progress(i, trial, summary)
+            continue
+
+        logger.info("Running trial %d/%d: %s", i + 1, len(trials), trial.id)
+        summary = execute_trial(trial, conn)
+        results.append(summary)
+
+        if on_progress:
+            on_progress(i, trial, summary)
+
+        if delay > 0 and i < len(trials) - 1:
+            time.sleep(delay)
+
+    return results

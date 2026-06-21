@@ -1,0 +1,18 @@
+id: ecc
+description: "ECC v2.0.0 \u2014 Everything Claude Code agent operating system"
+source:
+  repo: affaan-m/ECC
+  commit: 71d22d0a77b7e0684f4e51cba03749b788993cdb
+harnesses:
+  claude-code:
+  - src: vendor/CLAUDE.md
+    dest: CLAUDE.md
+  - src: vendor/skills/
+    dest: .claude/skills/ecc/
+  - src: vendor/agents/
+    dest: .claude/agents/ecc/
+  - src: vendor/rules/
+    dest: .claude/rules/ecc/
+  copilot:
+  - src: vendor/CLAUDE.md
+    dest: .github/copilot-instructions.md
