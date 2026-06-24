@@ -165,12 +165,16 @@ repo's README.
 
 ---
 
-## 7. Open knobs to set before you execute
+## 7. Knobs (settled 2026-06-24)
 
-These don't block the build; set them before the **measurement** runs:
+Set during the sync & recalibration session. Values below govern the
+shakedown and measurement runs.
 
-- Final task set (the 2 discriminators + under-specified + 2 mix), each tagged with a stakes tier.
-- Which axis is the default comparison target for each experiment (methodology, model, repo-context, or runner).
-- Which specific work models go in the Copilot grid (after the spike confirms the surface).
-- `--max-turns` cap per harness and the rep count (2 vs 3).
-- Whether the `custom` methodology is frozen and ready to vendor.
+| Knob | Value | Note |
+|---|---|---|
+| Rep count | **3** | per cell; feeds Bradley-Terry |
+| `--max-turns` cap per harness | **60** | moderate cost ceiling per trial |
+| `custom` methodology | **in scope** | include in methodology sweeps; freeze/vendor at a pinned commit once stable — do not block on it (may not be ready) |
+| Default comparison axis | **none — chosen per experiment** | pick the comparison target at grade time; no fixed default |
+| Work models (Copilot grid) | **TBD — pending Phase-1.5 spike** | set after the spike confirms the surface |
+| Final task set + stakes tiers | **to finalize in Phase G** | PyVRP A/B/C + 2 Cosmos tasks; tag each with a stakes tier and mark the deliberately under-specified one when the golden set is frozen |
