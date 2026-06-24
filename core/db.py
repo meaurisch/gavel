@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS task_spec (
     held_out_tests_path TEXT NOT NULL,
     reference_diff_path TEXT NOT NULL,
     build_cmd TEXT,
-    visible_test_cmd TEXT
+    visible_test_cmd TEXT,
+    difficulty TEXT
 );
 
 CREATE TABLE IF NOT EXISTS methodology_spec (
@@ -101,18 +102,29 @@ def connect(db_path: Path = Path("results.db")) -> sqlite3.Connection:
     return conn
 
 
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, decl: str) -> None:
+    cols = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in cols:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+
+
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(_SCHEMA)
+    # Backfill columns onto DBs created by an earlier schema.
+    _ensure_column(conn, "task_spec", "build_cmd", "TEXT")
+    _ensure_column(conn, "task_spec", "visible_test_cmd", "TEXT")
+    _ensure_column(conn, "task_spec", "difficulty", "TEXT")
+    conn.commit()
 
 
 # -- inserts --
 
 def insert_task_spec(conn: sqlite3.Connection, t: TaskSpec) -> None:
     conn.execute(
-        "INSERT INTO task_spec VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO task_spec VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (t.id, t.repo_url, t.base_commit, t.instruction, t.run_cmd,
          t.held_out_tests_path, t.reference_diff_path,
-         t.build_cmd, t.visible_test_cmd),
+         t.build_cmd, t.visible_test_cmd, t.difficulty),
     )
     conn.commit()
 
@@ -182,6 +194,7 @@ def get_task_spec(conn: sqlite3.Connection, id: str) -> TaskSpec | None:
     d = dict(row)
     d.setdefault("build_cmd", None)
     d.setdefault("visible_test_cmd", None)
+    d.setdefault("difficulty", None)
     return TypeAdapter(TaskSpec).validate_python(d)
 
 

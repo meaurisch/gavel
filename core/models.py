@@ -13,6 +13,7 @@ class TaskSpec:
     reference_diff_path: str
     build_cmd: str | None = None
     visible_test_cmd: str | None = None
+    difficulty: str | None = None        # "easy" | "medium" | "hard"
 
 
 @dataclass
