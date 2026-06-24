@@ -9,7 +9,7 @@ Living tracker for the sync & recalibration effort. Check items as checkpoints c
 ## Phase S — Sync
 - [x] prompts/README status table reconciled (commit 8c38cd4)
 - [x] README runner overstatement corrected (commit 30f9249)
-- [x] tests verified green — Windows 119 passed/1 deselected; WSL pyvrp-A/B/C oracle=PASS nop=FAIL (closes P3.6 deferred-manual item)
+- [x] tests verified green — Windows 119 passed/1 deselected; WSL pyvrp-A/B/C oracle=PASS nop=FAIL (expected — nop does nothing; closes P3.6 deferred-manual item)
 - [x] §7 knobs settled (commit cd2cf72) — reps=3, max-turns=60, custom in scope, axis per-experiment, work-models TBD pending spike
 - [x] cross-session checklist created
 

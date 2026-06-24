@@ -21,7 +21,7 @@ fixed.
 | **Methodology** | General-purpose instruction / skill pack (the framework under test) | `baseline`, `superpowers`, `karpathy`, `ecc` |
 | **Repo-Context** | Repo-specific instructions (held fixed or varied per experiment) | `none`, `pyvrp-instructions` |
 | **Model** | The LLM model | `claude-sonnet-4-6`, `claude-opus-4-8` |
-| **Runner** | The execution harness | `claude-code`, `copilot-cli`, `manual` |
+| **Runner** | The execution harness | `claude-code`, `copilot-cli` (stub), `manual` |
 
 **Methodology vs. repo-context.** Methodology is the *general* framework being
 tested (a discipline pack, a skills library). Repo-context is *repo-specific*
@@ -164,4 +164,8 @@ first real measurement sweep.
 - [ ] **Pareto frontier visualization** — plot quality vs. cost so the
       tradeoffs the analyzer flags are visible at a glance (`report` command is
       still a stub).
-- [ ] Set the open knobs in `IMPLEMENTATION_PLAN.md` §7 before any measurement run.
+- [x] Open knobs in `IMPLEMENTATION_PLAN.md` §7 settled (reps=3, max-turns=60,
+      `custom` in scope, comparison axis per-experiment; work models pending the
+      Copilot spike).
+- [ ] **Sync & recalibration** in progress — golden cross-repo test set, then
+      axis-by-axis shakedown. See `docs/superpowers/recalibration-checklist.md`.
