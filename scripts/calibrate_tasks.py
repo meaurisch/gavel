@@ -15,6 +15,7 @@ Usage:
 """
 
 import argparse
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -27,7 +28,7 @@ CEILING = 0.70
 FLOOR = 0.30
 
 
-def task_pass_counts(conn) -> dict[str, tuple[int, int]]:
+def task_pass_counts(conn: sqlite3.Connection) -> dict[str, tuple[int, int]]:
     """Return {task_id: (passed, total)} across all trials that have a gate result."""
     passed: dict[str, int] = {}
     total: dict[str, int] = {}

@@ -24,9 +24,9 @@ found 31% of "passing" patches passed only because the tests were weak.
 
 ## Anti-patterns to avoid
 
-- **Too easy (ceiling).** If >70–80% of methodologies pass, the task can't
+- **Too easy (ceiling).** If >70% of methodologies pass, the task can't
   discriminate. Replace it or make it harder.
-- **Too hard (floor).** If <20–30% pass, you're measuring the base agent's raw
+- **Too hard (floor).** If <30% pass, you're measuring the base agent's raw
   capability, not the methodology. Replace it or make it easier.
 - **Memorizable.** Don't use public-repo tasks at commits before the model's
   training cutoff where the fix is obvious from commit history. PyVRP's approach
