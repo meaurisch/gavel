@@ -56,9 +56,25 @@ class GateResult:
 
 
 @dataclass
+class Judgment:
+    id: str
+    session_id: str
+    task_id: str
+    model: str
+    left_trial_id: str
+    right_trial_id: str
+    choice: str
+    rubric_correctness: str | None
+    rubric_minimality: str | None
+    rubric_readability: str | None
+    rubric_overengineering: str | None
+    created_at: str
+
+
+@dataclass
 class LeakageReport:
     hits: list[str]
     any_found: bool
 
 
-ALL_MODELS = (TaskSpec, SetupSpec, Trial, RunResult, CostRecord, GateResult, LeakageReport)
+ALL_MODELS = (TaskSpec, SetupSpec, Trial, RunResult, CostRecord, GateResult, Judgment, LeakageReport)

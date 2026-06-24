@@ -14,8 +14,9 @@ single **runner abstraction**. Each trial runs in a fresh `git worktree`; held-o
 tests live outside the worktree and are applied only at grade time, so test
 leakage is impossible by construction. Quality is a binary held-out-test gate
 followed by **blind pairwise forced-choice** ("A or B, which would I merge?").
-Cost is captured in native units (Claude Code self-reports USD; Copilot via a
-standalone token→USD calculator) and reconciled to a USD-equivalent.
+Cost is computed from token counts × published API rates (data-driven pricing
+table in `cost/pricing.toml`, updatable via `setup-bench pricing fetch`).
+Self-reported cost is kept as a secondary reference value.
 
 Concrete runners: `claude-code` (headless), `copilot-cli` (headless), and
 `manual` (human-in-IDE), plus `oracle`/`nop` for pipeline self-tests.
@@ -92,8 +93,29 @@ placement per harness:
 External packs vendored at pinned commits and frozen offline under `setups/<id>/vendor/`.
 Loader resolves any `(setup_id, harness)` pair into a `SetupSpec` — runners unchanged.
 
+**P1.6 complete** — matrix driver and run protocol fully wired. `cli.py run`
+expands Setup × Model × Task × Rep into trials via `core/matrix.py`, executes
+through `core/executor.py` with resumability (skips trials already in DB),
+configurable inter-trial delay for rate limiting, and a Rich live progress table.
+`--dry-run` prints the trial grid without executing.
+
+**P1.7 complete** — blind pairwise grading UI. FastAPI + single static page
+(`ui/`). For a chosen task + model, generates all C(N,2) pairwise comparisons
+among setups that passed the gate. Diffs shown side by side, anonymized (setup
+instruction file hunks stripped, setup IDs replaced). Keyboard-first: A/B/T to
+choose, arrows to navigate, R for optional 4-dim rubric notes (correctness,
+minimality, readability, over-engineering). Objective proxies (lines changed,
+files touched, new deps) shown alongside each diff. After grading, identities
+revealed with win/loss/tie summary. Judgments persisted in `judgment` table.
+Launch with `.\tasks.ps1 Grade` or `python cli.py grade`.
+
+**P3.2 complete** — cost calculation refactored. USD cost now computed from
+token counts × published API rates (`cost/pricing.toml`) instead of relying on
+Claude's self-reported `total_cost_usd`. Pricing table covers Anthropic and
+OpenAI models, fetchable from LiteLLM's open dataset via `setup-bench pricing
+fetch`. Manual overrides via `setup-bench pricing add`. Self-reported cost
+kept as `native_amount` for reference.
+
 ## Next up
-- [ ] Build the matrix driver (`P1.6`)
-- [ ] Build the pairwise grading UI (`P1.7`)
 - [ ] Run the Phase-1 model sweep × setup bake-off, then grade
 - [ ] Set the open knobs in `IMPLEMENTATION_PLAN.md` §7 before any measurement run

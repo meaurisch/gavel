@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
+import shutil
 import subprocess
 import time
 from pathlib import Path
 
 from core.models import CostRecord, RunResult, SetupSpec, TaskSpec, Trial
 from cost.claude_usage import ClaudeUsageParseError, parse_claude_output
+from cost.pricing import compute_api_rate_usd
 from runners.base import collect, lay_down_setup_files
 
 logger = logging.getLogger(__name__)
@@ -27,8 +29,12 @@ class ClaudeCodeRunner:
         self.last_cost = None
         start = time.monotonic()
 
+        claude_bin = shutil.which("claude")
+        if claude_bin is None:
+            raise FileNotFoundError("claude CLI not found on PATH")
+
         cmd = [
-            "claude",
+            claude_bin,
             "-p", self._task.instruction,
             "--output-format", "json",
             "--model", trial.model,
@@ -62,11 +68,17 @@ class ClaudeCodeRunner:
             logger.error("Trial %s: failed to parse Claude output: %s", trial.id, e)
 
         if usage is not None:
+            api_usd = compute_api_rate_usd(
+                trial.model,
+                usage.input_tokens,
+                usage.output_tokens,
+                usage.cache_read_tokens,
+            )
             self.last_cost = CostRecord(
                 trial_id=trial.id,
-                native_unit="usd_imputed",
+                native_unit="usd_self_reported",
                 native_amount=usage.total_cost_usd,
-                usd_equiv=usage.total_cost_usd,
+                usd_equiv=api_usd if api_usd is not None else usage.total_cost_usd,
                 input_tokens=usage.input_tokens,
                 output_tokens=usage.output_tokens,
                 cache_read_tokens=usage.cache_read_tokens,

@@ -130,7 +130,7 @@ def test_execute_success_mock(tiny_repo):
         assert result.wall_seconds >= 0
         assert runner.last_cost is not None
         assert runner.last_cost.input_tokens == 1000
-        assert runner.last_cost.native_unit == "usd_imputed"
+        assert runner.last_cost.native_unit == "usd_self_reported"
     finally:
         destroy_worktree(wt)
 

@@ -7,6 +7,7 @@ from pydantic import TypeAdapter
 from core.models import (
     CostRecord,
     GateResult,
+    Judgment,
     RunResult,
     SetupSpec,
     TaskSpec,
@@ -59,6 +60,21 @@ CREATE TABLE IF NOT EXISTS gate_result (
     trial_id TEXT PRIMARY KEY,
     passed INTEGER NOT NULL,
     test_output TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS judgment (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    task_id TEXT NOT NULL,
+    model TEXT NOT NULL,
+    left_trial_id TEXT NOT NULL,
+    right_trial_id TEXT NOT NULL,
+    choice TEXT NOT NULL,
+    rubric_correctness TEXT,
+    rubric_minimality TEXT,
+    rubric_readability TEXT,
+    rubric_overengineering TEXT,
+    created_at TEXT NOT NULL
 );
 """
 
@@ -183,3 +199,49 @@ def list_trials(conn: sqlite3.Connection) -> list[Trial]:
     rows = conn.execute("SELECT * FROM trial").fetchall()
     ta = TypeAdapter(Trial)
     return [ta.validate_python(dict(r)) for r in rows]
+
+
+# -- judgment --
+
+def insert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
+    conn.execute(
+        "INSERT INTO judgment VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (j.id, j.session_id, j.task_id, j.model, j.left_trial_id,
+         j.right_trial_id, j.choice, j.rubric_correctness,
+         j.rubric_minimality, j.rubric_readability,
+         j.rubric_overengineering, j.created_at),
+    )
+    conn.commit()
+
+
+def list_judgments(conn: sqlite3.Connection, session_id: str) -> list[Judgment]:
+    rows = conn.execute(
+        "SELECT * FROM judgment WHERE session_id = ?", (session_id,)
+    ).fetchall()
+    ta = TypeAdapter(Judgment)
+    return [ta.validate_python(dict(r)) for r in rows]
+
+
+# -- grading queries --
+
+def list_passing_trials(conn: sqlite3.Connection, task_id: str, model: str) -> list[Trial]:
+    rows = conn.execute(
+        """SELECT t.* FROM trial t
+           JOIN gate_result g ON t.id = g.trial_id
+           WHERE t.task_id = ? AND t.model = ? AND g.passed = 1""",
+        (task_id, model),
+    ).fetchall()
+    ta = TypeAdapter(Trial)
+    return [ta.validate_python(dict(r)) for r in rows]
+
+
+def list_grading_tasks(conn: sqlite3.Connection) -> list[dict]:
+    rows = conn.execute(
+        """SELECT t.task_id, t.model, COUNT(DISTINCT t.setup_id) as n_setups
+           FROM trial t
+           JOIN gate_result g ON t.id = g.trial_id
+           WHERE g.passed = 1
+           GROUP BY t.task_id, t.model
+           HAVING COUNT(DISTINCT t.setup_id) >= 2"""
+    ).fetchall()
+    return [dict(r) for r in rows]

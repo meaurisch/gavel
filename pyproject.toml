@@ -10,6 +10,8 @@ setup-bench = "cli:app"
 py-modules = ["cli"]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not integration'"
 markers = [
     "integration: requires external tools (claude CLI, network access)",
 ]

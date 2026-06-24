@@ -23,14 +23,18 @@ function Run {
 }
 
 function Watch {
-    # No long-running dev server for a benchmarking CLI; Watch re-runs the test
-    # suite on change once pytest exists. Placeholder until P0.1 lands.
-    Write-Host "Nothing to watch yet. After P0.1: ptw  (pytest-watch) or re-run Test." -ForegroundColor Yellow
+    if (Test-Path $venvActivate) { & $venvActivate }
+    pytest
 }
 
 function Test {
     if (Test-Path $venvActivate) { & $venvActivate }
     pytest
+}
+
+function Grade {
+    if (Test-Path $venvActivate) { & $venvActivate }
+    python cli.py grade @args
 }
 
 # Dispatch
