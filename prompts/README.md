@@ -41,17 +41,17 @@ Status reflects the current code state.
 | P1.5 | `P1.5-setup-packs.md` | 1 — methodology packs install/freeze + OFF ablation | P0.x | ✅ done |
 | P1.6 | `P1.6-matrix-driver.md` | 1 — matrix driver + run protocol | P1.4–P1.5 | ✅ done |
 | P1.7 | `P1.7-pairwise-ui.md` | 1 — blind pairwise grading UI (superseded — see P3.3 Part 3 + P3.5) | P1.6 | ✅ done |
-| P2.1 | `P2.1-copilot-runner.md` | 2 — Copilot CLI runner | Phase-1.5 spike | ⬜ pending |
-| P2.2 | `P2.2-copilot-usage-calculator.md` | 2 — standalone Copilot usage calculator | — | ⬜ pending |
+| P2.1 | `P2.1-copilot-runner.md` | 2 — Copilot CLI runner | **spike-gated** | ⬜ pending |
+| P2.2 | `P2.2-copilot-usage-calculator.md` | 2 — standalone Copilot usage calculator | **spike-gated** | ⬜ pending |
 | P3.0 | `P3.0-research-eval-frameworks.md` | 3 — research: eval frameworks + test-set design | — | ✅ done |
 | P3.1 | `P3.1-derive-implementation-prompts.md` | 3 — derive the P3.x prompts from the research | P3.0 | ✅ done |
 | P3.2 | `P3.2-cost-calculation.md` | 3 — API-rate cost (pricing table; self-report secondary) | None | ✅ done |
 | P3.3 | `P3.3-axis-refactor.md` | 3 — split setup → Methodology + Repo-Context (5-axis) | None (∥ P3.2) | ✅ Parts 1–2 done |
-| P3.3·3 | `P3.3-part3-grading-axis.md` | 3 — **axis-general** blind grading + UI axis picker | P3.3 Parts 1–2 | ▶️ **next** |
-| P3.4 | `P3.4-gate-system.md` | 3 — three-tier gate scorecard (compile → visible → hidden) | P3.3 | ⬜ pending |
-| P3.5 | `P3.5-multi-rep-pairwise.md` | 3 — multi-rep sampling + Bradley-Terry + analyzer (axis-general) | P3.4 | ⬜ pending |
-| P3.6 | `P3.6-test-set-quality.md` | 3 — task-set quality (discrimination band, difficulty, stronger tests) | P3.4 | ⬜ pending |
-| P3.7 | `P3.7-readme-rewrite.md` | 3 — README rewrite (last) | all P3.x | ⬜ pending |
+| P3.3·3 | `P3.3-part3-grading-axis.md` | 3 — **axis-general** blind grading + UI axis picker | P3.3 Parts 1–2 | ✅ done |
+| P3.4 | `P3.4-gate-system.md` | 3 — three-tier gate scorecard (compile → visible → hidden) | P3.3 | ✅ done |
+| P3.5 | `P3.5-multi-rep-pairwise.md` | 3 — multi-rep sampling + Bradley-Terry + analyzer (axis-general) | P3.4 | ✅ done |
+| P3.6 | `P3.6-test-set-quality.md` | 3 — task-set quality (discrimination band, difficulty, stronger tests) | P3.4 | ✅ done |
+| P3.7 | `P3.7-readme-rewrite.md` | 3 — README rewrite (last) | all P3.x | ✅ done |
 
 **`P3-aggregation-report.md` (the original single "P3"):** folded into the P3.x
 series. Its pairwise win-matrix / preponderance ranking is **superseded by P3.5**
