@@ -176,14 +176,22 @@ shown as indistinguishable) plus colored analyzer callouts. Covered by
 `tests/test_pairwise.py` / `tests/test_db.py` / `tests/test_server.py`
 (107 tests green).
 
+**P3.6 complete** — task-set quality tooling and guidance. Tasks now carry a
+`difficulty` field (`easy` / `medium` / `hard`) in `task.yaml`, stored in the DB
+and validated by the model layer. `scripts/calibrate_tasks.py` computes per-task
+pass rates from the results DB, bands them into the 30–70% discrimination window,
+and flags ceiling/floor effects. `scripts/validate_tasks.py --validate-transitions`
+checks FAIL_TO_PASS / PASS_TO_PASS / build-gate correctness per task against the
+clean base commit and gold patch (requires WSL). `docs/task-design-guide.md`
+distills the evaluation-framework research into actionable rules for writing
+discriminative tasks (119 tests green).
+
 ## Next up
 
 The remaining `prompts/`, in order — grading is axis-general with BT ranking
 (P3.3, P3.5 done):
 
 - [ ] **P3.4** — three-tier gate scorecard (compile → visible → hidden).
-- [ ] **P3.6** — task-set quality (30–70% discrimination band, difficulty
-      labels, stronger hidden tests).
 - [ ] **P3.7** — README rewrite (last, describing the actual final system).
 - [ ] Then: run the Phase-1 model sweep × methodology bake-off, grade, and set
       the open knobs in `IMPLEMENTATION_PLAN.md` §7 before any measurement run.
