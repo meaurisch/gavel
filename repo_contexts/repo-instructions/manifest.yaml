@@ -1,5 +1,6 @@
 id: repo-instructions
 description: "User's own repo-specific instructions (no external pack)"
+task_affinity: []  # empty = applies to all tasks
 harnesses:
   claude-code:
     - src: content/CLAUDE.md

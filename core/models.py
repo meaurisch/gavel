@@ -20,10 +20,17 @@ class MethodologySpec:
 
 
 @dataclass
+class RepoContextSpec:
+    id: str
+    files: dict[str, list[str]]
+
+
+@dataclass
 class Trial:
     id: str
     task_id: str
     methodology_id: str
+    repo_context_id: str
     model: str
     runner: str
     rep: int
@@ -77,4 +84,4 @@ class LeakageReport:
     any_found: bool
 
 
-ALL_MODELS = (TaskSpec, MethodologySpec, Trial, RunResult, CostRecord, GateResult, Judgment, LeakageReport)
+ALL_MODELS = (TaskSpec, MethodologySpec, RepoContextSpec, Trial, RunResult, CostRecord, GateResult, Judgment, LeakageReport)

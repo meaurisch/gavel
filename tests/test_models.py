@@ -5,6 +5,7 @@ from core.models import (
     GateResult,
     LeakageReport,
     MethodologySpec,
+    RepoContextSpec,
     RunResult,
     TaskSpec,
     Trial,
@@ -38,11 +39,23 @@ def test_methodology_spec_roundtrip():
     assert restored == obj
 
 
+def test_repo_context_spec_roundtrip():
+    obj = RepoContextSpec(
+        id="repo-instructions",
+        files={"CLAUDE.md": ["# Repo rules", "Be concise"]},
+    )
+    ta = TypeAdapter(RepoContextSpec)
+    data = ta.dump_python(obj)
+    restored = ta.validate_python(data)
+    assert restored == obj
+
+
 def test_trial_roundtrip():
     obj = Trial(
-        id="cosmos-001_vanilla_claude-3-5-sonnet_claude-code_0",
+        id="cosmos-001_vanilla_none_claude-3-5-sonnet_claude-code_0",
         task_id="cosmos-001",
         methodology_id="vanilla",
+        repo_context_id="none",
         model="claude-3-5-sonnet",
         runner="claude-code",
         rep=0,

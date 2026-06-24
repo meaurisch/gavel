@@ -15,6 +15,7 @@ from core.db import (
 from core.matrix import HARNESS_MAP
 from core.models import CostRecord, Trial
 from core.methodology_loader import load_methodology
+from core.repo_context_loader import load_repo_context
 from core.task_loader import load_task, resolve_repo_path
 from core.worktree import create_worktree, destroy_worktree
 from grading.gate import apply as gate_apply
@@ -52,6 +53,7 @@ def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
     task = load_task(trial.task_id)
     harness = HARNESS_MAP.get(trial.runner, "claude-code")
     methodology = load_methodology(trial.methodology_id, harness)
+    repo_context = load_repo_context(trial.repo_context_id, harness)
     repo_path = resolve_repo_path(task)
 
     wt_path = None
@@ -59,7 +61,7 @@ def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
         wt_path = create_worktree(repo_path, task.base_commit)
 
         runner = make_runner(trial.runner, task)
-        runner.prepare(trial, wt_path, methodology)
+        runner.prepare(trial, wt_path, methodology, repo_context)
         run_result = runner.execute(trial, wt_path)
         summary["wall_seconds"] = run_result.wall_seconds
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from core.models import MethodologySpec, TaskSpec, Trial
+from core.models import MethodologySpec, RepoContextSpec, TaskSpec, Trial
 from core.worktree import create_worktree, destroy_worktree
 from grading.gate import apply
 from grading.leakage import scan
@@ -71,6 +71,7 @@ def _make_task(tiny_repo, held_out_dir, tmp_path) -> TaskSpec:
 
 
 METHODOLOGY = MethodologySpec(id="off", files={})
+REPO_CONTEXT = RepoContextSpec(id="none", files={})
 
 
 # --- gate tests ---
@@ -78,11 +79,11 @@ METHODOLOGY = MethodologySpec(id="off", files={})
 
 def test_gate_passes_for_oracle(tiny_repo, held_out_dir, tmp_path):
     task = _make_task(tiny_repo, held_out_dir, tmp_path)
-    trial = Trial(id="t-oracle", task_id="test-task", methodology_id="off", model="none", runner="oracle", rep=0)
+    trial = Trial(id="t-oracle", task_id="test-task", methodology_id="off", repo_context_id="none", model="none", runner="oracle", rep=0)
     wt = create_worktree(tiny_repo, task.base_commit)
     try:
         runner = OracleRunner(task)
-        runner.prepare(trial, wt, METHODOLOGY)
+        runner.prepare(trial, wt, METHODOLOGY, REPO_CONTEXT)
         runner.execute(trial, wt)
         result = apply(trial, wt, task)
         assert result.passed is True
@@ -94,11 +95,11 @@ def test_gate_passes_for_oracle(tiny_repo, held_out_dir, tmp_path):
 
 def test_gate_fails_for_nop(tiny_repo, held_out_dir, tmp_path):
     task = _make_task(tiny_repo, held_out_dir, tmp_path)
-    trial = Trial(id="t-nop", task_id="test-task", methodology_id="off", model="none", runner="nop", rep=0)
+    trial = Trial(id="t-nop", task_id="test-task", methodology_id="off", repo_context_id="none", model="none", runner="nop", rep=0)
     wt = create_worktree(tiny_repo, task.base_commit)
     try:
         runner = NopRunner()
-        runner.prepare(trial, wt, METHODOLOGY)
+        runner.prepare(trial, wt, METHODOLOGY, REPO_CONTEXT)
         runner.execute(trial, wt)
         result = apply(trial, wt, task)
         assert result.passed is False
@@ -110,7 +111,7 @@ def test_gate_fails_for_nop(tiny_repo, held_out_dir, tmp_path):
 
 def test_gate_asserts_held_out_absent(tiny_repo, held_out_dir, tmp_path):
     task = _make_task(tiny_repo, held_out_dir, tmp_path)
-    trial = Trial(id="t-cheat", task_id="test-task", methodology_id="off", model="none", runner="nop", rep=0)
+    trial = Trial(id="t-cheat", task_id="test-task", methodology_id="off", repo_context_id="none", model="none", runner="nop", rep=0)
     wt = create_worktree(tiny_repo, task.base_commit)
     try:
         (wt / "tests").mkdir()

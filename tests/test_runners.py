@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from core.models import MethodologySpec, RunResult, TaskSpec, Trial
+from core.models import MethodologySpec, RepoContextSpec, RunResult, TaskSpec, Trial
 from core.worktree import create_worktree, destroy_worktree
 from runners.base import Runner, collect
 from runners.nop import NopRunner
@@ -56,11 +56,11 @@ def test_collect_captures_new_files(tiny_repo: Path):
 def test_nop_produces_empty_diff(tiny_repo: Path):
     commit = head_commit(tiny_repo)
     methodology = MethodologySpec(id="off", files={})
-    trial = Trial(id="t-nop", task_id="test-task", methodology_id="off", model="none", runner="nop", rep=0)
+    trial = Trial(id="t-nop", task_id="test-task", methodology_id="off", repo_context_id="none", model="none", runner="nop", rep=0)
     wt = create_worktree(tiny_repo, commit)
     try:
         runner = NopRunner()
-        runner.prepare(trial, wt, methodology)
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
         result = runner.execute(trial, wt)
         assert result.exit_status == 0
         assert result.diff == ""
@@ -91,11 +91,11 @@ def test_oracle_produces_expected_diff(tiny_repo: Path, tmp_path: Path):
         reference_diff_path=str(ref_diff),
     )
     methodology = MethodologySpec(id="off", files={})
-    trial = Trial(id="t-oracle", task_id="test-task", methodology_id="off", model="none", runner="oracle", rep=0)
+    trial = Trial(id="t-oracle", task_id="test-task", methodology_id="off", repo_context_id="none", model="none", runner="oracle", rep=0)
     wt = create_worktree(tiny_repo, commit)
     try:
         runner = OracleRunner(task)
-        runner.prepare(trial, wt, methodology)
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
         result = runner.execute(trial, wt)
         assert result.exit_status == 0
         assert "-hello" in result.diff
@@ -111,17 +111,46 @@ def test_oracle_produces_expected_diff(tiny_repo: Path, tmp_path: Path):
 def test_prepare_lays_down_methodology_files(tiny_repo: Path):
     commit = head_commit(tiny_repo)
     methodology = MethodologySpec(id="vanilla", files={"CLAUDE.md": ["# Instructions", "Do the thing"]})
-    trial = Trial(id="t-methodology", task_id="test-task", methodology_id="vanilla", model="none", runner="nop", rep=0)
+    trial = Trial(id="t-methodology", task_id="test-task", methodology_id="vanilla", repo_context_id="none", model="none", runner="nop", rep=0)
     wt = create_worktree(tiny_repo, commit)
     try:
         runner = NopRunner()
-        runner.prepare(trial, wt, methodology)
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
         assert (wt / "CLAUDE.md").exists()
         content = (wt / "CLAUDE.md").read_text()
         assert "# Instructions" in content
         assert "Do the thing" in content
         result = runner.execute(trial, wt)
         assert result.diff == ""
+    finally:
+        destroy_worktree(wt)
+
+
+# --- repo context + methodology layering ---
+
+def _commit_count(repo: Path) -> int:
+    out = subprocess.run(
+        ["git", "rev-list", "--count", "HEAD"],
+        cwd=str(repo), check=True, capture_output=True, text=True,
+    )
+    return int(out.stdout.strip())
+
+
+def test_prepare_lays_context_under_methodology(tiny_repo: Path):
+    commit = head_commit(tiny_repo)
+    methodology = MethodologySpec(id="vanilla", files={"CLAUDE.md": ["# Methodology"]})
+    repo_context = RepoContextSpec(id="repo-instructions", files={"README-rules.md": ["# Repo rules"]})
+    trial = Trial(id="t-layer", task_id="test-task", methodology_id="vanilla", repo_context_id="repo-instructions", model="none", runner="nop", rep=0)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        before = _commit_count(wt)
+        runner = NopRunner()
+        runner.prepare(trial, wt, methodology, repo_context)
+        # both files present
+        assert (wt / "CLAUDE.md").read_text().strip() == "# Methodology"
+        assert (wt / "README-rules.md").read_text().strip() == "# Repo rules"
+        # two separate commits: context first, methodology second
+        assert _commit_count(wt) == before + 2
     finally:
         destroy_worktree(wt)
 

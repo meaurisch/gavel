@@ -7,12 +7,14 @@ from core.db import (
     get_cost_record,
     get_gate_result,
     get_methodology_spec,
+    get_repo_context_spec,
     get_run_result,
     get_task_spec,
     get_trial,
     insert_cost_record,
     insert_gate_result,
     insert_methodology_spec,
+    insert_repo_context_spec,
     insert_run_result,
     insert_task_spec,
     insert_trial,
@@ -23,6 +25,7 @@ from core.models import (
     CostRecord,
     GateResult,
     MethodologySpec,
+    RepoContextSpec,
     RunResult,
     TaskSpec,
     Trial,
@@ -60,11 +63,26 @@ def test_methodology_spec_insert_read(conn):
     assert got == obj
 
 
+def test_repo_context_spec_insert_read(conn):
+    obj = RepoContextSpec(
+        id="repo-instructions",
+        files={"CLAUDE.md": ["# Repo rules", "Be concise"]},
+    )
+    insert_repo_context_spec(conn, obj)
+    got = get_repo_context_spec(conn, "repo-instructions")
+    assert got == obj
+
+
+def test_repo_context_spec_missing_returns_none(conn):
+    assert get_repo_context_spec(conn, "nope") is None
+
+
 def test_trial_insert_read(conn):
     obj = Trial(
         id="t-001",
         task_id="cosmos-001",
         methodology_id="vanilla",
+        repo_context_id="none",
         model="claude-3-5-sonnet",
         runner="claude-code",
         rep=0,
@@ -118,6 +136,7 @@ def test_append_only_reinsert_raises(conn):
         id="t-dup",
         task_id="cosmos-001",
         methodology_id="vanilla",
+        repo_context_id="none",
         model="claude-3-5-sonnet",
         runner="claude-code",
         rep=0,
@@ -133,6 +152,7 @@ def test_trial_exists(conn):
         id="t-exists",
         task_id="cosmos-001",
         methodology_id="vanilla",
+        repo_context_id="none",
         model="claude-3-5-sonnet",
         runner="claude-code",
         rep=0,
@@ -143,8 +163,8 @@ def test_trial_exists(conn):
 
 def test_list_trials(conn):
     assert list_trials(conn) == []
-    t1 = Trial(id="t-1", task_id="c1", methodology_id="v", model="m", runner="r", rep=0)
-    t2 = Trial(id="t-2", task_id="c2", methodology_id="v", model="m", runner="r", rep=1)
+    t1 = Trial(id="t-1", task_id="c1", methodology_id="v", repo_context_id="none", model="m", runner="r", rep=0)
+    t2 = Trial(id="t-2", task_id="c2", methodology_id="v", repo_context_id="none", model="m", runner="r", rep=1)
     insert_trial(conn, t1)
     insert_trial(conn, t2)
     trials = list_trials(conn)

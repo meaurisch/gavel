@@ -4,12 +4,18 @@ import subprocess
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from core.models import MethodologySpec, RunResult, Trial
+from core.models import MethodologySpec, RepoContextSpec, RunResult, Trial
 
 
 @runtime_checkable
 class Runner(Protocol):
-    def prepare(self, trial: Trial, worktree_path: Path, methodology: MethodologySpec) -> None: ...
+    def prepare(
+        self,
+        trial: Trial,
+        worktree_path: Path,
+        methodology: MethodologySpec,
+        repo_context: RepoContextSpec,
+    ) -> None: ...
     def execute(self, trial: Trial, worktree_path: Path) -> RunResult: ...
 
 

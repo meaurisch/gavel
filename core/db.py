@@ -9,6 +9,7 @@ from core.models import (
     GateResult,
     Judgment,
     MethodologySpec,
+    RepoContextSpec,
     RunResult,
     TaskSpec,
     Trial,
@@ -30,10 +31,16 @@ CREATE TABLE IF NOT EXISTS methodology_spec (
     files TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS repo_context_spec (
+    id TEXT PRIMARY KEY,
+    files TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS trial (
     id TEXT PRIMARY KEY,
     task_id TEXT NOT NULL,
     methodology_id TEXT NOT NULL,
+    repo_context_id TEXT NOT NULL,
     model TEXT NOT NULL,
     runner TEXT NOT NULL,
     rep INTEGER NOT NULL
@@ -109,10 +116,18 @@ def insert_methodology_spec(conn: sqlite3.Connection, s: MethodologySpec) -> Non
     conn.commit()
 
 
+def insert_repo_context_spec(conn: sqlite3.Connection, s: RepoContextSpec) -> None:
+    conn.execute(
+        "INSERT INTO repo_context_spec VALUES (?, ?)",
+        (s.id, json.dumps(s.files)),
+    )
+    conn.commit()
+
+
 def insert_trial(conn: sqlite3.Connection, t: Trial) -> None:
     conn.execute(
-        "INSERT INTO trial VALUES (?, ?, ?, ?, ?, ?)",
-        (t.id, t.task_id, t.methodology_id, t.model, t.runner, t.rep),
+        "INSERT INTO trial VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (t.id, t.task_id, t.methodology_id, t.repo_context_id, t.model, t.runner, t.rep),
     )
     conn.commit()
 
@@ -158,6 +173,15 @@ def get_methodology_spec(conn: sqlite3.Connection, id: str) -> MethodologySpec |
     d = dict(row)
     d["files"] = json.loads(d["files"])
     return TypeAdapter(MethodologySpec).validate_python(d)
+
+
+def get_repo_context_spec(conn: sqlite3.Connection, id: str) -> RepoContextSpec | None:
+    row = conn.execute("SELECT * FROM repo_context_spec WHERE id = ?", (id,)).fetchone()
+    if row is None:
+        return None
+    d = dict(row)
+    d["files"] = json.loads(d["files"])
+    return TypeAdapter(RepoContextSpec).validate_python(d)
 
 
 def get_trial(conn: sqlite3.Connection, id: str) -> Trial | None:
@@ -237,11 +261,12 @@ def list_passing_trials(conn: sqlite3.Connection, task_id: str, model: str) -> l
 
 def list_grading_tasks(conn: sqlite3.Connection) -> list[dict]:
     rows = conn.execute(
-        """SELECT t.task_id, t.model, COUNT(DISTINCT t.methodology_id) as n_methodologies
+        """SELECT t.task_id, t.model, t.repo_context_id,
+                  COUNT(DISTINCT t.methodology_id) as n_methodologies
            FROM trial t
            JOIN gate_result g ON t.id = g.trial_id
            WHERE g.passed = 1
-           GROUP BY t.task_id, t.model
+           GROUP BY t.task_id, t.model, t.repo_context_id
            HAVING COUNT(DISTINCT t.methodology_id) >= 2"""
     ).fetchall()
     return [dict(r) for r in rows]

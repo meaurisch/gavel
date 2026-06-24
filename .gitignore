@@ -38,4 +38,5 @@ results.db-journal
 repos/
 worktrees/
 methodologies/**/vendor/
+repo_contexts/**/vendor/
 *.log

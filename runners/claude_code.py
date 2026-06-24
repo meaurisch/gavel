@@ -6,7 +6,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from core.models import CostRecord, MethodologySpec, RunResult, TaskSpec, Trial
+from core.models import CostRecord, MethodologySpec, RepoContextSpec, RunResult, TaskSpec, Trial
 from cost.claude_usage import ClaudeUsageParseError, parse_claude_output
 from cost.pricing import compute_api_rate_usd
 from runners.base import collect, lay_down_files
@@ -22,7 +22,14 @@ class ClaudeCodeRunner:
         self._max_turns = max_turns
         self.last_cost: CostRecord | None = None
 
-    def prepare(self, trial: Trial, worktree_path: Path, methodology: MethodologySpec) -> None:
+    def prepare(
+        self,
+        trial: Trial,
+        worktree_path: Path,
+        methodology: MethodologySpec,
+        repo_context: RepoContextSpec,
+    ) -> None:
+        lay_down_files(worktree_path, repo_context.files, "setup-bench: lay down repo context files")
         lay_down_files(worktree_path, methodology.files, "setup-bench: lay down methodology files")
 
     def execute(self, trial: Trial, worktree_path: Path) -> RunResult:

@@ -9,8 +9,13 @@ public proxy repos, with a minimal manual confirmation tier on the work machine.
 
 ## What it is
 
-Four independent, swappable axes — Harness × Model × Setup × Task — sitting on a
-single **runner abstraction**. Each trial runs in a fresh `git worktree`; held-out
+Five independent, swappable axes — Task × Methodology × Repo-Context × Model ×
+Runner (harness) — sitting on a single **runner abstraction**. The *methodology*
+(instruction / skill pack) is the thing under test; the *repo-context* is a fixed
+controlled environment (repo-specific instructions) laid into the worktree
+**under** the methodology — applied sequentially, never merged. Repo-contexts
+carry a `task_affinity` tag so nonsensical task/context pairs are skipped by
+default (override with `--full-matrix`). Each trial runs in a fresh `git worktree`; held-out
 tests live outside the worktree and are applied only at grade time, so test
 leakage is impossible by construction. Quality is a binary held-out-test gate
 followed by **blind pairwise forced-choice** ("A or B, which would I merge?").
@@ -116,6 +121,23 @@ OpenAI models, fetchable from LiteLLM's open dataset via `setup-bench pricing
 fetch`. Manual overrides via `setup-bench pricing add`. Self-reported cost
 kept as `native_amount` for reference.
 
+**P3.3 Part 2 complete** — added the **Repo-Context** axis (backend). The matrix
+is now 5-axis: `expand()` takes `repo_contexts` and a `full_matrix` flag, and
+trial ids are `{task}_{methodology}_{repo_context}_{model}_{runner}_{rep}`.
+Repo-contexts live in `repo_contexts/` (migrated from `setups/repo-instructions`),
+each with a manifest carrying `task_affinity`; `none` is the noop ablation
+control. Runners lay repo-context files first, methodology files second (two
+commits). New `core/repo_context_loader.py` mirrors the methodology loader;
+`core/db.py` gains a `repo_context_spec` table and a `repo_context_id` column on
+`trial`. CLI gains `--repo-context`, `--full-matrix`, a "Context" grid column,
+and a warning when `baseline` is omitted. Grading/UI wiring of the new axis is
+Part 3.
+
+> **DB break:** the `trial` table schema changed (new `repo_context_id` column)
+> with no migration — delete any pre-existing `results.db` (or migrate it by
+> hand) before running.
+
 ## Next up
-- [ ] Run the Phase-1 model sweep × setup bake-off, then grade
+- [ ] P3.3 Part 3 — wire repo-context through pairwise grouping + grading UI
+- [ ] Run the Phase-1 model sweep × methodology bake-off, then grade
 - [ ] Set the open knobs in `IMPLEMENTATION_PLAN.md` §7 before any measurement run

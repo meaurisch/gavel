@@ -41,7 +41,7 @@ def test_make_runner_unknown():
 
 def test_execute_all_skips_existing(tmp_path):
     conn = connect(tmp_path / "test.db")
-    trial = Trial(id="t-1", task_id="t", methodology_id="s", model="m", runner="nop", rep=0)
+    trial = Trial(id="t-1", task_id="t", methodology_id="s", repo_context_id="none", model="m", runner="nop", rep=0)
     insert_trial(conn, trial)
 
     results = execute_all([trial], conn)

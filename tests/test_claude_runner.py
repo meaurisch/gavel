@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.models import CostRecord, MethodologySpec, RunResult, TaskSpec, Trial
+from core.models import CostRecord, MethodologySpec, RepoContextSpec, RunResult, TaskSpec, Trial
 from core.worktree import create_worktree, destroy_worktree
 from cost.claude_usage import ClaudeUsageParseError, ClaudeUsageResult, parse_claude_output
 from runners.base import Runner
@@ -23,7 +23,7 @@ def _make_task() -> TaskSpec:
 
 
 def _make_trial() -> Trial:
-    return Trial(id="t-cc", task_id="t", methodology_id="off", model="claude-sonnet-4-20250514", runner="claude_code", rep=0)
+    return Trial(id="t-cc", task_id="t", methodology_id="off", repo_context_id="none", model="claude-sonnet-4-20250514", runner="claude_code", rep=0)
 
 
 def _valid_claude_json(result: str = "Done", cost: float = 0.05, input_t: int = 1000, output_t: int = 500, cache_t: int = 200) -> str:
@@ -115,7 +115,7 @@ def test_execute_success_mock(tiny_repo):
         trial = _make_trial()
         runner = ClaudeCodeRunner(task)
         methodology = MethodologySpec(id="off", files={})
-        runner.prepare(trial, wt, methodology)
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
 
         mock_proc = MagicMock()
         mock_proc.returncode = 0
@@ -143,7 +143,7 @@ def test_execute_nonzero_exit_mock(tiny_repo):
         trial = _make_trial()
         runner = ClaudeCodeRunner(task)
         methodology = MethodologySpec(id="off", files={})
-        runner.prepare(trial, wt, methodology)
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
 
         mock_proc = MagicMock()
         mock_proc.returncode = 1
@@ -167,7 +167,7 @@ def test_execute_empty_result_overrides_exit(tiny_repo):
         trial = _make_trial()
         runner = ClaudeCodeRunner(task)
         methodology = MethodologySpec(id="off", files={})
-        runner.prepare(trial, wt, methodology)
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
 
         mock_proc = MagicMock()
         mock_proc.returncode = 0
@@ -192,7 +192,7 @@ def test_last_cost_none_on_parse_failure(tiny_repo):
         trial = _make_trial()
         runner = ClaudeCodeRunner(task)
         methodology = MethodologySpec(id="off", files={})
-        runner.prepare(trial, wt, methodology)
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
 
         mock_proc = MagicMock()
         mock_proc.returncode = 0
@@ -221,10 +221,10 @@ def test_smoke_real_claude(tiny_repo):
             instruction="Create a file called output.txt containing the word 'done'",
             run_cmd="echo ok", held_out_tests_path="x", reference_diff_path="x",
         )
-        trial = Trial(id="t-smoke", task_id="smoke", methodology_id="off", model="claude-sonnet-4-20250514", runner="claude_code", rep=0)
+        trial = Trial(id="t-smoke", task_id="smoke", methodology_id="off", repo_context_id="none", model="claude-sonnet-4-20250514", runner="claude_code", rep=0)
         methodology = MethodologySpec(id="off", files={})
         runner = ClaudeCodeRunner(task, max_turns=5)
-        runner.prepare(trial, wt, methodology)
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
         result = runner.execute(trial, wt)
 
         assert runner.last_cost is not None
