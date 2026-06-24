@@ -177,6 +177,47 @@ def test_list_trials(conn):
     assert ids == {"t-1", "t-2"}
 
 
+def test_task_spec_difficulty_insert_read(conn):
+    obj = TaskSpec(
+        id="cosmos-001",
+        repo_url="https://github.com/example/cosmos",
+        base_commit="abc123",
+        instruction="Fix the broken import",
+        run_cmd="pytest tests/",
+        held_out_tests_path="tests/test_hidden.py",
+        reference_diff_path="diffs/cosmos-001.patch",
+        difficulty="hard",
+    )
+    insert_task_spec(conn, obj)
+    got = get_task_spec(conn, "cosmos-001")
+    assert got == obj
+    assert got.difficulty == "hard"
+
+
+def test_init_schema_migrates_legacy_task_spec(tmp_path):
+    # A DB created before build_cmd/visible_test_cmd/difficulty existed.
+    db_path = tmp_path / "legacy.db"
+    raw = sqlite3.connect(str(db_path))
+    raw.execute(
+        """CREATE TABLE task_spec (
+            id TEXT PRIMARY KEY, repo_url TEXT NOT NULL, base_commit TEXT NOT NULL,
+            instruction TEXT NOT NULL, run_cmd TEXT NOT NULL,
+            held_out_tests_path TEXT NOT NULL, reference_diff_path TEXT NOT NULL)"""
+    )
+    raw.execute(
+        "INSERT INTO task_spec VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("legacy", "url", "abc", "do it", "pytest", "tests/", "ref.diff"),
+    )
+    raw.commit()
+    raw.close()
+
+    conn = connect(db_path)  # connect() -> init_schema() must migrate
+    got = get_task_spec(conn, "legacy")
+    assert got.difficulty is None
+    assert got.build_cmd is None
+    assert got.visible_test_cmd is None
+
+
 def test_list_cell_trials_includes_failing(conn):
     # one cell (task=c1, model=m), two methodologies, mix of pass/fail
     trials = [

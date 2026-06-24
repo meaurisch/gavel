@@ -108,6 +108,36 @@ def test_gate_result_roundtrip():
     assert restored == obj
 
 
+def test_task_spec_difficulty_roundtrip():
+    obj = TaskSpec(
+        id="cosmos-001",
+        repo_url="https://github.com/example/cosmos",
+        base_commit="abc123",
+        instruction="Fix the broken import in main.py",
+        run_cmd="pytest tests/",
+        held_out_tests_path="tests/test_hidden.py",
+        reference_diff_path="diffs/cosmos-001.patch",
+        difficulty="medium",
+    )
+    ta = TypeAdapter(TaskSpec)
+    restored = ta.validate_python(ta.dump_python(obj))
+    assert restored == obj
+    assert restored.difficulty == "medium"
+
+
+def test_task_spec_difficulty_defaults_none():
+    obj = TaskSpec(
+        id="cosmos-002",
+        repo_url="https://github.com/example/cosmos",
+        base_commit="abc123",
+        instruction="x",
+        run_cmd="pytest",
+        held_out_tests_path="tests/",
+        reference_diff_path="d.patch",
+    )
+    assert obj.difficulty is None
+
+
 def test_leakage_report_roundtrip():
     obj = LeakageReport(
         hits=["src/main.py:42", "comment src/util.py:10", "git-log:7"],
