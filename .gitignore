@@ -37,5 +37,5 @@ results.db
 results.db-journal
 repos/
 worktrees/
-setups/**/vendor/
+methodologies/**/vendor/
 *.log

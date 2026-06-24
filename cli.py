@@ -10,7 +10,7 @@ from core.db import connect
 from core.executor import execute_all
 from core.matrix import expand
 from core.models import Trial
-from core.setup_loader import list_setups
+from core.methodology_loader import list_methodologies
 from core.task_loader import list_tasks
 
 app = typer.Typer(no_args_is_help=True)
@@ -23,19 +23,19 @@ def _grid_table(trials: list[Trial]) -> Table:
     table = Table(title="Trial Grid")
     table.add_column("Trial ID", style="cyan")
     table.add_column("Task")
-    table.add_column("Setup")
+    table.add_column("Methodology")
     table.add_column("Model")
     table.add_column("Runner")
     table.add_column("Rep", justify="right")
     for t in trials:
-        table.add_row(t.id, t.task_id, t.setup_id, t.model, t.runner, str(t.rep))
+        table.add_row(t.id, t.task_id, t.methodology_id, t.model, t.runner, str(t.rep))
     return table
 
 
 def _progress_table(trials: list[Trial], results: dict[str, dict]) -> Table:
     table = Table(title="Execution Progress")
     table.add_column("Trial", style="cyan", max_width=60)
-    table.add_column("Setup")
+    table.add_column("Methodology")
     table.add_column("Model")
     table.add_column("Status")
     table.add_column("Gate", justify="center")
@@ -46,17 +46,17 @@ def _progress_table(trials: list[Trial], results: dict[str, dict]) -> Table:
     for t in trials:
         s = results.get(t.id)
         if s is None:
-            table.add_row(t.id, t.setup_id, t.model, "[dim]pending[/]", "", "", "", "")
+            table.add_row(t.id, t.methodology_id, t.model, "[dim]pending[/]", "", "", "", "")
         elif s.get("skipped"):
-            table.add_row(t.id, t.setup_id, t.model, "[yellow]skipped[/]", "", "", "", "")
+            table.add_row(t.id, t.methodology_id, t.model, "[yellow]skipped[/]", "", "", "", "")
         elif s.get("error"):
-            table.add_row(t.id, t.setup_id, t.model, "[red]ERROR[/]", "", "", "", "")
+            table.add_row(t.id, t.methodology_id, t.model, "[red]ERROR[/]", "", "", "", "")
         else:
             gate = "[green]PASS[/]" if s["passed"] else "[red]FAIL[/]"
             usd = f"${s['usd']:.3f}" if s["usd"] else ""
             tokens = f"{s['tokens']:,}" if s["tokens"] else ""
             wall = f"{s['wall_seconds']:.1f}"
-            table.add_row(t.id, t.setup_id, t.model, "[green]done[/]", gate, usd, tokens, wall)
+            table.add_row(t.id, t.methodology_id, t.model, "[green]done[/]", gate, usd, tokens, wall)
 
     return table
 
@@ -64,7 +64,7 @@ def _progress_table(trials: list[Trial], results: dict[str, dict]) -> Table:
 @app.command()
 def run(
     task: str = typer.Option("all", help="Task ID or 'all'"),
-    setup: str = typer.Option("all", help="Setup ID or 'all'"),
+    methodology: str = typer.Option("all", help="Methodology ID or 'all'"),
     model: str = typer.Option("", help="Comma-separated model IDs"),
     runner: str = typer.Option("claude-code", help="Runner name"),
     reps: int = typer.Option(3, help="Repetitions per cell"),
@@ -80,7 +80,7 @@ def run(
     )
 
     tasks = list_tasks() if task == "all" else [task]
-    setups = list_setups() if setup == "all" else [setup]
+    methodologies = list_methodologies() if methodology == "all" else [methodology]
     models = [m.strip() for m in model.split(",") if m.strip()]
 
     if not models:
@@ -91,13 +91,13 @@ def run(
         console.print("[red]Error: no tasks found[/]")
         raise typer.Exit(code=2)
 
-    trials = expand(tasks, setups, models, runner, reps)
+    trials = expand(tasks, methodologies, models, runner, reps)
 
     if not trials:
-        console.print("[yellow]No trials to run (setup/harness filtering removed all combinations)[/]")
+        console.print("[yellow]No trials to run (methodology/harness filtering removed all combinations)[/]")
         raise typer.Exit(code=0)
 
-    console.print(f"\n[bold]{len(trials)} trials[/] = {len(tasks)} tasks x {len(set(t.setup_id for t in trials))} setups x {len(models)} models x {reps} reps\n")
+    console.print(f"\n[bold]{len(trials)} trials[/] = {len(tasks)} tasks x {len(set(t.methodology_id for t in trials))} methodologies x {len(models)} models x {reps} reps\n")
 
     if dry_run:
         console.print(_grid_table(trials))

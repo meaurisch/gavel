@@ -4,8 +4,8 @@ from core.models import (
     CostRecord,
     GateResult,
     LeakageReport,
+    MethodologySpec,
     RunResult,
-    SetupSpec,
     TaskSpec,
     Trial,
 )
@@ -27,12 +27,12 @@ def test_task_spec_roundtrip():
     assert restored == obj
 
 
-def test_setup_spec_roundtrip():
-    obj = SetupSpec(
+def test_methodology_spec_roundtrip():
+    obj = MethodologySpec(
         id="vanilla",
         files={"pyproject.toml": ["[tool.pytest.ini_options]", "minversion = '8'"]},
     )
-    ta = TypeAdapter(SetupSpec)
+    ta = TypeAdapter(MethodologySpec)
     data = ta.dump_python(obj)
     restored = ta.validate_python(data)
     assert restored == obj
@@ -42,7 +42,7 @@ def test_trial_roundtrip():
     obj = Trial(
         id="cosmos-001_vanilla_claude-3-5-sonnet_claude-code_0",
         task_id="cosmos-001",
-        setup_id="vanilla",
+        methodology_id="vanilla",
         model="claude-3-5-sonnet",
         runner="claude-code",
         rep=0,

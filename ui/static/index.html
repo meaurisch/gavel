@@ -401,7 +401,7 @@
     <h1 id="reveal-title">Results</h1>
     <h2>Summary</h2>
     <table class="reveal-table" id="summary-table">
-      <thead><tr><th>Setup</th><th>Wins</th><th>Losses</th><th>Ties</th></tr></thead>
+      <thead><tr><th>Methodology</th><th>Wins</th><th>Losses</th><th>Ties</th></tr></thead>
       <tbody></tbody>
     </table>
     <h2>Detail</h2>
@@ -731,9 +731,9 @@
       const summaryBody = document.querySelector('#summary-table tbody');
       summaryBody.innerHTML = '';
       const entries = Object.entries(data.summary).sort((a, b) => b[1].wins - a[1].wins);
-      for (const [setup, rec] of entries) {
+      for (const [methodology, rec] of entries) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${esc(setup)}</td><td>${rec.wins}</td><td>${rec.losses}</td><td>${rec.ties}</td>`;
+        tr.innerHTML = `<td>${esc(methodology)}</td><td>${rec.wins}</td><td>${rec.losses}</td><td>${rec.ties}</td>`;
         summaryBody.appendChild(tr);
       }
 
@@ -742,7 +742,7 @@
       detailBody.innerHTML = '';
       for (const p of data.pairs) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${p.pair_index}</td><td>${esc(p.left_setup_id)}</td><td>${esc(p.right_setup_id)}</td><td>${esc(p.choice || '—')}</td>`;
+        tr.innerHTML = `<td>${p.pair_index}</td><td>${esc(p.left_methodology_id)}</td><td>${esc(p.right_methodology_id)}</td><td>${esc(p.choice || '—')}</td>`;
         detailBody.appendChild(tr);
       }
 

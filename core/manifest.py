@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class FileMapping(BaseModel):
-    src: str   # relative to setups/<id>/
+    src: str   # relative to methodologies/<id>/
     dest: str  # relative to worktree root
 
 

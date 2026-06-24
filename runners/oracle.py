@@ -2,16 +2,16 @@ import subprocess
 import time
 from pathlib import Path
 
-from core.models import RunResult, SetupSpec, TaskSpec, Trial
-from runners.base import collect, lay_down_setup_files
+from core.models import MethodologySpec, RunResult, TaskSpec, Trial
+from runners.base import collect, lay_down_files
 
 
 class OracleRunner:
     def __init__(self, task: TaskSpec) -> None:
         self._task = task
 
-    def prepare(self, trial: Trial, worktree_path: Path, setup: SetupSpec) -> None:
-        lay_down_setup_files(worktree_path, setup)
+    def prepare(self, trial: Trial, worktree_path: Path, methodology: MethodologySpec) -> None:
+        lay_down_files(worktree_path, methodology.files, "setup-bench: lay down methodology files")
 
     def execute(self, trial: Trial, worktree_path: Path) -> RunResult:
         start = time.monotonic()

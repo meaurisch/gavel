@@ -6,14 +6,14 @@ from core.db import (
     connect,
     get_cost_record,
     get_gate_result,
+    get_methodology_spec,
     get_run_result,
-    get_setup_spec,
     get_task_spec,
     get_trial,
     insert_cost_record,
     insert_gate_result,
+    insert_methodology_spec,
     insert_run_result,
-    insert_setup_spec,
     insert_task_spec,
     insert_trial,
     list_trials,
@@ -22,8 +22,8 @@ from core.db import (
 from core.models import (
     CostRecord,
     GateResult,
+    MethodologySpec,
     RunResult,
-    SetupSpec,
     TaskSpec,
     Trial,
 )
@@ -50,13 +50,13 @@ def test_task_spec_insert_read(conn):
     assert got == obj
 
 
-def test_setup_spec_insert_read(conn):
-    obj = SetupSpec(
+def test_methodology_spec_insert_read(conn):
+    obj = MethodologySpec(
         id="vanilla",
         files={"pyproject.toml": ["[tool.pytest.ini_options]", "minversion = '8'"]},
     )
-    insert_setup_spec(conn, obj)
-    got = get_setup_spec(conn, "vanilla")
+    insert_methodology_spec(conn, obj)
+    got = get_methodology_spec(conn, "vanilla")
     assert got == obj
 
 
@@ -64,7 +64,7 @@ def test_trial_insert_read(conn):
     obj = Trial(
         id="t-001",
         task_id="cosmos-001",
-        setup_id="vanilla",
+        methodology_id="vanilla",
         model="claude-3-5-sonnet",
         runner="claude-code",
         rep=0,
@@ -117,7 +117,7 @@ def test_append_only_reinsert_raises(conn):
     obj = Trial(
         id="t-dup",
         task_id="cosmos-001",
-        setup_id="vanilla",
+        methodology_id="vanilla",
         model="claude-3-5-sonnet",
         runner="claude-code",
         rep=0,
@@ -132,7 +132,7 @@ def test_trial_exists(conn):
     obj = Trial(
         id="t-exists",
         task_id="cosmos-001",
-        setup_id="vanilla",
+        methodology_id="vanilla",
         model="claude-3-5-sonnet",
         runner="claude-code",
         rep=0,
@@ -143,8 +143,8 @@ def test_trial_exists(conn):
 
 def test_list_trials(conn):
     assert list_trials(conn) == []
-    t1 = Trial(id="t-1", task_id="c1", setup_id="v", model="m", runner="r", rep=0)
-    t2 = Trial(id="t-2", task_id="c2", setup_id="v", model="m", runner="r", rep=1)
+    t1 = Trial(id="t-1", task_id="c1", methodology_id="v", model="m", runner="r", rep=0)
+    t2 = Trial(id="t-2", task_id="c2", methodology_id="v", model="m", runner="r", rep=1)
     insert_trial(conn, t1)
     insert_trial(conn, t2)
     trials = list_trials(conn)

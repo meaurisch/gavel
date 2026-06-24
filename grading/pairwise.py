@@ -11,13 +11,13 @@ from core.models import Trial, RunResult
 
 logger = logging.getLogger(__name__)
 
-SETUP_FILE_PATTERNS = {
+METHODOLOGY_FILE_PATTERNS = {
     "CLAUDE.md",
     ".github/copilot-instructions.md",
     "AGENTS.md",
 }
 
-SETUP_DIR_PREFIXES = (
+METHODOLOGY_DIR_PREFIXES = (
     ".claude/skills/",
     ".claude/agents/",
     ".claude/rules/",
@@ -41,12 +41,12 @@ def generate_pairs(
     run_results: dict[str, RunResult],
     seed: int | None = None,
 ) -> list[tuple[Trial, Trial]]:
-    by_setup: dict[str, list[Trial]] = {}
+    by_methodology: dict[str, list[Trial]] = {}
     for t in trials:
-        by_setup.setdefault(t.setup_id, []).append(t)
+        by_methodology.setdefault(t.methodology_id, []).append(t)
 
     representatives: list[Trial] = []
-    for setup_id, group in by_setup.items():
+    for methodology_id, group in by_methodology.items():
         best = min(group, key=lambda t: t.rep)
         representatives.append(best)
 
@@ -63,10 +63,10 @@ def generate_pairs(
     return result
 
 
-def _is_setup_file(path: str) -> bool:
-    if path in SETUP_FILE_PATTERNS:
+def _is_methodology_file(path: str) -> bool:
+    if path in METHODOLOGY_FILE_PATTERNS:
         return True
-    for prefix in SETUP_DIR_PREFIXES:
+    for prefix in METHODOLOGY_DIR_PREFIXES:
         if path.startswith(prefix):
             return True
     return False
@@ -92,7 +92,7 @@ def _split_file_hunks(diff: str) -> list[tuple[str, str]]:
     return result
 
 
-def anonymize_diff(diff: str, setup_ids: list[str]) -> str:
+def anonymize_diff(diff: str, methodology_ids: list[str]) -> str:
     hunks = _split_file_hunks(diff)
 
     # Preserve any text before the first "diff --git" (unlikely but safe)
@@ -100,15 +100,15 @@ def anonymize_diff(diff: str, setup_ids: list[str]) -> str:
 
     kept_parts: list[str] = [prefix] if prefix else []
     for file_path, hunk_text in hunks:
-        if _is_setup_file(file_path):
+        if _is_methodology_file(file_path):
             continue
         kept_parts.append(hunk_text)
 
     cleaned = "".join(kept_parts)
 
-    for sid in setup_ids:
+    for sid in methodology_ids:
         pattern = re.compile(re.escape(sid), re.IGNORECASE)
-        cleaned = pattern.sub("[setup]", cleaned)
+        cleaned = pattern.sub("[methodology]", cleaned)
 
     return cleaned
 

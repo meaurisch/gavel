@@ -20,7 +20,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-SETUPS_DIR = Path(__file__).resolve().parent.parent / "setups"
+METHODOLOGIES_DIR = Path(__file__).resolve().parent.parent / "methodologies"
 
 VENDOR_SOURCES: dict[str, list[str]] = {
     "karpathy": ["CLAUDE.md"],
@@ -29,27 +29,27 @@ VENDOR_SOURCES: dict[str, list[str]] = {
 }
 
 
-def vendor_setup(setup_id: str) -> None:
-    manifest_path = SETUPS_DIR / setup_id / "manifest.yaml"
+def vendor_methodology(methodology_id: str) -> None:
+    manifest_path = METHODOLOGIES_DIR / methodology_id / "manifest.yaml"
     if not manifest_path.exists():
-        raise FileNotFoundError(f"No manifest.yaml for setup '{setup_id}'")
+        raise FileNotFoundError(f"No manifest.yaml for methodology '{methodology_id}'")
 
     raw = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
     source = raw.get("source")
     if not source:
-        logger.info("Setup '%s' has no external source — skipping", setup_id)
+        logger.info("Methodology '%s' has no external source — skipping", methodology_id)
         return
 
     repo = source["repo"]
     commit = source["commit"]
     if commit == "PENDING":
         raise ValueError(
-            f"Setup '{setup_id}' has commit=PENDING. "
+            f"Methodology '{methodology_id}' has commit=PENDING. "
             f"Run with --pin-head to pin to the current HEAD of the default branch."
         )
 
     repo_url = f"https://github.com/{repo}.git"
-    vendor_dir = SETUPS_DIR / setup_id / "vendor"
+    vendor_dir = METHODOLOGIES_DIR / methodology_id / "vendor"
 
     if vendor_dir.exists():
         shutil.rmtree(vendor_dir)
@@ -79,7 +79,7 @@ def vendor_setup(setup_id: str) -> None:
             text=True,
         )
 
-        sources = VENDOR_SOURCES.get(setup_id, [])
+        sources = VENDOR_SOURCES.get(methodology_id, [])
         for src in sources:
             src_path = tmp_path / src
             dest_path = vendor_dir / src
@@ -91,15 +91,15 @@ def vendor_setup(setup_id: str) -> None:
             else:
                 logger.warning("Source '%s' not found in %s — skipping", src, repo)
 
-    logger.info("Vendored %s → %s", setup_id, vendor_dir)
+    logger.info("Vendored %s → %s", methodology_id, vendor_dir)
 
 
-def resolve_head(setup_id: str) -> str:
-    manifest_path = SETUPS_DIR / setup_id / "manifest.yaml"
+def resolve_head(methodology_id: str) -> str:
+    manifest_path = METHODOLOGIES_DIR / methodology_id / "manifest.yaml"
     raw = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
     source = raw.get("source")
     if not source:
-        raise ValueError(f"Setup '{setup_id}' has no source")
+        raise ValueError(f"Methodology '{methodology_id}' has no source")
 
     repo_url = f"https://github.com/{source['repo']}.git"
     result = subprocess.run(
@@ -112,18 +112,18 @@ def resolve_head(setup_id: str) -> str:
     return sha
 
 
-def pin_commit(setup_id: str, commit: str) -> None:
-    manifest_path = SETUPS_DIR / setup_id / "manifest.yaml"
+def pin_commit(methodology_id: str, commit: str) -> None:
+    manifest_path = METHODOLOGIES_DIR / methodology_id / "manifest.yaml"
     raw = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
     raw["source"]["commit"] = commit
     manifest_path.write_text(yaml.dump(raw, default_flow_style=False, sort_keys=False), encoding="utf-8")
-    logger.info("Pinned %s to %s", setup_id, commit)
+    logger.info("Pinned %s to %s", methodology_id, commit)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Vendor external instruction packs")
-    parser.add_argument("setup_id", nargs="?", help="Setup ID to vendor")
-    parser.add_argument("--all", action="store_true", help="Vendor all external setups")
+    parser.add_argument("methodology_id", nargs="?", help="Methodology ID to vendor")
+    parser.add_argument("--all", action="store_true", help="Vendor all external methodologies")
     parser.add_argument("--pin-head", action="store_true", help="Pin PENDING commits to current HEAD")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
@@ -133,19 +133,19 @@ def main() -> None:
         format="%(levelname)s: %(message)s",
     )
 
-    ids = list(VENDOR_SOURCES.keys()) if args.all else ([args.setup_id] if args.setup_id else [])
+    ids = list(VENDOR_SOURCES.keys()) if args.all else ([args.methodology_id] if args.methodology_id else [])
     if not ids:
-        parser.error("Provide a setup_id or use --all")
+        parser.error("Provide a methodology_id or use --all")
 
-    for setup_id in ids:
+    for methodology_id in ids:
         if args.pin_head:
-            manifest_path = SETUPS_DIR / setup_id / "manifest.yaml"
+            manifest_path = METHODOLOGIES_DIR / methodology_id / "manifest.yaml"
             raw = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
             if raw.get("source", {}).get("commit") == "PENDING":
-                sha = resolve_head(setup_id)
-                pin_commit(setup_id, sha)
+                sha = resolve_head(methodology_id)
+                pin_commit(methodology_id, sha)
 
-        vendor_setup(setup_id)
+        vendor_methodology(methodology_id)
 
 
 if __name__ == "__main__":

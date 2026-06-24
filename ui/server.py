@@ -127,12 +127,12 @@ class JudgeResponse(BaseModel):
 
 class RevealPair(BaseModel):
     pair_index: int
-    left_setup_id: str
-    right_setup_id: str
+    left_methodology_id: str
+    right_methodology_id: str
     choice: str | None
 
 
-class SetupRecord(BaseModel):
+class MethodologyRecord(BaseModel):
     wins: int
     losses: int
     ties: int
@@ -140,7 +140,7 @@ class SetupRecord(BaseModel):
 
 class RevealResponse(BaseModel):
     pairs: list[RevealPair]
-    summary: dict[str, SetupRecord]
+    summary: dict[str, MethodologyRecord]
 
 
 # ---------------------------------------------------------------------------
@@ -165,9 +165,9 @@ async def get_tasks() -> list[TaskInfo]:
 async def get_pairs(task: str, model: str) -> SessionResponse:
     trials = list_passing_trials(_conn, task, model)
 
-    setup_ids = {t.setup_id for t in trials}
-    if len(setup_ids) < 2:
-        raise HTTPException(400, "Not enough passing setups")
+    methodology_ids = {t.methodology_id for t in trials}
+    if len(methodology_ids) < 2:
+        raise HTTPException(400, "Not enough passing methodologies")
 
     run_results: dict[str, object] = {}
     for t in trials:
@@ -187,14 +187,14 @@ async def get_pairs(task: str, model: str) -> SessionResponse:
     )
     _sessions[session_id] = session
 
-    all_setup_ids = list(setup_ids)
+    all_methodology_ids = list(methodology_ids)
     pair_responses: list[PairResponse] = []
     for i, (left, right) in enumerate(trial_pairs):
         left_rr = run_results[left.id]
         right_rr = run_results[right.id]
 
-        left_diff = anonymize_diff(left_rr.diff, all_setup_ids)
-        right_diff = anonymize_diff(right_rr.diff, all_setup_ids)
+        left_diff = anonymize_diff(left_rr.diff, all_methodology_ids)
+        right_diff = anonymize_diff(right_rr.diff, all_methodology_ids)
 
         pair_responses.append(PairResponse(
             pair_index=i,
@@ -268,38 +268,38 @@ async def reveal(session_id: str) -> RevealResponse:
         judgment_by_pair[(j.left_trial_id, j.right_trial_id)] = j
 
     reveal_pairs: list[RevealPair] = []
-    summary: dict[str, SetupRecord] = defaultdict(lambda: SetupRecord(wins=0, losses=0, ties=0))
+    summary: dict[str, MethodologyRecord] = defaultdict(lambda: MethodologyRecord(wins=0, losses=0, ties=0))
 
     for i, (left_id, right_id) in enumerate(session.pairs):
         left_trial = get_trial(_conn, left_id)
         right_trial = get_trial(_conn, right_id)
-        left_setup = left_trial.setup_id
-        right_setup = right_trial.setup_id
+        left_methodology = left_trial.methodology_id
+        right_methodology = right_trial.methodology_id
 
         j = judgment_by_pair.get((left_id, right_id))
         choice = j.choice if j else None
 
         reveal_pairs.append(RevealPair(
             pair_index=i,
-            left_setup_id=left_setup,
-            right_setup_id=right_setup,
+            left_methodology_id=left_methodology,
+            right_methodology_id=right_methodology,
             choice=choice,
         ))
 
         if choice == "A":
-            rec = summary[left_setup]
-            summary[left_setup] = SetupRecord(wins=rec.wins + 1, losses=rec.losses, ties=rec.ties)
-            rec = summary[right_setup]
-            summary[right_setup] = SetupRecord(wins=rec.wins, losses=rec.losses + 1, ties=rec.ties)
+            rec = summary[left_methodology]
+            summary[left_methodology] = MethodologyRecord(wins=rec.wins + 1, losses=rec.losses, ties=rec.ties)
+            rec = summary[right_methodology]
+            summary[right_methodology] = MethodologyRecord(wins=rec.wins, losses=rec.losses + 1, ties=rec.ties)
         elif choice == "B":
-            rec = summary[right_setup]
-            summary[right_setup] = SetupRecord(wins=rec.wins + 1, losses=rec.losses, ties=rec.ties)
-            rec = summary[left_setup]
-            summary[left_setup] = SetupRecord(wins=rec.wins, losses=rec.losses + 1, ties=rec.ties)
+            rec = summary[right_methodology]
+            summary[right_methodology] = MethodologyRecord(wins=rec.wins + 1, losses=rec.losses, ties=rec.ties)
+            rec = summary[left_methodology]
+            summary[left_methodology] = MethodologyRecord(wins=rec.wins, losses=rec.losses + 1, ties=rec.ties)
         elif choice == "tie":
-            rec = summary[left_setup]
-            summary[left_setup] = SetupRecord(wins=rec.wins, losses=rec.losses, ties=rec.ties + 1)
-            rec = summary[right_setup]
-            summary[right_setup] = SetupRecord(wins=rec.wins, losses=rec.losses, ties=rec.ties + 1)
+            rec = summary[left_methodology]
+            summary[left_methodology] = MethodologyRecord(wins=rec.wins, losses=rec.losses, ties=rec.ties + 1)
+            rec = summary[right_methodology]
+            summary[right_methodology] = MethodologyRecord(wins=rec.wins, losses=rec.losses, ties=rec.ties + 1)
 
     return RevealResponse(pairs=reveal_pairs, summary=dict(summary))

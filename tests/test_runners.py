@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from core.models import RunResult, SetupSpec, TaskSpec, Trial
+from core.models import MethodologySpec, RunResult, TaskSpec, Trial
 from core.worktree import create_worktree, destroy_worktree
 from runners.base import Runner, collect
 from runners.nop import NopRunner
@@ -55,12 +55,12 @@ def test_collect_captures_new_files(tiny_repo: Path):
 
 def test_nop_produces_empty_diff(tiny_repo: Path):
     commit = head_commit(tiny_repo)
-    setup = SetupSpec(id="off", files={})
-    trial = Trial(id="t-nop", task_id="test-task", setup_id="off", model="none", runner="nop", rep=0)
+    methodology = MethodologySpec(id="off", files={})
+    trial = Trial(id="t-nop", task_id="test-task", methodology_id="off", model="none", runner="nop", rep=0)
     wt = create_worktree(tiny_repo, commit)
     try:
         runner = NopRunner()
-        runner.prepare(trial, wt, setup)
+        runner.prepare(trial, wt, methodology)
         result = runner.execute(trial, wt)
         assert result.exit_status == 0
         assert result.diff == ""
@@ -90,12 +90,12 @@ def test_oracle_produces_expected_diff(tiny_repo: Path, tmp_path: Path):
         held_out_tests_path="tests/",
         reference_diff_path=str(ref_diff),
     )
-    setup = SetupSpec(id="off", files={})
-    trial = Trial(id="t-oracle", task_id="test-task", setup_id="off", model="none", runner="oracle", rep=0)
+    methodology = MethodologySpec(id="off", files={})
+    trial = Trial(id="t-oracle", task_id="test-task", methodology_id="off", model="none", runner="oracle", rep=0)
     wt = create_worktree(tiny_repo, commit)
     try:
         runner = OracleRunner(task)
-        runner.prepare(trial, wt, setup)
+        runner.prepare(trial, wt, methodology)
         result = runner.execute(trial, wt)
         assert result.exit_status == 0
         assert "-hello" in result.diff
@@ -106,16 +106,16 @@ def test_oracle_produces_expected_diff(tiny_repo: Path, tmp_path: Path):
         destroy_worktree(wt)
 
 
-# --- setup files ---
+# --- methodology files ---
 
-def test_prepare_lays_down_setup_files(tiny_repo: Path):
+def test_prepare_lays_down_methodology_files(tiny_repo: Path):
     commit = head_commit(tiny_repo)
-    setup = SetupSpec(id="vanilla", files={"CLAUDE.md": ["# Instructions", "Do the thing"]})
-    trial = Trial(id="t-setup", task_id="test-task", setup_id="vanilla", model="none", runner="nop", rep=0)
+    methodology = MethodologySpec(id="vanilla", files={"CLAUDE.md": ["# Instructions", "Do the thing"]})
+    trial = Trial(id="t-methodology", task_id="test-task", methodology_id="vanilla", model="none", runner="nop", rep=0)
     wt = create_worktree(tiny_repo, commit)
     try:
         runner = NopRunner()
-        runner.prepare(trial, wt, setup)
+        runner.prepare(trial, wt, methodology)
         assert (wt / "CLAUDE.md").exists()
         content = (wt / "CLAUDE.md").read_text()
         assert "# Instructions" in content

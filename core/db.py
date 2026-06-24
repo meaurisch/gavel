@@ -8,8 +8,8 @@ from core.models import (
     CostRecord,
     GateResult,
     Judgment,
+    MethodologySpec,
     RunResult,
-    SetupSpec,
     TaskSpec,
     Trial,
 )
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS task_spec (
     reference_diff_path TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS setup_spec (
+CREATE TABLE IF NOT EXISTS methodology_spec (
     id TEXT PRIMARY KEY,
     files TEXT NOT NULL
 );
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS setup_spec (
 CREATE TABLE IF NOT EXISTS trial (
     id TEXT PRIMARY KEY,
     task_id TEXT NOT NULL,
-    setup_id TEXT NOT NULL,
+    methodology_id TEXT NOT NULL,
     model TEXT NOT NULL,
     runner TEXT NOT NULL,
     rep INTEGER NOT NULL
@@ -101,9 +101,9 @@ def insert_task_spec(conn: sqlite3.Connection, t: TaskSpec) -> None:
     conn.commit()
 
 
-def insert_setup_spec(conn: sqlite3.Connection, s: SetupSpec) -> None:
+def insert_methodology_spec(conn: sqlite3.Connection, s: MethodologySpec) -> None:
     conn.execute(
-        "INSERT INTO setup_spec VALUES (?, ?)",
+        "INSERT INTO methodology_spec VALUES (?, ?)",
         (s.id, json.dumps(s.files)),
     )
     conn.commit()
@@ -112,7 +112,7 @@ def insert_setup_spec(conn: sqlite3.Connection, s: SetupSpec) -> None:
 def insert_trial(conn: sqlite3.Connection, t: Trial) -> None:
     conn.execute(
         "INSERT INTO trial VALUES (?, ?, ?, ?, ?, ?)",
-        (t.id, t.task_id, t.setup_id, t.model, t.runner, t.rep),
+        (t.id, t.task_id, t.methodology_id, t.model, t.runner, t.rep),
     )
     conn.commit()
 
@@ -151,13 +151,13 @@ def get_task_spec(conn: sqlite3.Connection, id: str) -> TaskSpec | None:
     return TypeAdapter(TaskSpec).validate_python(dict(row))
 
 
-def get_setup_spec(conn: sqlite3.Connection, id: str) -> SetupSpec | None:
-    row = conn.execute("SELECT * FROM setup_spec WHERE id = ?", (id,)).fetchone()
+def get_methodology_spec(conn: sqlite3.Connection, id: str) -> MethodologySpec | None:
+    row = conn.execute("SELECT * FROM methodology_spec WHERE id = ?", (id,)).fetchone()
     if row is None:
         return None
     d = dict(row)
     d["files"] = json.loads(d["files"])
-    return TypeAdapter(SetupSpec).validate_python(d)
+    return TypeAdapter(MethodologySpec).validate_python(d)
 
 
 def get_trial(conn: sqlite3.Connection, id: str) -> Trial | None:
@@ -237,11 +237,11 @@ def list_passing_trials(conn: sqlite3.Connection, task_id: str, model: str) -> l
 
 def list_grading_tasks(conn: sqlite3.Connection) -> list[dict]:
     rows = conn.execute(
-        """SELECT t.task_id, t.model, COUNT(DISTINCT t.setup_id) as n_setups
+        """SELECT t.task_id, t.model, COUNT(DISTINCT t.methodology_id) as n_methodologies
            FROM trial t
            JOIN gate_result g ON t.id = g.trial_id
            WHERE g.passed = 1
            GROUP BY t.task_id, t.model
-           HAVING COUNT(DISTINCT t.setup_id) >= 2"""
+           HAVING COUNT(DISTINCT t.methodology_id) >= 2"""
     ).fetchall()
     return [dict(r) for r in rows]
