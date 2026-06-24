@@ -236,6 +236,175 @@ def _run_tests(wt_path: Path, run_cmd: str) -> tuple[bool, str]:
     return result.returncode == 0, output
 
 
+def _run_build(wt_path: Path, build_cmd: str) -> tuple[bool, str]:
+    """Run a build command in the worktree. Returns (succeeded, output)."""
+    result = subprocess.run(
+        build_cmd,
+        cwd=str(wt_path),
+        shell=True,
+        capture_output=True,
+        text=True,
+        timeout=600,
+        env=_build_env(),
+    )
+    return result.returncode == 0, result.stdout + result.stderr
+
+
+def _validate_build_gate(task: dict) -> tuple[bool | None, str]:
+    """build_cmd must succeed on the clean base commit. None if no build_cmd."""
+    build_cmd = task.get("build_cmd")
+    if not build_cmd or build_cmd == "null":
+        return None, "no build_cmd"
+    wt_path = None
+    try:
+        wt_path = _create_worktree(task["base_commit"])
+        _patch_build_scripts_for_windows(wt_path)
+        return _run_build(wt_path, build_cmd)
+    finally:
+        if wt_path and wt_path.exists():
+            try:
+                _destroy_worktree(wt_path)
+            except Exception:
+                log.warning("  Failed to destroy build-gate worktree %s", wt_path)
+
+
+def _validate_fail_to_pass(task: dict) -> tuple[bool, str]:
+    """Hidden tests must FAIL on the clean base commit (no changes).
+
+    Returns (check_passed, output): check_passed is True when the tests FAIL,
+    which proves they actually require the feature.
+    """
+    held_out_path = PROJECT_ROOT / task["held_out_tests_path"]
+    wt_path = None
+    try:
+        wt_path = _create_worktree(task["base_commit"])
+        if not _install_in_worktree(wt_path):
+            return False, "install failed on clean base commit"
+        created = _copy_held_out_tests(wt_path, held_out_path)
+        try:
+            tests_passed, output = _run_tests(wt_path, task["run_cmd"])
+        finally:
+            _cleanup_held_out_tests(created)
+        return (not tests_passed), output
+    finally:
+        if wt_path and wt_path.exists():
+            try:
+                _destroy_worktree(wt_path)
+            except Exception:
+                log.warning("  Failed to destroy fail-to-pass worktree %s", wt_path)
+
+
+def _validate_pass_to_pass_with_gold(task: dict) -> tuple[bool, str]:
+    """Hidden tests must PASS after applying the reference (gold) diff.
+
+    Returns (check_passed, output): check_passed is True when the tests PASS.
+    """
+    held_out_path = PROJECT_ROOT / task["held_out_tests_path"]
+    diff_path = PROJECT_ROOT / task["reference_diff_path"]
+    wt_path = None
+    try:
+        wt_path = _create_worktree(task["base_commit"])
+        if not _apply_diff(wt_path, diff_path):
+            return False, "failed to apply reference.diff"
+        if not _install_in_worktree(wt_path):
+            return False, "install failed with gold patch"
+        created = _copy_held_out_tests(wt_path, held_out_path)
+        try:
+            tests_passed, output = _run_tests(wt_path, task["run_cmd"])
+        finally:
+            _cleanup_held_out_tests(created)
+        return tests_passed, output
+    finally:
+        if wt_path and wt_path.exists():
+            try:
+                _destroy_worktree(wt_path)
+            except Exception:
+                log.warning("  Failed to destroy pass-to-pass worktree %s", wt_path)
+
+
+def validate_transitions(task_dir: Path) -> dict:
+    """Run build-gate, FAIL_TO_PASS, and PASS_TO_PASS(gold) checks for one task."""
+    task = _load_task(task_dir)
+    task_id = task["id"]
+    result = {
+        "task_id": task_id, "build_gate": None,
+        "fail_to_pass": None, "pass_to_pass": None, "errors": [],
+    }
+
+    log.info("[%s] Build gate: build_cmd succeeds on clean base", task_id)
+    try:
+        bg, out = _validate_build_gate(task)
+        result["build_gate"] = bg
+        if bg is False:
+            result["errors"].append(f"build gate: FAILED on clean base\n{out[-2000:]}")
+            log.error("  Build gate FAILED:\n%s", out[-2000:])
+    except Exception as exc:
+        result["errors"].append(f"build gate: {exc}")
+        log.exception("  Build gate error")
+
+    log.info("[%s] FAIL_TO_PASS: hidden tests fail on clean base", task_id)
+    try:
+        ftp, out = _validate_fail_to_pass(task)
+        result["fail_to_pass"] = ftp
+        if not ftp:
+            result["errors"].append(
+                f"FAIL_TO_PASS: tests PASSED on clean base (tests too weak)\n{out[-2000:]}"
+            )
+            log.error("  FAIL_TO_PASS problem (tests passed on base):\n%s", out[-2000:])
+    except Exception as exc:
+        result["errors"].append(f"FAIL_TO_PASS: {exc}")
+        log.exception("  FAIL_TO_PASS error")
+
+    log.info("[%s] PASS_TO_PASS: hidden tests pass with gold patch", task_id)
+    try:
+        ptp, out = _validate_pass_to_pass_with_gold(task)
+        result["pass_to_pass"] = ptp
+        if not ptp:
+            result["errors"].append(
+                f"PASS_TO_PASS: tests FAILED with gold patch (tests or diff broken)\n{out[-2000:]}"
+            )
+            log.error("  PASS_TO_PASS problem (tests failed with gold):\n%s", out[-2000:])
+    except Exception as exc:
+        result["errors"].append(f"PASS_TO_PASS: {exc}")
+        log.exception("  PASS_TO_PASS error")
+
+    return result
+
+
+def render_transitions_summary(all_results: list[dict]) -> tuple[str, bool]:
+    """Render the transition-validation summary. Returns (text, all_ok)."""
+    lines = ["", "=" * 60, "TRANSITION VALIDATION SUMMARY", "=" * 60]
+    all_ok = True
+    for r in all_results:
+        bg = r["build_gate"]
+        build = "PASS" if bg else ("SKIP" if bg is None else "FAIL")
+        ftp = (
+            "FAIL (correct)" if r["fail_to_pass"]
+            else "PASS (too weak!)" if r["fail_to_pass"] is False
+            else "SKIP"
+        )
+        ptp = (
+            "PASS" if r["pass_to_pass"]
+            else "FAIL (broken!)" if r["pass_to_pass"] is False
+            else "SKIP"
+        )
+        ok = (bg is not False) and bool(r["fail_to_pass"]) and bool(r["pass_to_pass"])
+        if not ok:
+            all_ok = False
+        status = "OK" if ok else "PROBLEM"
+        lines.append(
+            f"  {r['task_id']:12s}  build={build:5s}  F2P={ftp:16s}  P2P={ptp:14s}  [{status}]"
+        )
+        for err in r["errors"]:
+            lines.append(f"    ERROR: {err.split(chr(10))[0]}")
+    lines.append("=" * 60)
+    lines.append(
+        "All transitions validated successfully." if all_ok
+        else "Some tasks have transition problems. See above for details."
+    )
+    return "\n".join(lines), all_ok
+
+
 def validate_task(task_dir: Path) -> dict:
     """
     Run oracle and nop validation for a single task.
@@ -334,6 +503,10 @@ def main():
         "--skip-toolchain-check", action="store_true",
         help="Skip the build toolchain check.",
     )
+    parser.add_argument(
+        "--validate-transitions", action="store_true",
+        help="Run FAIL_TO_PASS / PASS_TO_PASS / build-gate checks instead of oracle/nop.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -352,6 +525,12 @@ def main():
         if not task_dirs:
             log.error("Task %s not found", args.task)
             sys.exit(2)
+
+    if args.validate_transitions:
+        results = [validate_transitions(d) for d in task_dirs]
+        text, ok = render_transitions_summary(results)
+        print(text)
+        sys.exit(0 if ok else 1)
 
     all_results = []
     for task_dir in task_dirs:
