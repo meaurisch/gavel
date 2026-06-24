@@ -122,15 +122,16 @@ Claude Code CLI version used: 2.1.185
 
 ## Current state
 
-The full pipeline is built and tested (119 tests green) — engine, 5-axis matrix,
+The full pipeline is built and tested (119 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
 three-tier gate, axis-general blind grading, Bradley-Terry ranking, API-rate cost,
 and task-quality tooling. Nothing has been run at scale yet; the next step is the
 first real measurement sweep.
 
 **Engine & tasks (P0–P1)**
 - Core engine: models, DB, worktree isolation, runners, gate, leakage scanner.
-- Runners: `claude-code` and `copilot-cli` (headless), `manual` (human-in-IDE),
-  plus `oracle`/`nop` for pipeline self-tests.
+- Runners: `claude-code` (headless) and `manual` (human-in-IDE), plus
+  `oracle`/`nop` for pipeline self-tests. `copilot-cli` is stubbed pending the
+  Phase-1.5 spike (P2.1/P2.2).
 - Tasks: three cross-layer PyVRP features (`pyvrp-A` ReplaceGroup operator,
   `pyvrp-B` unary-operator framework, `pyvrp-C` PiecewiseLinearFunction), each
   with a reference diff and held-out tests; oracle/nop validation passing.
