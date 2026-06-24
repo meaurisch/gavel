@@ -13,7 +13,18 @@ def _iter_files(root: Path):
             yield p, p.relative_to(root)
 
 
-def apply(trial: Trial, worktree_path: Path, task: TaskSpec) -> GateResult:
+def _run_command(cmd: str, cwd: Path) -> tuple[bool, str]:
+    result = subprocess.run(
+        cmd,
+        cwd=str(cwd),
+        shell=True,
+        capture_output=True,
+        text=True,
+    )
+    return (result.returncode == 0, result.stdout + result.stderr)
+
+
+def _run_hidden_tests(trial: Trial, worktree_path: Path, task: TaskSpec) -> tuple[bool, str]:
     src = Path(task.held_out_tests_path).resolve()
     dest_root = worktree_path / "tests"
 
@@ -31,17 +42,29 @@ def apply(trial: Trial, worktree_path: Path, task: TaskSpec) -> GateResult:
             shutil.copy2(abs_src, dest)
             created.append(dest)
 
-        result = subprocess.run(
-            task.run_cmd,
-            cwd=str(worktree_path),
-            shell=True,
-            capture_output=True,
-            text=True,
-        )
-        passed = result.returncode == 0
-        output = result.stdout + result.stderr
+        passed, output = _run_command(task.run_cmd, worktree_path)
     finally:
         for f in created:
             f.unlink(missing_ok=True)
 
-    return GateResult(trial_id=trial.id, passed=passed, test_output=output)
+    return (passed, output)
+
+
+def apply(trial: Trial, worktree_path: Path, task: TaskSpec) -> GateResult:
+    result = GateResult(trial_id=trial.id, passed=False)
+
+    if task.build_cmd:
+        ok, out = _run_command(task.build_cmd, worktree_path)
+        result.compile_passed, result.compile_output = ok, out
+        if not ok:
+            return result
+
+    if task.visible_test_cmd:
+        ok, out = _run_command(task.visible_test_cmd, worktree_path)
+        result.visible_passed, result.visible_output = ok, out
+
+    hidden_ok, hidden_out = _run_hidden_tests(trial, worktree_path, task)
+    result.hidden_passed, result.hidden_output = hidden_ok, hidden_out
+    result.passed = hidden_ok
+
+    return result

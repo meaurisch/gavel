@@ -18,6 +18,8 @@ from core.db import (
     insert_run_result,
     insert_task_spec,
     insert_trial,
+    list_cell_trials,
+    list_passing_trials,
     list_trials,
     trial_exists,
 )
@@ -123,12 +125,14 @@ def test_gate_result_insert_read(conn):
     obj = GateResult(
         trial_id="t-001",
         passed=True,
-        test_output="All tests passed.",
+        hidden_passed=True,
+        hidden_output="All tests passed.",
     )
     insert_gate_result(conn, obj)
     got = get_gate_result(conn, "t-001")
     assert got == obj
     assert got.passed is True
+    assert got.hidden_passed is True
 
 
 def test_append_only_reinsert_raises(conn):
@@ -171,3 +175,31 @@ def test_list_trials(conn):
     assert len(trials) == 2
     ids = {t.id for t in trials}
     assert ids == {"t-1", "t-2"}
+
+
+def test_list_cell_trials_includes_failing(conn):
+    # one cell (task=c1, model=m), two methodologies, mix of pass/fail
+    trials = [
+        Trial(id="p1", task_id="c1", methodology_id="m1", repo_context_id="ctx", model="m", runner="r", rep=0),
+        Trial(id="f1", task_id="c1", methodology_id="m1", repo_context_id="ctx", model="m", runner="r", rep=1),
+        Trial(id="p2", task_id="c1", methodology_id="m2", repo_context_id="ctx", model="m", runner="r", rep=0),
+        # different cell (other task) -> must be excluded
+        Trial(id="other", task_id="c2", methodology_id="m1", repo_context_id="ctx", model="m", runner="r", rep=0),
+    ]
+    for t in trials:
+        insert_trial(conn, t)
+    insert_gate_result(conn, GateResult(trial_id="p1", passed=True))
+    insert_gate_result(conn, GateResult(trial_id="f1", passed=False))
+    insert_gate_result(conn, GateResult(trial_id="p2", passed=True))
+    insert_gate_result(conn, GateResult(trial_id="other", passed=True))
+
+    cell = list_cell_trials(conn, task_id="c1", model="m")
+    assert {t.id for t in cell} == {"p1", "f1", "p2"}  # failing f1 included, other-task excluded
+
+    passing = list_passing_trials(conn, task_id="c1", model="m")
+    assert {t.id for t in passing} == {"p1", "p2"}
+
+    # a trial without any gate row still counts as a cell member
+    insert_trial(conn, Trial(id="nogate", task_id="c1", methodology_id="m3", repo_context_id="ctx", model="m", runner="r", rep=0))
+    cell2 = list_cell_trials(conn, task_id="c1", model="m")
+    assert "nogate" in {t.id for t in cell2}

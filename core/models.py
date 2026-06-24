@@ -11,6 +11,8 @@ class TaskSpec:
     run_cmd: str
     held_out_tests_path: str
     reference_diff_path: str
+    build_cmd: str | None = None
+    visible_test_cmd: str | None = None
 
 
 @dataclass
@@ -59,7 +61,12 @@ class CostRecord:
 class GateResult:
     trial_id: str
     passed: bool
-    test_output: str
+    compile_passed: bool | None = None
+    compile_output: str | None = None
+    visible_passed: bool | None = None
+    visible_output: str | None = None
+    hidden_passed: bool | None = None
+    hidden_output: str | None = None
 
 
 @dataclass

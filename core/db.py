@@ -14,6 +14,7 @@ from core.models import (
     TaskSpec,
     Trial,
 )
+from grading.pairwise import AXIS_FIELDS
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS task_spec (
@@ -23,7 +24,9 @@ CREATE TABLE IF NOT EXISTS task_spec (
     instruction TEXT NOT NULL,
     run_cmd TEXT NOT NULL,
     held_out_tests_path TEXT NOT NULL,
-    reference_diff_path TEXT NOT NULL
+    reference_diff_path TEXT NOT NULL,
+    build_cmd TEXT,
+    visible_test_cmd TEXT
 );
 
 CREATE TABLE IF NOT EXISTS methodology_spec (
@@ -66,7 +69,12 @@ CREATE TABLE IF NOT EXISTS cost_record (
 CREATE TABLE IF NOT EXISTS gate_result (
     trial_id TEXT PRIMARY KEY,
     passed INTEGER NOT NULL,
-    test_output TEXT NOT NULL
+    compile_passed INTEGER,
+    compile_output TEXT,
+    visible_passed INTEGER,
+    visible_output TEXT,
+    hidden_passed INTEGER,
+    hidden_output TEXT
 );
 
 CREATE TABLE IF NOT EXISTS judgment (
@@ -101,9 +109,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
 
 def insert_task_spec(conn: sqlite3.Connection, t: TaskSpec) -> None:
     conn.execute(
-        "INSERT INTO task_spec VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO task_spec VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (t.id, t.repo_url, t.base_commit, t.instruction, t.run_cmd,
-         t.held_out_tests_path, t.reference_diff_path),
+         t.held_out_tests_path, t.reference_diff_path,
+         t.build_cmd, t.visible_test_cmd),
     )
     conn.commit()
 
@@ -149,10 +158,17 @@ def insert_cost_record(conn: sqlite3.Connection, c: CostRecord) -> None:
     conn.commit()
 
 
+def _bool_to_int(v: bool | None) -> int | None:
+    return int(v) if v is not None else None
+
+
 def insert_gate_result(conn: sqlite3.Connection, g: GateResult) -> None:
     conn.execute(
-        "INSERT INTO gate_result VALUES (?, ?, ?)",
-        (g.trial_id, int(g.passed), g.test_output),
+        "INSERT INTO gate_result VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (g.trial_id, int(g.passed),
+         _bool_to_int(g.compile_passed), g.compile_output,
+         _bool_to_int(g.visible_passed), g.visible_output,
+         _bool_to_int(g.hidden_passed), g.hidden_output),
     )
     conn.commit()
 
@@ -163,7 +179,10 @@ def get_task_spec(conn: sqlite3.Connection, id: str) -> TaskSpec | None:
     row = conn.execute("SELECT * FROM task_spec WHERE id = ?", (id,)).fetchone()
     if row is None:
         return None
-    return TypeAdapter(TaskSpec).validate_python(dict(row))
+    d = dict(row)
+    d.setdefault("build_cmd", None)
+    d.setdefault("visible_test_cmd", None)
+    return TypeAdapter(TaskSpec).validate_python(d)
 
 
 def get_methodology_spec(conn: sqlite3.Connection, id: str) -> MethodologySpec | None:
@@ -211,6 +230,9 @@ def get_gate_result(conn: sqlite3.Connection, trial_id: str) -> GateResult | Non
         return None
     d = dict(row)
     d["passed"] = bool(d["passed"])
+    for col in ("compile_passed", "visible_passed", "hidden_passed"):
+        if d.get(col) is not None:
+            d[col] = bool(d[col])
     return TypeAdapter(GateResult).validate_python(d)
 
 
@@ -248,25 +270,82 @@ def list_judgments(conn: sqlite3.Connection, session_id: str) -> list[Judgment]:
 
 # -- grading queries --
 
-def list_passing_trials(conn: sqlite3.Connection, task_id: str, model: str) -> list[Trial]:
+def list_passing_trials(
+    conn: sqlite3.Connection,
+    *,
+    task_id: str,
+    methodology_id: str | None = None,
+    repo_context_id: str | None = None,
+    model: str | None = None,
+    runner: str | None = None,
+) -> list[Trial]:
+    clauses = ["t.task_id = ?"]
+    params: list[str] = [task_id]
+    for col, val in [
+        ("methodology_id", methodology_id),
+        ("repo_context_id", repo_context_id),
+        ("model", model),
+        ("runner", runner),
+    ]:
+        if val is not None:
+            clauses.append(f"t.{col} = ?")
+            params.append(val)
+    where = " AND ".join(clauses)
     rows = conn.execute(
-        """SELECT t.* FROM trial t
-           JOIN gate_result g ON t.id = g.trial_id
-           WHERE t.task_id = ? AND t.model = ? AND g.passed = 1""",
-        (task_id, model),
+        f"""SELECT t.* FROM trial t
+            JOIN gate_result g ON t.id = g.trial_id
+            WHERE {where} AND g.passed = 1""",
+        params,
     ).fetchall()
     ta = TypeAdapter(Trial)
     return [ta.validate_python(dict(r)) for r in rows]
 
 
-def list_grading_tasks(conn: sqlite3.Connection) -> list[dict]:
+def list_cell_trials(
+    conn: sqlite3.Connection,
+    *,
+    task_id: str,
+    methodology_id: str | None = None,
+    repo_context_id: str | None = None,
+    model: str | None = None,
+    runner: str | None = None,
+) -> list[Trial]:
+    """All trials in a cell — passing and failing — for pass-rate / analyzer / stats."""
+    clauses = ["t.task_id = ?"]
+    params: list[str] = [task_id]
+    for col, val in [
+        ("methodology_id", methodology_id),
+        ("repo_context_id", repo_context_id),
+        ("model", model),
+        ("runner", runner),
+    ]:
+        if val is not None:
+            clauses.append(f"t.{col} = ?")
+            params.append(val)
+    where = " AND ".join(clauses)
     rows = conn.execute(
-        """SELECT t.task_id, t.model, t.repo_context_id,
-                  COUNT(DISTINCT t.methodology_id) as n_methodologies
-           FROM trial t
-           JOIN gate_result g ON t.id = g.trial_id
-           WHERE g.passed = 1
-           GROUP BY t.task_id, t.model, t.repo_context_id
-           HAVING COUNT(DISTINCT t.methodology_id) >= 2"""
+        f"SELECT t.* FROM trial t WHERE {where}",
+        params,
+    ).fetchall()
+    ta = TypeAdapter(Trial)
+    return [ta.validate_python(dict(r)) for r in rows]
+
+
+def list_grading_cells(conn: sqlite3.Connection, axis: str) -> list[dict]:
+    if axis not in AXIS_FIELDS:
+        raise ValueError(f"Unknown axis {axis!r}; valid: {sorted(AXIS_FIELDS)}")
+    comparison_col = AXIS_FIELDS[axis]
+    all_axis_cols = ["methodology_id", "repo_context_id", "model", "runner"]
+    fixed_cols = ["task_id"] + [c for c in all_axis_cols if c != comparison_col]
+    fixed_select = ", ".join(f"t.{c}" for c in fixed_cols)
+    fixed_group = ", ".join(f"t.{c}" for c in fixed_cols)
+    rows = conn.execute(
+        f"""SELECT {fixed_select},
+                   COUNT(DISTINCT t.{comparison_col}) AS n_values
+            FROM trial t
+            JOIN gate_result g ON t.id = g.trial_id
+            WHERE g.passed = 1
+            GROUP BY {fixed_group}
+            HAVING COUNT(DISTINCT t.{comparison_col}) >= 2"""
     ).fetchall()
     return [dict(r) for r in rows]

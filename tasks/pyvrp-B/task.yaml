@@ -6,3 +6,5 @@ instruction: |
 run_cmd: "pytest tests/search/test_RemoveOptional.py tests/search/test_RemoveAdjacentDepot.py -v"
 held_out_tests_path: tasks/pyvrp-B/held_out_tests
 reference_diff_path: tasks/pyvrp-B/reference.diff
+build_cmd: "pip install -e . 2>&1"
+visible_test_cmd: null

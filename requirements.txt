@@ -16,6 +16,7 @@ mdurl==0.1.2
 meson==1.11.1
 meson-python==0.20.0
 ninja==1.13.0
+numpy==2.5.0
 packaging==26.2
 pluggy==1.6.0
 poetry-core==2.4.1

@@ -74,6 +74,33 @@
       opacity: 0.4;
       cursor: not-allowed !important;
     }
+    #cell-pickers {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    #cell-pickers label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      color: #aaa;
+      font-size: 0.85rem;
+    }
+    #cell-pickers select {
+      font-size: 1rem;
+      padding: 0.6rem 1.2rem;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #2a2a4a;
+      color: #e0e0e0;
+      min-width: 260px;
+      cursor: pointer;
+    }
+    #cell-pickers select:focus {
+      outline: 2px solid #4a9eff;
+      outline-offset: 2px;
+    }
     #empty-message {
       color: #888;
       font-size: 1rem;
@@ -132,6 +159,21 @@
       text-align: center;
       padding-bottom: 0.4rem;
     }
+    .gate {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      padding-bottom: 0.4rem;
+      font-size: 0.75rem;
+    }
+    .gate-badge {
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+    .gate-badge.pass { color: #4ade80; background: rgba(74, 222, 128, 0.15); }
+    .gate-badge.fail { color: #f87171; background: rgba(248, 113, 113, 0.15); }
+    .gate-badge.na   { color: #666; background: rgba(102, 102, 102, 0.1); }
 
     .diff-container {
       flex: 1;
@@ -287,6 +329,27 @@
     .reveal-table td { font-size: 0.95rem; }
     .reveal-table tr:hover td { background: rgba(74, 158, 255, 0.05); }
 
+    .reveal-table tr.indistinguishable td { color: #b0b0b0; font-style: italic; }
+    .bt-rank { color: #888; width: 3rem; }
+    .ci-note {
+      color: #888;
+      font-size: 0.8rem;
+      margin: -0.5rem 0 1rem;
+    }
+
+    .callout {
+      border-radius: 6px;
+      padding: 0.7rem 1rem;
+      margin-bottom: 0.7rem;
+      font-size: 0.92rem;
+      border-left: 4px solid;
+    }
+    .callout h3 { margin: 0 0 0.3rem; font-size: 0.85rem; text-transform: uppercase; }
+    .callout ul { margin: 0; padding-left: 1.2rem; }
+    .callout-yellow { background: rgba(250, 204, 21, 0.08); border-color: #facc15; }
+    .callout-orange { background: rgba(251, 146, 60, 0.08); border-color: #fb923c; }
+    .callout-blue   { background: rgba(74, 158, 255, 0.08); border-color: #4a9eff; }
+
     #grade-another-btn {
       margin-top: 2rem;
       padding: 0.6rem 1.5rem;
@@ -335,8 +398,8 @@
   <div id="select-phase">
     <h1>setup-bench grading</h1>
     <div id="empty-message" class="hidden"></div>
-    <select id="task-select"><option value="">Select task...</option></select>
-    <select id="model-select" disabled><option value="">Select model...</option></select>
+    <select id="axis-select"><option value="">Select axis...</option></select>
+    <div id="cell-pickers"></div>
     <button id="start-btn" disabled>Start Grading</button>
   </div>
 
@@ -352,6 +415,7 @@
         <div class="side-header">
           <div class="label">A</div>
           <div class="proxy" id="proxy-left"></div>
+          <div class="gate" id="gate-left"></div>
         </div>
         <div class="diff-container" id="diff-left"></div>
       </div>
@@ -359,6 +423,7 @@
         <div class="side-header">
           <div class="label">B</div>
           <div class="proxy" id="proxy-right"></div>
+          <div class="gate" id="gate-right"></div>
         </div>
         <div class="diff-container" id="diff-right"></div>
       </div>
@@ -399,6 +464,21 @@
   <!-- ── Phase 3: Reveal ───────────────────────────── -->
   <div id="reveal-phase" class="hidden">
     <h1 id="reveal-title">Results</h1>
+
+    <div id="bt-section" class="hidden">
+      <h2>Ranking (Bradley-Terry)</h2>
+      <table class="reveal-table" id="bt-table">
+        <thead><tr>
+          <th class="bt-rank">#</th><th>Value</th><th>Elo</th><th>95% CI</th>
+          <th>Wins</th><th>Losses</th><th>Ties</th><th>Pass Rate</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="ci-note">Italic rows have confidence intervals that overlap the top-ranked value — statistically indistinguishable.</p>
+    </div>
+
+    <div id="analyzer-section"></div>
+
     <h2>Summary</h2>
     <table class="reveal-table" id="summary-table">
       <thead><tr><th>Methodology</th><th>Wins</th><th>Losses</th><th>Ties</th></tr></thead>
@@ -414,24 +494,33 @@
 
   <script src="/static/vendor/diff2html-ui.min.js"></script>
   <script>
+    // ── Constants ──────────────────────────────────────
+    const AXIS_COLS = {
+      methodology: 'methodology_id',
+      repo_context: 'repo_context_id',
+      model: 'model',
+      runner: 'runner',
+    };
+    const ALL_AXES = Object.keys(AXIS_COLS);
+
     // ── State ──────────────────────────────────────────
     let state = {
       sessionId: null,
       pairs: [],
       currentIndex: 0,
       choices: {},
-      taskId: null,
-      model: null,
+      axis: null,
+      cell: null,
     };
 
-    let tasksData = [];
+    let cellsData = [];  // cells for currently selected axis
 
     // ── DOM refs ───────────────────────────────────────
     const $selectPhase   = document.getElementById('select-phase');
     const $comparePhase  = document.getElementById('compare-phase');
     const $revealPhase   = document.getElementById('reveal-phase');
-    const $taskSelect    = document.getElementById('task-select');
-    const $modelSelect   = document.getElementById('model-select');
+    const $axisSelect    = document.getElementById('axis-select');
+    const $cellPickers   = document.getElementById('cell-pickers');
     const $startBtn      = document.getElementById('start-btn');
     const $emptyMessage  = document.getElementById('empty-message');
     const $pairLabel     = document.getElementById('pair-label');
@@ -442,6 +531,8 @@
     const $diffRight     = document.getElementById('diff-right');
     const $proxyLeft     = document.getElementById('proxy-left');
     const $proxyRight    = document.getElementById('proxy-right');
+    const $gateLeft      = document.getElementById('gate-left');
+    const $gateRight     = document.getElementById('gate-right');
     const $rubricPanel   = document.getElementById('rubric-panel');
     const $revealTitle   = document.getElementById('reveal-title');
 
@@ -458,69 +549,142 @@
       $progressTrack.classList.toggle('hidden', phase !== 'compare');
     }
 
-    // ── Boot: load tasks ───────────────────────────────
-    async function loadTasks() {
+    // ── Helpers for axis/column mapping ────────────────
+    function fixedAxes(axis) {
+      return ALL_AXES.filter(a => a !== axis);
+    }
+
+    function colForAxis(axis) {
+      return AXIS_COLS[axis];
+    }
+
+    function friendlyName(axis) {
+      return axis.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // ── Boot: load axes ───────────────────────────────
+    async function loadAxes() {
+      let axesData = [];
       try {
-        const resp = await fetch('/api/tasks');
-        tasksData = await resp.json();
+        const resp = await fetch('/api/axes');
+        axesData = await resp.json();
       } catch (e) {
-        tasksData = [];
+        axesData = [];
       }
 
-      if (tasksData.length === 0) {
+      if (axesData.length === 0) {
         $emptyMessage.textContent = 'No grading-ready data. Run some trials first.';
         $emptyMessage.classList.remove('hidden');
-        $taskSelect.classList.add('hidden');
-        $modelSelect.classList.add('hidden');
+        $axisSelect.classList.add('hidden');
+        $cellPickers.classList.add('hidden');
         $startBtn.classList.add('hidden');
         return;
       }
 
-      for (const t of tasksData) {
+      for (const a of axesData) {
         const opt = document.createElement('option');
-        opt.value = t.task_id;
-        opt.textContent = t.task_id;
-        $taskSelect.appendChild(opt);
+        opt.value = a.axis;
+        opt.textContent = friendlyName(a.axis);
+        $axisSelect.appendChild(opt);
       }
     }
 
-    $taskSelect.addEventListener('change', () => {
-      const taskId = $taskSelect.value;
-      $modelSelect.innerHTML = '<option value="">Select model...</option>';
-      $modelSelect.disabled = true;
+    // ── Axis change: fetch cells + build pickers ──────
+    $axisSelect.addEventListener('change', async () => {
+      const axis = $axisSelect.value;
+      $cellPickers.innerHTML = '';
       $startBtn.disabled = true;
+      cellsData = [];
 
-      if (!taskId) return;
+      if (!axis) return;
 
-      const task = tasksData.find(t => t.task_id === taskId);
-      if (!task) return;
-
-      for (const m of task.models) {
-        const opt = document.createElement('option');
-        opt.value = m;
-        opt.textContent = m;
-        $modelSelect.appendChild(opt);
+      try {
+        const resp = await fetch(`/api/cells?axis=${encodeURIComponent(axis)}`);
+        cellsData = await resp.json();
+      } catch (e) {
+        cellsData = [];
+        return;
       }
-      $modelSelect.disabled = false;
+
+      if (cellsData.length === 0) return;
+
+      // Build pickers: task + the three fixed axes
+      const pickerKeys = ['task'].concat(fixedAxes(axis));
+
+      for (const key of pickerKeys) {
+        const col = key === 'task' ? 'task_id' : colForAxis(key);
+        const distinctVals = [...new Set(cellsData.map(c => c[col]))].sort();
+
+        const label = document.createElement('label');
+        label.textContent = friendlyName(key);
+
+        const sel = document.createElement('select');
+        sel.dataset.pickerKey = key;
+        const blank = document.createElement('option');
+        blank.value = '';
+        blank.textContent = `Select ${friendlyName(key)}...`;
+        sel.appendChild(blank);
+
+        for (const v of distinctVals) {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        }
+
+        sel.addEventListener('change', validateSelection);
+        label.appendChild(sel);
+        $cellPickers.appendChild(label);
+      }
     });
 
-    $modelSelect.addEventListener('change', () => {
-      $startBtn.disabled = !$modelSelect.value;
-    });
+    // ── Validate: enable Start only when selection matches a cell with n_values >= 2
+    function validateSelection() {
+      $startBtn.disabled = true;
+      const axis = $axisSelect.value;
+      if (!axis) return;
+
+      const pickers = $cellPickers.querySelectorAll('select');
+      const vals = {};
+      for (const sel of pickers) {
+        const key = sel.dataset.pickerKey;
+        if (!sel.value) return;  // incomplete
+        vals[key] = sel.value;
+      }
+
+      // Find matching cell
+      const match = cellsData.find(c => {
+        if (c.task_id !== vals.task) return false;
+        for (const fa of fixedAxes(axis)) {
+          if (c[colForAxis(fa)] !== vals[fa]) return false;
+        }
+        return true;
+      });
+
+      $startBtn.disabled = !(match && match.n_values >= 2);
+    }
 
     $startBtn.addEventListener('click', startGrading);
 
     // ── Start grading ──────────────────────────────────
     async function startGrading() {
-      const taskId = $taskSelect.value;
-      const model  = $modelSelect.value;
-      if (!taskId || !model) return;
+      const axis = $axisSelect.value;
+      if (!axis) return;
+
+      // Gather picker values
+      const pickers = $cellPickers.querySelectorAll('select');
+      const params = new URLSearchParams();
+      params.set('axis', axis);
+      for (const sel of pickers) {
+        const key = sel.dataset.pickerKey;
+        params.set(key, sel.value);
+      }
 
       $startBtn.disabled = true;
       $startBtn.textContent = 'Loading...';
 
       try {
-        const resp = await fetch(`/api/pairs?task=${encodeURIComponent(taskId)}&model=${encodeURIComponent(model)}`);
+        const resp = await fetch(`/api/pairs?${params.toString()}`);
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({ detail: 'Request failed' }));
           alert(err.detail || 'Failed to load pairs');
@@ -529,12 +693,12 @@
           return;
         }
         const data = await resp.json();
-        state.sessionId = data.session_id;
-        state.taskId    = data.task_id;
-        state.model     = data.model;
-        state.pairs     = data.pairs;
+        state.sessionId    = data.session_id;
+        state.axis         = data.axis;
+        state.cell         = data.cell;
+        state.pairs        = data.pairs;
         state.currentIndex = 0;
-        state.choices   = {};
+        state.choices      = {};
 
         showPhase('compare');
         renderPair(0);
@@ -560,6 +724,10 @@
       // Proxy stats
       $proxyLeft.textContent  = formatProxy(pair.left.proxy);
       $proxyRight.textContent = formatProxy(pair.right.proxy);
+
+      // Gate badges
+      renderGate($gateLeft, pair.left.gate);
+      renderGate($gateRight, pair.right.gate);
 
       // Diffs
       renderDiff($diffLeft, pair.left.diff);
@@ -588,6 +756,19 @@
 
     function formatProxy(p) {
       return `+${p.lines_added} -${p.lines_removed} | ${p.files_touched} file${p.files_touched !== 1 ? 's' : ''}`;
+    }
+
+    function renderGate(el, gate) {
+      const items = [
+        { label: 'Build',   val: gate.compile_passed },
+        { label: 'Visible', val: gate.visible_passed },
+        { label: 'Hidden',  val: gate.hidden_passed },
+      ];
+      el.innerHTML = items.map(({ label, val }) => {
+        const cls = val === true ? 'pass' : val === false ? 'fail' : 'na';
+        const sym = val === true ? '✓' : val === false ? '✕' : '–';
+        return `<span class="gate-badge ${cls}">${label} ${sym}</span>`;
+      }).join('');
     }
 
     function renderDiff(container, diffString) {
@@ -725,28 +906,90 @@
     }
 
     function showReveal(data) {
-      $revealTitle.textContent = `Results — ${state.taskId} / ${state.model}`;
+      // Header: "comparing <axis> within <cell>"
+      const cellParts = Object.entries(data.cell)
+        .map(([col, val]) => {
+          // Map column names to short labels
+          const shortMap = { task_id: 'task', methodology_id: 'methodology', repo_context_id: 'repo_context', model: 'model', runner: 'runner' };
+          return `${shortMap[col] || col}=${val}`;
+        })
+        .join(' · ');
+      $revealTitle.textContent = `comparing ${data.axis} within ${cellParts}`;
 
-      // Summary table sorted by wins desc
+      // Summary table: update first column header to axis name
+      const summaryHead = document.querySelector('#summary-table thead tr');
+      summaryHead.innerHTML = `<th>${esc(friendlyName(data.axis))}</th><th>Wins</th><th>Losses</th><th>Ties</th>`;
+
       const summaryBody = document.querySelector('#summary-table tbody');
       summaryBody.innerHTML = '';
       const entries = Object.entries(data.summary).sort((a, b) => b[1].wins - a[1].wins);
-      for (const [methodology, rec] of entries) {
+      for (const [axisValue, rec] of entries) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${esc(methodology)}</td><td>${rec.wins}</td><td>${rec.losses}</td><td>${rec.ties}</td>`;
+        tr.innerHTML = `<td>${esc(axisValue)}</td><td>${rec.wins}</td><td>${rec.losses}</td><td>${rec.ties}</td>`;
         summaryBody.appendChild(tr);
       }
+
+      renderBT(data);
+      renderAnalyzer(data.analyzer_flags);
 
       // Detail table
       const detailBody = document.querySelector('#detail-table tbody');
       detailBody.innerHTML = '';
       for (const p of data.pairs) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${p.pair_index}</td><td>${esc(p.left_methodology_id)}</td><td>${esc(p.right_methodology_id)}</td><td>${esc(p.choice || '—')}</td>`;
+        tr.innerHTML = `<td>${p.pair_index}</td><td>${esc(p.left_value)}</td><td>${esc(p.right_value)}</td><td>${esc(p.choice || '—')}</td>`;
         detailBody.appendChild(tr);
       }
 
       showPhase('reveal');
+    }
+
+    function renderBT(data) {
+      const section = document.getElementById('bt-section');
+      const tbody = document.querySelector('#bt-table tbody');
+      tbody.innerHTML = '';
+      if (!data.bt_scores || data.bt_scores.length === 0) {
+        section.classList.add('hidden');
+        return;
+      }
+      section.classList.remove('hidden');
+      document.querySelector('#bt-table thead th:nth-child(2)').textContent = friendlyName(data.axis);
+
+      const passRates = data.pass_rates || {};
+      // The top row defines the CI band; rows whose CI overlaps it are "indistinguishable".
+      const top = data.bt_scores[0];
+      data.bt_scores.forEach((s, i) => {
+        const rec = data.summary[s.axis_value] || { wins: 0, losses: 0, ties: 0 };
+        const pr = passRates[s.axis_value];
+        const overlapsTop = i > 0 && s.ci_upper >= top.ci_lower;
+        const tr = document.createElement('tr');
+        if (overlapsTop) tr.classList.add('indistinguishable');
+        tr.innerHTML =
+          `<td class="bt-rank">${i + 1}</td>` +
+          `<td>${esc(s.axis_value)}</td>` +
+          `<td>${Math.round(s.elo)}</td>` +
+          `<td>${Math.round(s.ci_lower)} – ${Math.round(s.ci_upper)}</td>` +
+          `<td>${rec.wins}</td><td>${rec.losses}</td><td>${rec.ties}</td>` +
+          `<td>${pr === undefined ? '—' : (pr * 100).toFixed(0) + '%'}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAnalyzer(flags) {
+      const section = document.getElementById('analyzer-section');
+      section.innerHTML = '';
+      if (!flags) return;
+      const callout = (cls, title, items) => {
+        if (!items || items.length === 0) return;
+        const div = document.createElement('div');
+        div.className = `callout ${cls}`;
+        div.innerHTML = `<h3>${esc(title)}</h3><ul>` +
+          items.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>';
+        section.appendChild(div);
+      };
+      callout('callout-yellow', 'Non-discriminating tasks', flags.non_discriminating_tasks);
+      callout('callout-orange', 'Flaky tasks', flags.flaky_tasks);
+      callout('callout-blue', 'Cost / quality notes', flags.cost_quality_notes);
     }
 
     function esc(s) {
@@ -761,12 +1004,12 @@
         pairs: [],
         currentIndex: 0,
         choices: {},
-        taskId: null,
-        model: null,
+        axis: null,
+        cell: null,
       };
-      $taskSelect.value = '';
-      $modelSelect.innerHTML = '<option value="">Select model...</option>';
-      $modelSelect.disabled = true;
+      $axisSelect.value = '';
+      $cellPickers.innerHTML = '';
+      cellsData = [];
       $startBtn.disabled = true;
       hideRubric();
       showPhase('select');
@@ -797,7 +1040,7 @@
     });
 
     // ── Init ───────────────────────────────────────────
-    loadTasks();
+    loadAxes();
   </script>
 </body>
 </html>

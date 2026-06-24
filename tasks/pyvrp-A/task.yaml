@@ -6,3 +6,5 @@ instruction: |
 run_cmd: "pytest tests/search/test_ReplaceGroup.py -v"
 held_out_tests_path: tasks/pyvrp-A/held_out_tests
 reference_diff_path: tasks/pyvrp-A/reference.diff
+build_cmd: "pip install -e . 2>&1"
+visible_test_cmd: null

@@ -11,6 +11,19 @@ from core.models import Trial, RunResult
 
 logger = logging.getLogger(__name__)
 
+AXIS_FIELDS = {
+    "methodology": "methodology_id",
+    "model": "model",
+    "repo_context": "repo_context_id",
+    "runner": "runner",
+}
+AXIS_TOKENS = {
+    "methodology": "[methodology]",
+    "repo_context": "[context]",
+    "model": "[model]",
+    "runner": "[runner]",
+}
+
 METHODOLOGY_FILE_PATTERNS = {
     "CLAUDE.md",
     ".github/copilot-instructions.md",
@@ -39,31 +52,64 @@ class DiffProxy(BaseModel):
 def generate_pairs(
     trials: list[Trial],
     run_results: dict[str, RunResult],
+    axis: str = "methodology",
+    num_pairs: int | None = None,
     seed: int | None = None,
 ) -> list[tuple[Trial, Trial]]:
-    by_methodology: dict[str, list[Trial]] = {}
+    """Sample balanced cross-value pairs from a cell.
+
+    Callers pass exactly one cell's passing trials — all other axes already fixed —
+    so the only thing varying is the comparison axis. Unlike a rep-0-only scheme,
+    this draws from every rep: the candidate pool is all unique cross-value trial
+    pairs, and sampling prefers under-used trials so the reps stay balanced.
+
+    M = distinct axis values, R reps each => pool of ~C(M,2) * R * R pairs.
+    ``num_pairs`` defaults to C(M,2) * 3.
+    """
+    field = AXIS_FIELDS[axis]
+    by_axis_value: dict[str, list[Trial]] = {}
     for t in trials:
-        by_methodology.setdefault(t.methodology_id, []).append(t)
+        by_axis_value.setdefault(getattr(t, field), []).append(t)
 
-    representatives: list[Trial] = []
-    for methodology_id, group in by_methodology.items():
-        best = min(group, key=lambda t: t.rep)
-        representatives.append(best)
+    # Candidate pool: every unique pair of trials from two different axis values.
+    groups = list(by_axis_value.values())
+    candidates: list[tuple[Trial, Trial]] = []
+    for ga, gb in itertools.combinations(groups, 2):
+        for a in ga:
+            for b in gb:
+                candidates.append((a, b))
 
-    pairs = list(itertools.combinations(representatives, 2))
+    m = len(by_axis_value)
+    if num_pairs is None:
+        num_pairs = (m * (m - 1) // 2) * 3
+    num_pairs = min(num_pairs, len(candidates))
 
     rng = random.Random(seed)
-    result: list[tuple[Trial, Trial]] = []
-    for a, b in pairs:
-        if rng.random() < 0.5:
-            result.append((a, b))
-        else:
-            result.append((b, a))
+    rng.shuffle(candidates)
 
-    return result
+    # Greedy balanced selection: repeatedly take the candidate whose two trials
+    # have the lowest combined usage so far, so reps get spread evenly.
+    use_count: dict[str, int] = {}
+    selected: list[tuple[Trial, Trial]] = []
+    remaining = candidates[:]
+    while remaining and len(selected) < num_pairs:
+        best_i = min(
+            range(len(remaining)),
+            key=lambda i: (
+                max(use_count.get(remaining[i][0].id, 0), use_count.get(remaining[i][1].id, 0)),
+                use_count.get(remaining[i][0].id, 0) + use_count.get(remaining[i][1].id, 0),
+            ),
+        )
+        a, b = remaining.pop(best_i)
+        use_count[a.id] = use_count.get(a.id, 0) + 1
+        use_count[b.id] = use_count.get(b.id, 0) + 1
+        # Randomly assign left/right.
+        selected.append((a, b) if rng.random() < 0.5 else (b, a))
+
+    return selected
 
 
-def _is_methodology_file(path: str) -> bool:
+def _is_instruction_file(path: str) -> bool:
     if path in METHODOLOGY_FILE_PATTERNS:
         return True
     for prefix in METHODOLOGY_DIR_PREFIXES:
@@ -92,7 +138,7 @@ def _split_file_hunks(diff: str) -> list[tuple[str, str]]:
     return result
 
 
-def anonymize_diff(diff: str, methodology_ids: list[str]) -> str:
+def anonymize_diff(diff: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
     hunks = _split_file_hunks(diff)
 
     # Preserve any text before the first "diff --git" (unlikely but safe)
@@ -100,15 +146,17 @@ def anonymize_diff(diff: str, methodology_ids: list[str]) -> str:
 
     kept_parts: list[str] = [prefix] if prefix else []
     for file_path, hunk_text in hunks:
-        if _is_methodology_file(file_path):
+        if _is_instruction_file(file_path):
             continue
         kept_parts.append(hunk_text)
 
     cleaned = "".join(kept_parts)
 
-    for sid in methodology_ids:
-        pattern = re.compile(re.escape(sid), re.IGNORECASE)
-        cleaned = pattern.sub("[methodology]", cleaned)
+    for axis, ids in axis_ids_by_axis.items():
+        token = AXIS_TOKENS[axis]
+        for sid in sorted(ids, key=len, reverse=True):
+            pattern = re.compile(re.escape(sid), re.IGNORECASE)
+            cleaned = pattern.sub(token, cleaned)
 
     return cleaned
 

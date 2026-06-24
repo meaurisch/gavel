@@ -99,7 +99,8 @@ def test_gate_result_roundtrip():
     obj = GateResult(
         trial_id="cosmos-001_vanilla_claude-3-5-sonnet_claude-code_0",
         passed=True,
-        test_output="All 12 tests passed.",
+        hidden_passed=True,
+        hidden_output="All 12 tests passed.",
     )
     ta = TypeAdapter(GateResult)
     data = ta.dump_python(obj)

@@ -2,23 +2,34 @@
 
 Created: 2026-06-20
 
-A from-scratch, local-first framework to compare agentic coding **setups**
-(instruction / skill packs) across **harnesses**, **models**, and **tasks** —
-scored on *would-I-merge* quality and on cost. Runs on a personal machine against
-public proxy repos, with a minimal manual confirmation tier on the work machine.
+A from-scratch, local-first framework to compare agentic coding **methodologies**
+(instruction / skill packs) across **repo-contexts**, **models**, **runners**
+(harnesses), and **tasks** — scored on *would-I-merge* quality and on cost. Runs
+on a personal machine against public proxy repos, with a minimal manual
+confirmation tier on the work machine.
 
 ## What it is
 
 Five independent, swappable axes — Task × Methodology × Repo-Context × Model ×
 Runner (harness) — sitting on a single **runner abstraction**. The *methodology*
-(instruction / skill pack) is the thing under test; the *repo-context* is a fixed
-controlled environment (repo-specific instructions) laid into the worktree
-**under** the methodology — applied sequentially, never merged. Repo-contexts
-carry a `task_affinity` tag so nonsensical task/context pairs are skipped by
-default (override with `--full-matrix`). Each trial runs in a fresh `git worktree`; held-out
-tests live outside the worktree and are applied only at grade time, so test
-leakage is impossible by construction. Quality is a binary held-out-test gate
-followed by **blind pairwise forced-choice** ("A or B, which would I merge?").
+(instruction / skill pack) and the *repo-context* (repo-specific instructions)
+are laid into the worktree sequentially — repo-context first, methodology
+**on top**, never merged. Repo-contexts carry a `task_affinity` tag so
+nonsensical task/context pairs are skipped by default (override with
+`--full-matrix`).
+
+**Comparison is axis-general.** Any axis can be the comparison target: you pick
+which axis to compare (methodology, model, repo-context, or runner), the chosen
+axis varies while every *other* axis is held fixed as a "cell", and the diffs
+shown to the grader redact **every** axis id — so blind A/B works for whichever
+axis you're comparing. Methodology is the default; the others are selectable.
+
+Each trial runs in a fresh `git worktree`; held-out tests live outside the
+worktree and are applied only at grade time, so test leakage is impossible by
+construction. Quality is a **three-tier gate scorecard** (compile → visible tests
+→ hidden tests), then **blind pairwise forced-choice** ("A or B, which would I
+merge?") over the hidden-gate passers, with multi-rep sampling and a
+**Bradley-Terry** ranking (Elo-style scores + bootstrap confidence intervals).
 Cost is computed from token counts × published API rates (data-driven pricing
 table in `cost/pricing.toml`, updatable via `setup-bench pricing fetch`).
 Self-reported cost is kept as a secondary reference value.
@@ -95,7 +106,8 @@ placement per harness:
 | `ecc` | ECC v2.0.0 agent operating system | CLAUDE.md + 441 skills + 67 agents + 114 rules | copilot-instructions.md |
 | `custom` | User's conductor/executor/validator/reviewer workflow | — (skeleton) | 7 agent files |
 
-External packs vendored at pinned commits and frozen offline under `setups/<id>/vendor/`.
+External packs vendored at pinned commits and frozen offline under `setups/<id>/vendor/`
+(methodologies were then called *setups*; renamed to `methodologies/` in P3.3 Part 1).
 Loader resolves any `(setup_id, harness)` pair into a `SetupSpec` — runners unchanged.
 
 **P1.6 complete** — matrix driver and run protocol fully wired. `cli.py run`
@@ -130,14 +142,48 @@ control. Runners lay repo-context files first, methodology files second (two
 commits). New `core/repo_context_loader.py` mirrors the methodology loader;
 `core/db.py` gains a `repo_context_spec` table and a `repo_context_id` column on
 `trial`. CLI gains `--repo-context`, `--full-matrix`, a "Context" grid column,
-and a warning when `baseline` is omitted. Grading/UI wiring of the new axis is
-Part 3.
+and a warning when `baseline` is omitted.
+
+**P3.3 Part 3 complete** — grading is now **axis-general**. `grading/pairwise.py`
+takes a comparison `axis` (`methodology` / `model` / `repo_context` / `runner`):
+`generate_pairs(trials, run_results, axis)` groups by that axis, and
+`anonymize_diff(diff, axis_ids_by_axis)` blinds **every** axis id with its own
+token. `core/db.py` gains `list_grading_cells(conn, axis)` (enumerates fixed-axis
+"cells" with ≥2 distinct values) and a keyword-only multi-axis
+`list_passing_trials`. The UI (`ui/server.py` + `ui/static/index.html`) replaces
+the old `(task, model)` flow with `/api/axes` → `/api/cells` → `/api/pairs`: an
+axis picker drives cascading cell pickers, diffs are blinded across all axes, and
+the reveal tallies/header are keyed by the chosen axis. Covered by
+`tests/test_pairwise.py` + `tests/test_server.py` (88 tests green).
 
 > **DB break:** the `trial` table schema changed (new `repo_context_id` column)
 > with no migration — delete any pre-existing `results.db` (or migrate it by
 > hand) before running.
 
+**P3.5 complete** — multi-rep sampling + Bradley-Terry ranking + analyzer flags
+(axis-general). `generate_pairs(trials, run_results, axis, num_pairs, seed)` now
+draws balanced cross-value pairs from **all reps** (pool ≈ C(M,2)·R², default
+C(M,2)·3 pairs) instead of only rep 0. `grading/bradley_terry.py` fits a BT model
+(MM algorithm, ties as half-wins) and returns Elo-style scores with bootstrap
+95% CIs (numpy). `grading/analyzer.py` flags non-discriminating tasks, flaky
+tasks, and cost/quality tradeoffs. `core/db.py` gains `list_cell_trials` (all
+trials in a cell, passing and failing). `/api/reveal` now returns `bt_scores`,
+`analyzer_flags`, and `pass_rates` (BT skipped below 3 judgments); a new
+`/api/stats` returns per-value pass rate + mean cost + mean wall-clock. The
+reveal page (`ui/static/index.html`) renders a ranked BT table (overlapping CIs
+shown as indistinguishable) plus colored analyzer callouts. Covered by
+`tests/test_bradley_terry.py`, `tests/test_analyzer.py`, and additions to
+`tests/test_pairwise.py` / `tests/test_db.py` / `tests/test_server.py`
+(107 tests green).
+
 ## Next up
-- [ ] P3.3 Part 3 — wire repo-context through pairwise grouping + grading UI
-- [ ] Run the Phase-1 model sweep × methodology bake-off, then grade
-- [ ] Set the open knobs in `IMPLEMENTATION_PLAN.md` §7 before any measurement run
+
+The remaining `prompts/`, in order — grading is axis-general with BT ranking
+(P3.3, P3.5 done):
+
+- [ ] **P3.4** — three-tier gate scorecard (compile → visible → hidden).
+- [ ] **P3.6** — task-set quality (30–70% discrimination band, difficulty
+      labels, stronger hidden tests).
+- [ ] **P3.7** — README rewrite (last, describing the actual final system).
+- [ ] Then: run the Phase-1 model sweep × methodology bake-off, grade, and set
+      the open knobs in `IMPLEMENTATION_PLAN.md` §7 before any measurement run.
