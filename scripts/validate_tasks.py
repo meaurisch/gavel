@@ -22,7 +22,8 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TASKS_DIR = PROJECT_ROOT / "tasks"
-REPOS_DIR = PROJECT_ROOT / "repos" / "pyvrp"
+REPOS_ROOT = PROJECT_ROOT / "repos"
+REPOS_DIR = REPOS_ROOT / "pyvrp"  # default; per-task repo via _repo_dir_for_task
 
 
 def _build_env() -> dict[str, str]:
@@ -81,6 +82,36 @@ def _load_task(task_dir: Path) -> dict:
     return result
 
 
+# --- task -> repo / build dispatch (keeps the validator language-agnostic) ---
+
+def _repo_dir_for_task(task: dict) -> Path:
+    """Local repo dir for a task: explicit ``repo:`` field, else the id prefix.
+
+    e.g. {"repo": "cosmos"} -> repos/cosmos; {"id": "pyvrp-A"} -> repos/pyvrp.
+    """
+    repo = str(task.get("repo", "")).strip() or task["id"].split("-")[0]
+    return REPOS_ROOT / repo
+
+
+def _is_editable_pip_install(build_cmd: str) -> bool:
+    """True for a PyVRP-style ``pip install -e .`` that needs special handling."""
+    text = build_cmd or ""
+    return "pip install" in text and "-e" in text
+
+
+def _requires_native_toolchain(tasks: list[dict]) -> bool:
+    """Whether any selected task needs the meson/cmake/C++ toolchain (PyVRP)."""
+    return any(_is_editable_pip_install(t.get("build_cmd", "") or "") for t in tasks)
+
+
+def _discover_task_dirs(tasks_dir: Path) -> list[Path]:
+    """Every immediate subdir that contains a task.yaml (any repo/language)."""
+    return sorted(
+        d for d in tasks_dir.iterdir()
+        if d.is_dir() and (d / "task.yaml").exists()
+    )
+
+
 # --- Static rubric lint (no build toolchain required) ---------------------
 #
 # These checks implement the machine-checkable subset of the golden-task rubric
@@ -124,23 +155,38 @@ def check_instruction_length(instruction: str) -> Check:
     return Check("instruction_length", "PASS", "")
 
 
+def _is_nontrivial_test_source(text: str) -> bool:
+    """True if the source has a real test + assertion (Python or C#/xUnit)."""
+    # Python: def test... + assert
+    if re.search(r"def\s+test", text) and "assert" in text:
+        return True
+    # C# / xUnit: [Fact]/[Theory] + Assert.
+    if re.search(r"\[\s*(Fact|Theory)\s*\]", text) and re.search(r"\bAssert\.", text):
+        return True
+    return False
+
+
 def check_held_out_nontrivial(held_out_dir: Path) -> Check:
-    """Facet 3: held-out tests exist and actually assert behaviour."""
+    """Facet 3: held-out tests exist and actually assert behaviour.
+
+    Language-agnostic: recognises Python (def test.../assert) and C# xUnit
+    ([Fact]/[Theory] + Assert.) test files.
+    """
     if not held_out_dir.exists():
         return Check("held_out_nontrivial", "FAIL", f"missing dir: {held_out_dir}")
     test_files = [
-        p for p in held_out_dir.rglob("*.py")
-        if p.is_file() and ("test" in p.name.lower())
+        p for p in held_out_dir.rglob("*")
+        if p.is_file() and p.suffix.lower() in (".py", ".cs") and "test" in p.name.lower()
     ]
     if not test_files:
-        return Check("held_out_nontrivial", "FAIL", "no test_*.py files found")
+        return Check("held_out_nontrivial", "FAIL", "no test files found (*.py / *.cs)")
     for p in test_files:
         text = p.read_text(encoding="utf-8", errors="ignore")
-        if "assert" in text and re.search(r"def\s+test", text):
+        if _is_nontrivial_test_source(text):
             return Check("held_out_nontrivial", "PASS", "")
     return Check(
         "held_out_nontrivial", "FAIL",
-        "test files present but no `def test...`/`assert` - too weak",
+        "test files present but no real test+assert - too weak",
     )
 
 
@@ -235,10 +281,10 @@ def _iter_held_out_files(src: Path):
             yield p, p.relative_to(src)
 
 
-def _create_worktree(base_commit: str) -> Path:
+def _create_worktree(base_commit: str, repo_dir: Path = REPOS_DIR) -> Path:
     from core.worktree import create_worktree
 
-    return create_worktree(REPOS_DIR, base_commit)
+    return create_worktree(repo_dir, base_commit)
 
 
 def _destroy_worktree(wt_path: Path) -> None:
@@ -338,6 +384,24 @@ def _install_in_worktree(wt_path: Path) -> bool:
     return True
 
 
+def _build_or_install(task: dict, wt_path: Path) -> bool:
+    """Prepare the worktree for testing using the task's own build_cmd.
+
+    PyVRP needs an editable pip install with build-script patching and no build
+    isolation (see _install_in_worktree); every other task just runs its
+    build_cmd verbatim (e.g. ``dotnet build ...``).
+    """
+    build_cmd = task.get("build_cmd", "") or ""
+    if _is_editable_pip_install(build_cmd):
+        return _install_in_worktree(wt_path)
+    _patch_build_scripts_for_windows(wt_path)
+    log.info("  Building worktree: %s", build_cmd)
+    ok, out = _run_build(wt_path, build_cmd)
+    if not ok:
+        log.error("  build_cmd failed:\n%s", out[-2000:])
+    return ok
+
+
 def _apply_diff(wt_path: Path, diff_path: Path) -> bool:
     """Apply a diff to the worktree. Returns True on success."""
     result = subprocess.run(
@@ -407,7 +471,7 @@ def _validate_build_gate(task: dict) -> tuple[bool | None, str]:
         return None, "no build_cmd"
     wt_path = None
     try:
-        wt_path = _create_worktree(task["base_commit"])
+        wt_path = _create_worktree(task["base_commit"], _repo_dir_for_task(task))
         _patch_build_scripts_for_windows(wt_path)
         return _run_build(wt_path, build_cmd)
     finally:
@@ -427,9 +491,9 @@ def _validate_fail_to_pass(task: dict) -> tuple[bool, str]:
     held_out_path = PROJECT_ROOT / task["held_out_tests_path"]
     wt_path = None
     try:
-        wt_path = _create_worktree(task["base_commit"])
-        if not _install_in_worktree(wt_path):
-            return False, "install failed on clean base commit"
+        wt_path = _create_worktree(task["base_commit"], _repo_dir_for_task(task))
+        if not _build_or_install(task, wt_path):
+            return False, "install/build failed on clean base commit"
         created = _copy_held_out_tests(wt_path, held_out_path)
         try:
             tests_passed, output = _run_tests(wt_path, task["run_cmd"])
@@ -453,11 +517,11 @@ def _validate_pass_to_pass_with_gold(task: dict) -> tuple[bool, str]:
     diff_path = PROJECT_ROOT / task["reference_diff_path"]
     wt_path = None
     try:
-        wt_path = _create_worktree(task["base_commit"])
+        wt_path = _create_worktree(task["base_commit"], _repo_dir_for_task(task))
         if not _apply_diff(wt_path, diff_path):
             return False, "failed to apply reference.diff"
-        if not _install_in_worktree(wt_path):
-            return False, "install failed with gold patch"
+        if not _build_or_install(task, wt_path):
+            return False, "install/build failed with gold patch"
         created = _copy_held_out_tests(wt_path, held_out_path)
         try:
             tests_passed, output = _run_tests(wt_path, task["run_cmd"])
@@ -564,6 +628,7 @@ def validate_task(task_dir: Path) -> dict:
     task_id = task["id"]
     base_commit = task["base_commit"]
     run_cmd = task["run_cmd"]
+    repo_dir = _repo_dir_for_task(task)
     diff_path = PROJECT_ROOT / task["reference_diff_path"]
     held_out_path = PROJECT_ROOT / task["held_out_tests_path"]
 
@@ -573,14 +638,14 @@ def validate_task(task_dir: Path) -> dict:
     log.info("[%s] Oracle trial: apply reference.diff, run held-out tests", task_id)
     wt_path = None
     try:
-        wt_path = _create_worktree(base_commit)
+        wt_path = _create_worktree(base_commit, repo_dir)
 
         if not _apply_diff(wt_path, diff_path):
             results["errors"].append("oracle: failed to apply reference.diff")
             return results
 
-        if not _install_in_worktree(wt_path):
-            results["errors"].append("oracle: pip install failed (build toolchain?)")
+        if not _build_or_install(task, wt_path):
+            results["errors"].append("oracle: build/install failed (build toolchain?)")
             return results
 
         created = _copy_held_out_tests(wt_path, held_out_path)
@@ -608,10 +673,10 @@ def validate_task(task_dir: Path) -> dict:
     log.info("[%s] Nop trial: no diff, run held-out tests", task_id)
     wt_path = None
     try:
-        wt_path = _create_worktree(base_commit)
+        wt_path = _create_worktree(base_commit, repo_dir)
 
-        if not _install_in_worktree(wt_path):
-            results["errors"].append("nop: pip install failed (build toolchain?)")
+        if not _build_or_install(task, wt_path):
+            results["errors"].append("nop: build/install failed (build toolchain?)")
             return results
 
         created = _copy_held_out_tests(wt_path, held_out_path)
@@ -670,15 +735,18 @@ def main():
 
     sys.path.insert(0, str(PROJECT_ROOT))
 
-    # The static lint needs no build toolchain — check it before the gate.
-    if not args.lint and not args.skip_toolchain_check and not _check_build_toolchain():
-        sys.exit(2)
-
-    task_dirs = sorted(TASKS_DIR.glob("pyvrp-*"))
+    task_dirs = _discover_task_dirs(TASKS_DIR)
     if args.task:
         task_dirs = [d for d in task_dirs if d.name == args.task]
         if not task_dirs:
             log.error("Task %s not found", args.task)
+            sys.exit(2)
+
+    # The native toolchain (meson/cmake/C++) is only needed by PyVRP-style tasks.
+    # Skip the check for dotnet/other tasks and for the static lint.
+    if not args.lint and not args.skip_toolchain_check:
+        selected_tasks = [_load_task(d) for d in task_dirs]
+        if _requires_native_toolchain(selected_tasks) and not _check_build_toolchain():
             sys.exit(2)
 
     if args.lint:

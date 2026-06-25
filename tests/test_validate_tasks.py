@@ -113,6 +113,29 @@ def test_check_held_out_nontrivial_fails_when_test_has_no_asserts(tmp_path):
     assert vt.check_held_out_nontrivial(d).status == "FAIL"
 
 
+def test_check_held_out_nontrivial_passes_with_csharp_xunit(tmp_path):
+    d = tmp_path / "held_out"
+    d.mkdir()
+    (d / "ThingMapperTest.cs").write_text(
+        "public class ThingMapperTest {\n"
+        "    [Fact]\n"
+        "    public void ToDocument_MapsId() { Assert.Equal(1, 1); }\n"
+        "}\n"
+    )
+    assert vt.check_held_out_nontrivial(d).status == "PASS"
+
+
+def test_check_held_out_nontrivial_fails_csharp_without_asserts(tmp_path):
+    d = tmp_path / "held_out"
+    d.mkdir()
+    (d / "ThingMapperTest.cs").write_text(
+        "public class ThingMapperTest {\n"
+        "    public void Helper() { var x = 1; }\n"
+        "}\n"
+    )
+    assert vt.check_held_out_nontrivial(d).status == "FAIL"
+
+
 def test_check_reference_diff_fails_empty():
     assert vt.check_reference_diff("").status == "FAIL"
 
@@ -181,3 +204,45 @@ def test_render_lint_summary_flags_fail():
     assert ok is False
     assert "FAIL" in text
     assert "PROBLEM" in text
+
+
+# --- generalization beyond PyVRP: per-task repo, discovery, build dispatch ---
+
+def test_repo_dir_uses_explicit_repo_field():
+    d = vt._repo_dir_for_task({"id": "cosmos-A", "repo": "cosmos"})
+    assert d.name == "cosmos"
+    assert d.parent.name == "repos"
+
+
+def test_repo_dir_infers_from_id_prefix_when_no_repo_field():
+    d = vt._repo_dir_for_task({"id": "pyvrp-A"})
+    assert d.name == "pyvrp"
+    assert d.parent.name == "repos"
+
+
+def test_is_editable_pip_install_true_for_pyvrp():
+    assert vt._is_editable_pip_install("pip install -e . 2>&1") is True
+
+
+def test_is_editable_pip_install_false_for_dotnet():
+    assert vt._is_editable_pip_install("dotnet build CleanArchitectureCosmosDB.sln") is False
+
+
+def test_requires_native_toolchain_true_when_any_editable_pip():
+    tasks = [{"build_cmd": "dotnet build x.sln"}, {"build_cmd": "pip install -e ."}]
+    assert vt._requires_native_toolchain(tasks) is True
+
+
+def test_requires_native_toolchain_false_for_dotnet_only():
+    tasks = [{"build_cmd": "dotnet build x.sln"}]
+    assert vt._requires_native_toolchain(tasks) is False
+
+
+def test_discover_task_dirs_finds_any_task_yaml(tmp_path):
+    (tmp_path / "pyvrp-A").mkdir()
+    (tmp_path / "pyvrp-A" / "task.yaml").write_text("id: pyvrp-A\n")
+    (tmp_path / "cosmos-A").mkdir()
+    (tmp_path / "cosmos-A" / "task.yaml").write_text("id: cosmos-A\n")
+    (tmp_path / "not-a-task").mkdir()  # no task.yaml -> ignored
+    found = {d.name for d in vt._discover_task_dirs(tmp_path)}
+    assert found == {"pyvrp-A", "cosmos-A"}
