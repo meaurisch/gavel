@@ -150,7 +150,8 @@ first real measurement sweep.
   the analyzer flags.
 - **P3.6** — task-set quality tooling: per-task `difficulty`, `calibrate_tasks.py`
   pass-rate bands, transition validation (FAIL_TO_PASS / PASS_TO_PASS / build),
-  and `docs/task-design-guide.md`.
+  static rubric lint (`validate_tasks.py --lint`), and the golden-task rubric in
+  `docs/task-design-guide.md`.
 
 > **DB note:** the `trial` schema gained a `repo_context_id` column with no
 > migration. Delete any pre-P3.3 `results.db` before running.

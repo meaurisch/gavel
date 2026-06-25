@@ -13,9 +13,11 @@ import argparse
 import logging
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
+from collections import namedtuple
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -77,6 +79,154 @@ def _load_task(task_dir: Path) -> dict:
         result[current_key] = "\n".join(current_lines).strip()
 
     return result
+
+
+# --- Static rubric lint (no build toolchain required) ---------------------
+#
+# These checks implement the machine-checkable subset of the golden-task rubric
+# in docs/task-design-guide.md. They are pure (operate on already-loaded data)
+# so they run cross-platform without worktrees, builds, or WSL. The remaining
+# rubric criteria (spec unambiguity, mutation adequacy, contamination) are left
+# to human audit per the guide.
+
+Check = namedtuple("Check", "name status detail")  # status: PASS | WARN | FAIL
+
+REQUIRED_FIELDS = (
+    "id", "base_commit", "instruction", "run_cmd",
+    "held_out_tests_path", "reference_diff_path", "build_cmd",
+)
+INSTRUCTION_MIN_CHARS = 40
+INSTRUCTION_MAX_WORDS = 280
+
+
+def check_required_fields(task: dict) -> Check:
+    """Facet 1: every task.yaml field a runnable task needs is present + non-empty."""
+    missing = [
+        f for f in REQUIRED_FIELDS
+        if not str(task.get(f, "")).strip()
+    ]
+    if missing:
+        return Check("required_fields", "FAIL", f"missing/empty: {', '.join(missing)}")
+    return Check("required_fields", "PASS", "")
+
+
+def check_instruction_length(instruction: str) -> Check:
+    """Facet 1/2: the ticket is non-empty and not bloated into a spec-dump."""
+    text = (instruction or "").strip()
+    if len(text) < INSTRUCTION_MIN_CHARS:
+        return Check("instruction_length", "FAIL", f"too short (<{INSTRUCTION_MIN_CHARS} chars)")
+    words = len(text.split())
+    if words > INSTRUCTION_MAX_WORDS:
+        return Check(
+            "instruction_length", "WARN",
+            f"long ({words} words) - over-specification smell",
+        )
+    return Check("instruction_length", "PASS", "")
+
+
+def check_held_out_nontrivial(held_out_dir: Path) -> Check:
+    """Facet 3: held-out tests exist and actually assert behaviour."""
+    if not held_out_dir.exists():
+        return Check("held_out_nontrivial", "FAIL", f"missing dir: {held_out_dir}")
+    test_files = [
+        p for p in held_out_dir.rglob("*.py")
+        if p.is_file() and ("test" in p.name.lower())
+    ]
+    if not test_files:
+        return Check("held_out_nontrivial", "FAIL", "no test_*.py files found")
+    for p in test_files:
+        text = p.read_text(encoding="utf-8", errors="ignore")
+        if "assert" in text and re.search(r"def\s+test", text):
+            return Check("held_out_nontrivial", "PASS", "")
+    return Check(
+        "held_out_nontrivial", "FAIL",
+        "test files present but no `def test...`/`assert` - too weak",
+    )
+
+
+def check_reference_diff(diff_text: str) -> Check:
+    """Facet 4: a real, cross-layer diff (multi-file is more discriminative)."""
+    text = diff_text or ""
+    files = re.findall(r"^\+\+\+ b/", text, flags=re.MULTILINE)
+    if not files:
+        return Check("reference_diff", "FAIL", "empty or not a unified diff")
+    if len(files) < 2:
+        return Check(
+            "reference_diff", "WARN",
+            "touches a single file - may be a toy/kata, not cross-layer",
+        )
+    return Check("reference_diff", "PASS", f"{len(files)} files")
+
+
+def check_instruction_leakage(instruction: str) -> Check:
+    """Facet 1: the ticket must not embed the solution as a patch or code block.
+
+    Naming the *public* deliverable (e.g. ``ReplaceGroup``) is the spec, not
+    leakage — so we flag diff/patch syntax and fenced code blocks, never bare
+    identifier mentions.
+    """
+    text = instruction or ""
+    markers = ("diff --git", "@@ ", "+++ b/", "--- a/")
+    hit = next((m for m in markers if m in text), None)
+    if hit:
+        return Check("instruction_leakage", "FAIL", f"contains patch syntax: {hit!r}")
+    if re.search(r"```", text):
+        return Check("instruction_leakage", "FAIL", "contains a fenced code block")
+    return Check("instruction_leakage", "PASS", "")
+
+
+def check_difficulty_present(task: dict) -> Check:
+    """Facet 5: difficulty should be logged as metadata (labelled post-calibration)."""
+    if str(task.get("difficulty", "")).strip():
+        return Check("difficulty", "PASS", "")
+    return Check(
+        "difficulty", "WARN",
+        "no difficulty field - label by hand after a calibration sweep",
+    )
+
+
+def lint_task(task_dir: Path) -> dict:
+    """Run all static rubric checks for one task. Returns {task_id, checks}."""
+    task = _load_task(task_dir)
+    diff_path = PROJECT_ROOT / task.get("reference_diff_path", "")
+    diff_text = diff_path.read_text(encoding="utf-8", errors="ignore") if diff_path.is_file() else ""
+    held_out_dir = PROJECT_ROOT / task.get("held_out_tests_path", "")
+    checks = [
+        check_required_fields(task),
+        check_instruction_length(task.get("instruction", "")),
+        check_held_out_nontrivial(held_out_dir),
+        check_reference_diff(diff_text),
+        check_instruction_leakage(task.get("instruction", "")),
+        check_difficulty_present(task),
+    ]
+    return {"task_id": task.get("id", task_dir.name), "checks": checks}
+
+
+def render_lint_summary(all_results: list[dict]) -> tuple[str, bool]:
+    """Render the static-lint summary. ok is False iff any check FAILs (WARNs allowed)."""
+    lines = ["", "=" * 60, "STATIC RUBRIC LINT SUMMARY", "=" * 60]
+    all_ok = True
+    for r in all_results:
+        checks = r["checks"]
+        has_fail = any(c.status == "FAIL" for c in checks)
+        has_warn = any(c.status == "WARN" for c in checks)
+        if has_fail:
+            all_ok = False
+            status = "PROBLEM"
+        elif has_warn:
+            status = "WARN"
+        else:
+            status = "OK"
+        lines.append(f"  {r['task_id']:12s}  [{status}]")
+        for c in checks:
+            if c.status != "PASS":
+                lines.append(f"    {c.status}: {c.name} - {c.detail}")
+    lines.append("=" * 60)
+    lines.append(
+        "All tasks pass the static rubric checks." if all_ok
+        else "Some tasks FAIL static rubric checks. See above."
+    )
+    return "\n".join(lines), all_ok
 
 
 def _iter_held_out_files(src: Path):
@@ -507,6 +657,10 @@ def main():
         "--validate-transitions", action="store_true",
         help="Run FAIL_TO_PASS / PASS_TO_PASS / build-gate checks instead of oracle/nop.",
     )
+    parser.add_argument(
+        "--lint", action="store_true",
+        help="Run static rubric checks (no build needed) instead of oracle/nop.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -516,7 +670,8 @@ def main():
 
     sys.path.insert(0, str(PROJECT_ROOT))
 
-    if not args.skip_toolchain_check and not _check_build_toolchain():
+    # The static lint needs no build toolchain — check it before the gate.
+    if not args.lint and not args.skip_toolchain_check and not _check_build_toolchain():
         sys.exit(2)
 
     task_dirs = sorted(TASKS_DIR.glob("pyvrp-*"))
@@ -525,6 +680,12 @@ def main():
         if not task_dirs:
             log.error("Task %s not found", args.task)
             sys.exit(2)
+
+    if args.lint:
+        results = [lint_task(d) for d in task_dirs]
+        text, ok = render_lint_summary(results)
+        print(text)
+        sys.exit(0 if ok else 1)
 
     if args.validate_transitions:
         results = [validate_transitions(d) for d in task_dirs]
