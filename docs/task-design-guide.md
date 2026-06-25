@@ -38,6 +38,95 @@ found 31% of "passing" patches passed only because the tests were weak.
 - **Weak hidden tests.** A test that checks "does a file exist?" without verifying
   behavior is worse than useless — it gives false confidence. Every hidden test
   must verify actual behavior, not surface compliance.
+- **Exact-string-match tests.** Gating on a specific warning/error message, log
+  line, or output format the ticket never states. The canonical SWE-bench failure
+  (scikit-learn #14520) demanded an exact `DeprecationWarning` string that appeared
+  only in the gold patch — un-passable. Assert behavior, not undescribed strings.
+- **Un-guessable identifiers.** Grading that requires a new function/class/variable
+  name introduced only in the gold patch and never implied by the ticket. (Naming
+  the *public* deliverable the ticket asks for — `ReplaceGroup` — is the spec, not
+  this anti-pattern.)
+- **Ambiguous-but-strictly-graded.** An under-specified ticket paired with tests
+  that demand one specific un-stated behavior. Under-specification is only valid
+  when the tests accept *all* reasonable interpretations.
+- **Flaky / order-dependent tests.** Non-deterministic outcomes (wall-clock,
+  timezone, network, randomness, test order) inject noise into the ranking. Exclude
+  a task until its hidden tests are deterministic across repeated runs.
+
+## Golden-standard rubric
+
+A task is *golden* only when **every** line below passes. This formalises the
+"strength of hidden tests" thesis at the top of this doc into a per-task gate,
+drawn from how SWE-bench Verified, EvalPlus, SWE-Bench+ and the IRT mid-range
+filter actually build and filter tasks. Each line is tagged with how it's checked:
+
+- `(auto)` — `scripts/validate_tasks.py --lint` (static, no build needed)
+- `(auto: transitions)` — `scripts/validate_tasks.py --validate-transitions`
+- `(auto: calibrate)` — `scripts/calibrate_tasks.py`
+- `(auto: leakage)` — `python -m grading.leakage --repo <repo> --terms ...`
+- `(eyeball)` — human audit; see "How to audit a task by eye" below
+
+### Facet 1 — Task description quality
+- [ ] All required `task.yaml` fields present and non-empty (id, base_commit,
+      instruction, run_cmd, held_out_tests_path, reference_diff_path, build_cmd). `(auto)`
+- [ ] The instruction is substantive, not a one-liner stub. `(auto)`
+- [ ] The instruction does NOT embed the solution as a patch/diff or a fenced code
+      block. `(auto)` — and the gold fix isn't reachable from the repo's working
+      tree or git log. `(auto: leakage)`
+- [ ] An engineer with repo access but no ability to ask questions could decide
+      what a correct solution looks like (SWE-bench Verified issue-severity 0–1). `(eyeball)`
+- [ ] Scope is bounded — in-scope vs out-of-scope stated where ambiguous. `(eyeball)`
+
+### Facet 2 — Instruction language
+- [ ] Reads like a real senior-engineer issue (motivation + symptom + expectation),
+      not a restated unit test; describes outcomes, not test assertions. `(eyeball)`
+- [ ] Not bloated into a spec-dump (an over-long instruction is an
+      over-specification smell). `(auto)`
+- [ ] If intentionally UNDER-specified, it's labelled as such and the held-out
+      tests accept ALL reasonable interpretations. `(eyeball)`
+
+### Facet 3 — Tests
+- [ ] Held-out tests exist and are non-trivial — real `def test...` + `assert`, not
+      a file-exists check. `(auto)`
+- [ ] **FAIL_TO_PASS**: held-out tests fail on the clean base commit. `(auto: transitions)`
+- [ ] **PASS_TO_PASS / build-gate**: tests pass with the reference diff and the
+      build succeeds, proving the env and unrelated functionality are intact. `(auto: transitions)`
+- [ ] Tests assert only behavior the ticket implies — no undescribed strings,
+      internal names, or output formatting (test-severity ≤1). `(eyeball)`
+- [ ] **Mutation adequacy**: ≥3 plausibly-wrong implementations are all killed by
+      the suite; no surviving mutant passes the gate. `(eyeball)`
+- [ ] Deterministic across repeated runs (no time/network/random/order sensitivity). `(eyeball)`
+
+### Facet 4 — Representativeness
+- [ ] The reference diff is a real cross-layer change touching more than one file,
+      not a single-file kata. `(auto)`
+- [ ] Solving it requires reusing existing helpers/conventions, not greenfield
+      code from scratch. `(eyeball)`
+
+### Facet 5 — Difficulty & calibration
+- [ ] `difficulty` logged as metadata once known (labelled by hand after a sweep). `(auto)` (WARN until present)
+- [ ] Measured pass rate lands in the discriminative band **0.30–0.70**; not at a
+      0%/100% ceiling/floor. `(auto: calibrate)`
+
+### How to audit a task by eye
+
+The `(eyeball)` lines above can't be judged mechanically. Run these as fast yes/no
+checks before promoting a task:
+
+1. **Unambiguous?** Could a competent engineer with repo access build the right
+   thing without asking a question? (Issue-severity 0–1.) If two engineers would
+   build materially different things, it's not ready.
+2. **Issue-shaped?** Does it read like a real ticket — motivation + symptom +
+   expectation — and describe user/system outcomes rather than the test assertions?
+3. **Under-spec handled?** If it's a deliberate ambiguity probe, is it labelled,
+   and do the held-out tests accept every reasonable interpretation?
+4. **Strong oracle?** Could a plausibly-wrong patch still pass? Mentally mutate the
+   reference (off-by-one, inverted condition, dropped branch) — the suite should
+   catch each. Watch for assertions on un-stated strings/ordering.
+5. **Representative depth?** Does a correct solution reuse existing code and
+   conventions, or is it a self-contained algorithm a model could write blind?
+6. **Contamination?** Is this exact repo/PR/solution findable on the public web or
+   plausibly in training data? If so it tests memory, not capability.
 
 ## Test design: FAIL_TO_PASS and PASS_TO_PASS
 
@@ -74,6 +163,17 @@ Run it in WSL (PyVRP requires Linux to build):
 ```bash
 python scripts/validate_tasks.py --validate-transitions --verbose
 ```
+
+The static rubric checks need no build toolchain and run anywhere:
+
+```bash
+python scripts/validate_tasks.py --lint
+```
+
+It checks the `(auto)` rubric lines per task (required fields, instruction length,
+held-out non-triviality, multi-file diff, instruction-leakage, difficulty present)
+and exits non-zero on any FAIL. WARNs (e.g. a missing `difficulty` field) are
+allowed.
 
 ## Difficulty labeling
 
