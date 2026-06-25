@@ -1,0 +1,718 @@
+diff --git a/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Mappers/AuditMapper.cs b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Mappers/AuditMapper.cs
+new file mode 100644
+index 0000000..3bfc898
+--- /dev/null
++++ b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Mappers/AuditMapper.cs
+@@ -0,0 +1,30 @@
++using CleanArchitectureCosmosDB.Core.Entities;
++using CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Models;
++
++namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Mappers
++{
++    public static class AuditMapper
++    {
++        public static AuditDocument ToDocument(Audit entity)
++        {
++            return new AuditDocument
++            {
++                Id = entity.Id,
++                EntityType = entity.EntityType,
++                EntityId = entity.EntityId,
++                Entity = entity.Entity,
++                DateCreatedUtc = entity.DateCreatedUTC,
++                Type = "audit"
++            };
++        }
++
++        public static Audit ToDomain(AuditDocument document)
++        {
++            var audit = new Audit(document.EntityType, document.EntityId, document.Entity);
++            audit.Id = document.Id;
++            // Overwrite the constructor-set DateTime.UtcNow with the stored value
++            audit.DateCreatedUTC = document.DateCreatedUtc;
++            return audit;
++        }
++    }
++}
+diff --git a/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Mappers/ToDoItemMapper.cs b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Mappers/ToDoItemMapper.cs
+new file mode 100644
+index 0000000..54099bf
+--- /dev/null
++++ b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Mappers/ToDoItemMapper.cs
+@@ -0,0 +1,35 @@
++using CleanArchitectureCosmosDB.Core.Entities;
++using CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Models;
++
++namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Mappers
++{
++    public static class ToDoItemMapper
++    {
++        public static ToDoItemDocument ToDocument(ToDoItem entity)
++        {
++            return new ToDoItemDocument
++            {
++                Id = entity.Id,
++                Category = entity.Category,
++                Title = entity.Title,
++                IsCompleted = entity.IsCompleted,
++                Type = "todoitem"
++            };
++        }
++
++        public static ToDoItem ToDomain(ToDoItemDocument document)
++        {
++            var entity = new ToDoItem
++            {
++                Id = document.Id,
++                Category = document.Category,
++                Title = document.Title
++            };
++
++            // IsCompleted has a private set on the domain entity
++            typeof(ToDoItem).GetProperty("IsCompleted").SetValue(entity, document.IsCompleted);
++
++            return entity;
++        }
++    }
++}
+diff --git a/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Models/AuditDocument.cs b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Models/AuditDocument.cs
+new file mode 100644
+index 0000000..95f9fe0
+--- /dev/null
++++ b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Models/AuditDocument.cs
+@@ -0,0 +1,29 @@
++using Newtonsoft.Json;
++using System;
++
++namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Models
++{
++    public class AuditDocument
++    {
++        [JsonProperty("id")]
++        public string Id { get; set; }
++
++        [JsonProperty("EntityType")]
++        public string EntityType { get; set; }
++
++        [JsonProperty("EntityId")]
++        public string EntityId { get; set; }
++
++        [JsonProperty("Entity")]
++        public string Entity { get; set; }
++
++        [JsonProperty("DateCreatedUTC")]
++        public DateTime DateCreatedUtc { get; set; }
++
++        [JsonProperty("type")]
++        public string Type { get; set; } = "audit";
++
++        [JsonProperty("_etag")]
++        public string Etag { get; set; }
++    }
++}
+diff --git a/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Models/ToDoItemDocument.cs b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Models/ToDoItemDocument.cs
+new file mode 100644
+index 0000000..6794e22
+--- /dev/null
++++ b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Models/ToDoItemDocument.cs
+@@ -0,0 +1,25 @@
++using Newtonsoft.Json;
++
++namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Models
++{
++    public class ToDoItemDocument
++    {
++        [JsonProperty("id")]
++        public string Id { get; set; }
++
++        [JsonProperty("Category")]
++        public string Category { get; set; }
++
++        [JsonProperty("Title")]
++        public string Title { get; set; }
++
++        [JsonProperty("IsCompleted")]
++        public bool IsCompleted { get; set; }
++
++        [JsonProperty("type")]
++        public string Type { get; set; } = "todoitem";
++
++        [JsonProperty("_etag")]
++        public string Etag { get; set; }
++    }
++}
+diff --git a/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/AuditRepository.cs b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/AuditRepository.cs
+index dd84909..36e483c 100644
+--- a/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/AuditRepository.cs
++++ b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/AuditRepository.cs
+@@ -1,7 +1,13 @@
+ ﻿using CleanArchitectureCosmosDB.Core.Entities;
+ using CleanArchitectureCosmosDB.Core.Interfaces.Persistence;
+ using CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Interfaces;
++using CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Mappers;
++using CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Models;
+ using Microsoft.Azure.Cosmos;
++using System.Collections.Generic;
++using System.Linq;
++using System.Net;
++using System.Threading.Tasks;
+ 
+ namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Repository
+ {
+@@ -20,5 +26,36 @@ namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Repository
+         public AuditRepository(ICosmosDbContainerFactory factory) : base(factory)
+         { }
+ 
++        public override async Task AddItemAsync(Audit item)
++        {
++            item.Id = GenerateId(item);
++            var document = AuditMapper.ToDocument(item);
++            await _container.CreateItemAsync(document, ResolvePartitionKey(item.Id));
++        }
++
++        public override async Task<Audit> GetItemAsync(string id)
++        {
++            try
++            {
++                var response = await _container.ReadItemAsync<AuditDocument>(id, ResolvePartitionKey(id));
++                return AuditMapper.ToDomain(response.Resource);
++            }
++            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
++            {
++                return null;
++            }
++        }
++
++        public override async Task<IEnumerable<Audit>> GetItemsAsync(string queryString)
++        {
++            var resultSetIterator = _container.GetItemQueryIterator<AuditDocument>(new QueryDefinition(queryString));
++            var results = new List<Audit>();
++            while (resultSetIterator.HasMoreResults)
++            {
++                var response = await resultSetIterator.ReadNextAsync();
++                results.AddRange(response.Select(doc => AuditMapper.ToDomain(doc)));
++            }
++            return results;
++        }
+     }
+ }
+diff --git a/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/CosmosDbRepository.cs b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/CosmosDbRepository.cs
+index 75786f6..0f845c5 100644
+--- a/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/CosmosDbRepository.cs
++++ b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/CosmosDbRepository.cs
+@@ -64,11 +64,11 @@ namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Repository
+         /// <summary>
+         ///     Cosmos DB container
+         /// </summary>
+-        private readonly Microsoft.Azure.Cosmos.Container _container;
++        protected readonly Microsoft.Azure.Cosmos.Container _container;
+         /// <summary>
+         ///     Audit container that will store audit log for all entities.
+         /// </summary>
+-        private readonly Microsoft.Azure.Cosmos.Container _auditContainer;
++        protected readonly Microsoft.Azure.Cosmos.Container _auditContainer;
+ 
+         public CosmosDbRepository(ICosmosDbContainerFactory cosmosDbContainerFactory)
+         {
+@@ -77,18 +77,18 @@ namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Repository
+             this._auditContainer = this._cosmosDbContainerFactory.GetContainer("Audit")._container;
+         }
+ 
+-        public async Task AddItemAsync(T item)
++        public virtual async Task AddItemAsync(T item)
+         {
+             item.Id = GenerateId(item);
+             await _container.CreateItemAsync<T>(item, ResolvePartitionKey(item.Id));
+         }
+ 
+-        public async Task DeleteItemAsync(string id)
++        public virtual async Task DeleteItemAsync(string id)
+         {
+             await this._container.DeleteItemAsync<T>(id, ResolvePartitionKey(id));
+         }
+ 
+-        public async Task<T> GetItemAsync(string id)
++        public virtual async Task<T> GetItemAsync(string id)
+         {
+             try
+             {
+@@ -106,7 +106,7 @@ namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Repository
+         // For production, try to use safer alternatives like Parameterized Query and LINQ if possible.
+         // Using string can expose SQL Injection vulnerability, e.g. select * from c where c.id=1 OR 1=1. 
+         // String can also be hard to work with due to special characters and spaces when advanced querying like search and pagination is required.
+-        public async Task<IEnumerable<T>> GetItemsAsync(string queryString)
++        public virtual async Task<IEnumerable<T>> GetItemsAsync(string queryString)
+         {
+             FeedIterator<T> resultSetIterator = _container.GetItemQueryIterator<T>(new QueryDefinition(queryString));
+             List<T> results = new List<T>();
+@@ -144,7 +144,7 @@ namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Repository
+             return await queryable.CountAsync();
+         }
+ 
+-        public async Task UpdateItemAsync(string id, T item)
++        public virtual async Task UpdateItemAsync(string id, T item)
+         {
+             // Audit
+             await Audit(item);
+@@ -168,7 +168,7 @@ namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Repository
+         /// </summary>
+         /// <param name="item"></param>
+         /// <returns></returns>
+-        private async Task Audit(T item)
++        protected virtual async Task Audit(T item)
+         {
+             Audit auditItem = new Core.Entities.Audit(item.GetType().Name,
+                                                     item.Id,
+diff --git a/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/ToDoItemRepository.cs b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/ToDoItemRepository.cs
+index d23b7d5..79c1b4b 100644
+--- a/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/ToDoItemRepository.cs
++++ b/src/CleanArchitectureCosmosDB.Infrastructure/CosmosDbData/Repository/ToDoItemRepository.cs
+@@ -1,9 +1,12 @@
+ ﻿using CleanArchitectureCosmosDB.Core.Entities;
+ using CleanArchitectureCosmosDB.Core.Interfaces;
+ using CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Interfaces;
++using CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Mappers;
++using CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Models;
+ using Microsoft.Azure.Cosmos;
+ using System;
+ using System.Collections.Generic;
++using System.Linq;
+ using System.Threading.Tasks;
+ 
+ namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Repository
+@@ -64,5 +67,52 @@ namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData.Repository
+ 
+             return results;
+         }
++
++        public override async Task AddItemAsync(ToDoItem item)
++        {
++            item.Id = GenerateId(item);
++            var document = ToDoItemMapper.ToDocument(item);
++            await _container.CreateItemAsync(document, ResolvePartitionKey(item.Id));
++        }
++
++        public override async Task<ToDoItem> GetItemAsync(string id)
++        {
++            try
++            {
++                var response = await _container.ReadItemAsync<ToDoItemDocument>(id, ResolvePartitionKey(id));
++                return ToDoItemMapper.ToDomain(response.Resource);
++            }
++            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
++            {
++                return null;
++            }
++        }
++
++        public override async Task<IEnumerable<ToDoItem>> GetItemsAsync(string queryString)
++        {
++            var resultSetIterator = _container.GetItemQueryIterator<ToDoItemDocument>(new QueryDefinition(queryString));
++            var results = new List<ToDoItem>();
++            while (resultSetIterator.HasMoreResults)
++            {
++                var response = await resultSetIterator.ReadNextAsync();
++                results.AddRange(response.Select(doc => ToDoItemMapper.ToDomain(doc)));
++            }
++            return results;
++        }
++
++        public override async Task UpdateItemAsync(string id, ToDoItem item)
++        {
++            await Audit(item);
++            var document = ToDoItemMapper.ToDocument(item);
++            await _container.UpsertItemAsync(document, ResolvePartitionKey(id));
++        }
++
++        protected override async Task Audit(ToDoItem item)
++        {
++            var auditEntity = new Core.Entities.Audit(item.GetType().Name, item.Id, Newtonsoft.Json.JsonConvert.SerializeObject(item));
++            auditEntity.Id = GenerateAuditId(auditEntity);
++            var auditDocument = AuditMapper.ToDocument(auditEntity);
++            await _auditContainer.CreateItemAsync(auditDocument, ResolveAuditPartitionKey(auditEntity.Id));
++        }
+     }
+ }
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Mappers/ToDoItemApiMapper.cs b/src/CleanArchitectureCosmosDB.WebAPI/Mappers/ToDoItemApiMapper.cs
+new file mode 100644
+index 0000000..c9c7f5b
+--- /dev/null
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Mappers/ToDoItemApiMapper.cs
+@@ -0,0 +1,42 @@
++using CleanArchitectureCosmosDB.Core.Entities;
++using CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem;
++using Newtonsoft.Json;
++
++namespace CleanArchitectureCosmosDB.WebAPI.Mappers
++{
++    public static class ToDoItemApiMapper
++    {
++        public static ToDoItemModel ToModel(Core.Entities.ToDoItem entity)
++        {
++            var model = new ToDoItemModel
++            {
++                Id = entity.Id,
++                Category = entity.Category,
++                Title = entity.Title
++            };
++
++            // IsCompleted has a private set on ToDoItemModel
++            typeof(ToDoItemModel).GetProperty("IsCompleted").SetValue(model, entity.IsCompleted);
++
++            return model;
++        }
++
++        public static Core.Entities.ToDoItem ToEntity(Create.CreateToDoItemCommand command)
++        {
++            return new Core.Entities.ToDoItem
++            {
++                Category = command.Category,
++                Title = command.Title
++            };
++        }
++
++        public static ToDoItemAuditModel ToAuditModel(Audit audit)
++        {
++            return new ToDoItemAuditModel
++            {
++                ToDoItemModel = JsonConvert.DeserializeObject<ToDoItemModel>(audit.Entity),
++                DateCreatedUTC = audit.DateCreatedUTC
++            };
++        }
++    }
++}
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Create.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Create.cs
+index 14566d0..ac66e77 100644
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Create.cs
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Create.cs
+@@ -1,6 +1,6 @@
+-﻿using AutoMapper;
+-using CleanArchitectureCosmosDB.Core.Interfaces;
++﻿using CleanArchitectureCosmosDB.Core.Interfaces;
+ using CleanArchitectureCosmosDB.Core.Specifications;
++using CleanArchitectureCosmosDB.WebAPI.Mappers;
+ using FluentValidation;
+ using MediatR;
+ using System;
+@@ -92,18 +92,14 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+         public class CommandHandler : IRequestHandler<CreateToDoItemCommand, CommandResponse>
+         {
+             private readonly IToDoItemRepository _repo;
+-            private readonly IMapper _mapper;
+ 
+             /// <summary>
+             ///     Ctor
+             /// </summary>
+             /// <param name="repo"></param>
+-            /// <param name="mapper"></param>
+-            public CommandHandler(IToDoItemRepository repo,
+-                                  IMapper mapper)
++            public CommandHandler(IToDoItemRepository repo)
+             {
+                 this._repo = repo ?? throw new ArgumentNullException(nameof(repo));
+-                this._mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+             }
+ 
+             /// <summary>
+@@ -115,7 +111,7 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+             public async Task<CommandResponse> Handle(CreateToDoItemCommand command, CancellationToken cancellationToken)
+             {
+                 CommandResponse response = new CommandResponse();
+-                Core.Entities.ToDoItem entity = _mapper.Map<Core.Entities.ToDoItem>(command);
++                Core.Entities.ToDoItem entity = ToDoItemApiMapper.ToEntity(command);
+                 await _repo.AddItemAsync(entity);
+ 
+                 response.Id = entity.Id;
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Delete.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Delete.cs
+index 9d7fb10..76457a9 100644
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Delete.cs
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Delete.cs
+@@ -1,5 +1,4 @@
+-﻿using AutoMapper;
+-using CleanArchitectureCosmosDB.Core.Exceptions;
++﻿using CleanArchitectureCosmosDB.Core.Exceptions;
+ using CleanArchitectureCosmosDB.Core.Interfaces;
+ using FluentValidation;
+ using MediatR;
+@@ -56,18 +55,14 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+         public class CommandHandler : IRequestHandler<DeleteToDoItemCommand, CommandResponse>
+         {
+             private readonly IToDoItemRepository _repo;
+-            private readonly IMapper _mapper;
+ 
+             /// <summary>
+             ///     Ctor
+             /// </summary>
+             /// <param name="repo"></param>
+-            /// <param name="mapper"></param>
+-            public CommandHandler(IToDoItemRepository repo,
+-                                  IMapper mapper)
++            public CommandHandler(IToDoItemRepository repo)
+             {
+                 this._repo = repo ?? throw new ArgumentNullException(nameof(repo));
+-                this._mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+             }
+ 
+             /// <summary>
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Get.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Get.cs
+index 5e619bd..6a87909 100644
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Get.cs
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Get.cs
+@@ -1,6 +1,6 @@
+-﻿using AutoMapper;
+-using CleanArchitectureCosmosDB.Core.Exceptions;
++﻿using CleanArchitectureCosmosDB.Core.Exceptions;
+ using CleanArchitectureCosmosDB.Core.Interfaces;
++using CleanArchitectureCosmosDB.WebAPI.Mappers;
+ using FluentValidation;
+ using MediatR;
+ using System;
+@@ -60,18 +60,14 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+         public class QueryHandler : IRequestHandler<GetQuery, QueryResponse>
+         {
+             private readonly IToDoItemRepository _repo;
+-            private readonly IMapper _mapper;
+ 
+             /// <summary>
+             ///     Ctor
+             /// </summary>
+             /// <param name="repo"></param>
+-            /// <param name="mapper"></param>
+-            public QueryHandler(IToDoItemRepository repo,
+-                                  IMapper mapper)
++            public QueryHandler(IToDoItemRepository repo)
+             {
+                 this._repo = repo ?? throw new ArgumentNullException(nameof(repo));
+-                this._mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+             }
+ 
+             /// <summary>
+@@ -90,7 +86,7 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+                     throw new EntityNotFoundException(nameof(ToDoItem), query.Id);
+                 }
+ 
+-                response.Resource = _mapper.Map<ToDoItemModel>(entity);
++                response.Resource = ToDoItemApiMapper.ToModel(entity);
+ 
+                 return response;
+             }
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/GetAll.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/GetAll.cs
+index 040ca80..e34394b 100644
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/GetAll.cs
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/GetAll.cs
+@@ -1,6 +1,6 @@
+-﻿using AutoMapper;
+-using CleanArchitectureCosmosDB.Core.Interfaces;
++﻿using CleanArchitectureCosmosDB.Core.Interfaces;
+ using CleanArchitectureCosmosDB.Core.Specifications;
++using CleanArchitectureCosmosDB.WebAPI.Mappers;
+ using FluentValidation;
+ using MediatR;
+ using System;
+@@ -56,21 +56,17 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+         public class QueryHandler : IRequestHandler<GetAllQuery, QueryResponse>
+         {
+             private readonly IToDoItemRepository _repo;
+-            private readonly IMapper _mapper;
+             private readonly ICachedToDoItemsService _cachedToDoItemsService;
+ 
+             /// <summary>
+             ///     Ctor
+             /// </summary>
+             /// <param name="repo"></param>
+-            /// <param name="mapper"></param>
+             /// <param name="cachedToDoItemsService"></param>
+             public QueryHandler(IToDoItemRepository repo,
+-                                IMapper mapper,
+                                 ICachedToDoItemsService cachedToDoItemsService)
+             {
+                 this._repo = repo ?? throw new ArgumentNullException(nameof(repo));
+-                this._mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+                 this._cachedToDoItemsService = cachedToDoItemsService ?? throw new ArgumentNullException(nameof(cachedToDoItemsService));
+             }
+ 
+@@ -91,7 +87,7 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+                 // Get all the incompleted todo items
+                 ToDoItemGetAllSpecification specification = new ToDoItemGetAllSpecification(false);
+                 IEnumerable<Core.Entities.ToDoItem> entities = await _repo.GetItemsAsync(specification);
+-                response.Resource = entities.Select(x => _mapper.Map<ToDoItemModel>(x));
++                response.Resource = entities.Select(x => ToDoItemApiMapper.ToModel(x));
+ 
+                 return response;
+             }
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/GetAuditHistory.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/GetAuditHistory.cs
+index e7f19a3..3e3afad 100644
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/GetAuditHistory.cs
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/GetAuditHistory.cs
+@@ -1,6 +1,6 @@
+-﻿using AutoMapper;
+-using CleanArchitectureCosmosDB.Core.Interfaces.Persistence;
++﻿using CleanArchitectureCosmosDB.Core.Interfaces.Persistence;
+ using CleanArchitectureCosmosDB.Core.Specifications;
++using CleanArchitectureCosmosDB.WebAPI.Mappers;
+ using FluentValidation;
+ using MediatR;
+ using System;
+@@ -62,18 +62,14 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+         public class QueryHandler : IRequestHandler<GetQuery, QueryResponse>
+         {
+             private readonly IAuditRepository _repo;
+-            private readonly IMapper _mapper;
+ 
+             /// <summary>
+             ///     Ctor
+             /// </summary>
+             /// <param name="repo"></param>
+-            /// <param name="mapper"></param>
+-            public QueryHandler(IAuditRepository repo,
+-                                IMapper mapper)
++            public QueryHandler(IAuditRepository repo)
+             {
+                 this._repo = repo ?? throw new ArgumentNullException(nameof(repo));
+-                this._mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+             }
+ 
+             /// <summary>
+@@ -90,7 +86,7 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+                 IEnumerable<Core.Entities.Audit> entities = await _repo.GetItemsAsync(specification);
+ 
+                 // Map audit records to entity-specific audit model
+-                response.Resource = entities.Select(x => _mapper.Map<ToDoItemAuditModel>(x));
++                response.Resource = entities.Select(x => ToDoItemApiMapper.ToAuditModel(x));
+ 
+                 return response;
+             }
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/MappingProfile.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/MappingProfile.cs
+deleted file mode 100644
+index 83876c5..0000000
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/MappingProfile.cs
++++ /dev/null
+@@ -1,27 +0,0 @@
+-﻿using AutoMapper;
+-
+-namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+-{
+-    /// <summary>
+-    ///     Mapping Profile for AutoMapper
+-    /// </summary>
+-    public class MappingProfile : Profile
+-    {
+-        /// <summary>
+-        ///     ctor
+-        /// </summary>
+-        public MappingProfile()
+-        {
+-            // Get
+-            CreateMap<Core.Entities.ToDoItem, ToDoItemModel>().ReverseMap();
+-
+-            // Create
+-            CreateMap<ToDoItem.Create.CreateToDoItemCommand, Core.Entities.ToDoItem>();
+-
+-            // Audit
+-            CreateMap<Core.Entities.Audit, ToDoItemAuditModel>()
+-                .ForMember(t => t.ToDoItemModel, s => s.MapFrom(audit => Newtonsoft.Json.JsonConvert.DeserializeObject<ToDoItemModel>(audit.Entity)));
+-        }
+-
+-    }
+-}
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Search.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Search.cs
+index 25b4835..75c412e 100644
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Search.cs
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Search.cs
+@@ -1,7 +1,7 @@
+-﻿using AutoMapper;
+-using CleanArchitectureCosmosDB.Core.Interfaces;
++﻿using CleanArchitectureCosmosDB.Core.Interfaces;
+ using CleanArchitectureCosmosDB.Core.Specifications;
+ using CleanArchitectureCosmosDB.Core.Specifications.Interfaces;
++using CleanArchitectureCosmosDB.WebAPI.Mappers;
+ using FluentValidation;
+ using MediatR;
+ using System;
+@@ -94,18 +94,14 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+         public class QueryHandler : IRequestHandler<SearchToDoItemQuery, QueryResponse>
+         {
+             private readonly IToDoItemRepository _repo;
+-            private readonly IMapper _mapper;
+ 
+             /// <summary>
+             ///     Ctor
+             /// </summary>
+             /// <param name="repo"></param>
+-            /// <param name="mapper"></param>
+-            public QueryHandler(IToDoItemRepository repo,
+-                                  IMapper mapper)
++            public QueryHandler(IToDoItemRepository repo)
+             {
+                 this._repo = repo ?? throw new ArgumentNullException(nameof(repo));
+-                this._mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+             }
+ 
+             /// <summary>
+@@ -126,7 +122,7 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+                                                                       query.SortDirection ?? query.SortDirection.Value);
+ 
+                 IEnumerable<Core.Entities.ToDoItem> entities = await _repo.GetItemsAsync(specification);
+-                response.Resource = entities.Select(x => _mapper.Map<ToDoItemModel>(x));
++                response.Resource = entities.Select(x => ToDoItemApiMapper.ToModel(x));
+ 
+                 // count
+                 ToDoItemSearchAggregationSpecification countSpecification = new ToDoItemSearchAggregationSpecification(query.TitleFilter);
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Update.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Update.cs
+index dc6ed99..3b48348 100644
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Update.cs
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Update.cs
+@@ -1,5 +1,4 @@
+-﻿using AutoMapper;
+-using CleanArchitectureCosmosDB.Core.Exceptions;
++﻿using CleanArchitectureCosmosDB.Core.Exceptions;
+ using CleanArchitectureCosmosDB.Core.Interfaces;
+ using CleanArchitectureCosmosDB.Core.Specifications;
+ using FluentValidation;
+@@ -101,18 +100,14 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+         public class CommandHandler : IRequestHandler<UpdateCommand, CommandResponse>
+         {
+             private readonly IToDoItemRepository _repo;
+-            private readonly IMapper _mapper;
+ 
+             /// <summary>
+             ///     Ctor
+             /// </summary>
+             /// <param name="repo"></param>
+-            /// <param name="mapper"></param>
+-            public CommandHandler(IToDoItemRepository repo,
+-                                  IMapper mapper)
++            public CommandHandler(IToDoItemRepository repo)
+             {
+                 this._repo = repo ?? throw new ArgumentNullException(nameof(repo));
+-                this._mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+             }
+ 
+             /// <summary>
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Startup.cs b/src/CleanArchitectureCosmosDB.WebAPI/Startup.cs
+index 00aeb4f..7a624b9 100644
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Startup.cs
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Startup.cs
+@@ -1,4 +1,3 @@
+-using AutoMapper;
+ using CleanArchitectureCosmosDB.Infrastructure.Extensions;
+ using CleanArchitectureCosmosDB.Infrastructure.Identity;
+ using CleanArchitectureCosmosDB.Infrastructure.Identity.Models.Authentication;
+@@ -9,7 +8,6 @@ using Microsoft.Extensions.Configuration;
+ using Microsoft.Extensions.DependencyInjection;
+ using Microsoft.Extensions.Hosting;
+ using System.Linq;
+-using System.Reflection;
+ 
+ namespace CleanArchitectureCosmosDB.WebAPI
+ {
+@@ -57,9 +55,6 @@ namespace CleanArchitectureCosmosDB.WebAPI
+             // HttpContext
+             services.AddHttpContextAccessor();
+ 
+-            // AutoMapper, this will scan and register everything that inherits AutoMapper.Profile
+-            services.AddAutoMapper(Assembly.GetExecutingAssembly());
+-
+             // MediatR for Command/Query pattern and pipeline behaviours
+             services.SetupMediatr();
+ 

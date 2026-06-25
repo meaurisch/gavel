@@ -14,6 +14,7 @@ class TaskSpec:
     build_cmd: str | None = None
     visible_test_cmd: str | None = None
     difficulty: str | None = None        # "easy" | "medium" | "hard"
+    repo: str | None = None              # local repos/<repo> dir; else repo_url basename
 
 
 @dataclass

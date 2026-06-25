@@ -1,0 +1,47 @@
+id: cosmos-A
+repo: cosmos
+repo_url: https://github.com/ShawnShiSS/clean-architecture-azure-cosmos-db
+# base_commit is a LOCAL synthesized commit: upstream f8a0105 migrated to net8
+# (so it builds/tests on a modern SDK) with AutoMapper still wired. It lives in
+# repos/cosmos on branch `cosmos-base`. The feature reverted from this base is the
+# AutoMapper -> hand-written-mapper refactor.
+base_commit: 3b033a8f46c365d284d069524a52d34c3d5c3298
+instruction: |
+  We want to drop our dependency on AutoMapper and map objects explicitly. The
+  reflection-based profile hides mapping bugs until runtime, and the version we
+  pin (12.0.1) is flagged for a security advisory. Replace it with hand-written
+  mappers for the ToDoItem and Audit aggregates, and introduce an explicit Cosmos
+  persistence model so domain entities are no longer serialized to storage
+  directly. Scope is these two aggregates only.
+
+  Persistence layer (Infrastructure, namespace CosmosDbData):
+  - Add `ToDoItemDocument` and `AuditDocument` documents under `...CosmosDbData.Models`.
+    Each carries the entity's data plus a `Type` discriminator ("todoitem" /
+    "audit") and an `_etag` (`Etag`) field, and serializes its id as `id`.
+  - Add static `ToDoItemMapper` and `AuditMapper` under `...CosmosDbData.Mappers`,
+    each exposing `ToDocument(entity)` and `ToDomain(document)`. Round-tripping
+    must preserve all data. Note `ToDoItem.IsCompleted` has a private setter, and
+    `Audit` sets `DateCreatedUTC` to `DateTime.UtcNow` in its constructor, so
+    `ToDomain` must restore the stored values rather than regenerate them.
+  - Wire the ToDoItem and Audit repositories to persist and read through these mappers.
+
+  API layer (WebAPI):
+  - Add a static `ToDoItemApiMapper` under `CleanArchitectureCosmosDB.WebAPI.Mappers`
+    with `ToModel(ToDoItem)`, `ToEntity(Create.CreateToDoItemCommand)`, and
+    `ToAuditModel(Audit)` (the last deserializes the audit's stored JSON into the
+    nested `ToDoItemModel`). Replace the `IMapper` usages in the ToDoItem request
+    handlers with it and remove the AutoMapper profile and registration.
+
+  Behaviour must be unchanged otherwise; no API or storage-shape changes beyond
+  introducing the document model.
+build_cmd: "dotnet build CleanArchitectureCosmosDB.sln"
+run_cmd: 'dotnet test tests/CleanArchitectureCosmosDB.UnitTests/CleanArchitectureCosmosDB.UnitTests.csproj --filter "FullyQualifiedName~Mapper"'
+held_out_tests_path: tasks/cosmos-A/held_out_tests
+reference_diff_path: tasks/cosmos-A/reference.diff
+visible_test_cmd: null
+# Pre-calibration estimate (label by hand after a calibration sweep). medium: a
+# cross-layer refactor (Infrastructure persistence model + mappers + repository
+# wiring, WebAPI mappers + handler wiring, remove AutoMapper) that reuses existing
+# conventions. Well-specified public contract, so interpretation risk is low; the
+# work is in finding and rewiring every IMapper/profile call site correctly.
+difficulty: medium

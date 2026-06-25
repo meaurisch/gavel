@@ -7,7 +7,7 @@ from core.models import TaskSpec
 
 def test_list_tasks():
     tasks = list_tasks()
-    assert set(tasks) == {"pyvrp-A", "pyvrp-B", "pyvrp-C"}
+    assert set(tasks) == {"pyvrp-A", "pyvrp-B", "pyvrp-C", "cosmos-A"}
 
 
 def test_load_task():
@@ -31,6 +31,15 @@ def test_resolve_repo_path():
     )
     path = resolve_repo_path(task)
     assert path.name == "pyvrp"
+
+
+def test_resolve_repo_path_honors_explicit_repo_field():
+    task = TaskSpec(
+        id="cosmos-A", repo_url="https://github.com/ShawnShiSS/clean-architecture-azure-cosmos-db",
+        base_commit="abc", instruction="x", run_cmd="x",
+        held_out_tests_path="x", reference_diff_path="x", repo="cosmos",
+    )
+    assert resolve_repo_path(task).name == "cosmos"
 
 
 def test_load_task_with_custom_dir(tmp_path: Path):

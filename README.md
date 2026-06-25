@@ -122,9 +122,10 @@ Claude Code CLI version used: 2.1.185
 
 ## Current state
 
-The full pipeline is built and tested (119 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
+The full pipeline is built and tested (149 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
 three-tier gate, axis-general blind grading, Bradley-Terry ranking, API-rate cost,
-and task-quality tooling. Nothing has been run at scale yet; the next step is the
+and task-quality tooling. The task set now spans two repos/languages (PyVRP C++/Python
+and a .NET Cosmos DB service). Nothing has been run at scale yet; the next step is the
 first real measurement sweep.
 
 **Engine & tasks (P0–P1)**
@@ -133,8 +134,14 @@ first real measurement sweep.
   `oracle`/`nop` for pipeline self-tests. `copilot-cli` is stubbed pending the
   Phase-1.5 spike (P2.1/P2.2).
 - Tasks: three cross-layer PyVRP features (`pyvrp-A` ReplaceGroup operator,
-  `pyvrp-B` unary-operator framework, `pyvrp-C` PiecewiseLinearFunction), each
-  with a reference diff and held-out tests; oracle/nop validation passing.
+  `pyvrp-B` unary-operator framework, `pyvrp-C` PiecewiseLinearFunction) plus
+  `cosmos-A` (a .NET 8 Clean-Architecture/Cosmos DB service — replace AutoMapper
+  with hand-written mappers for the ToDoItem + Audit aggregates), each with a
+  reference diff and held-out tests; oracle/nop validation passing.
+- Validator is repo/language-agnostic: it runs each task's own `build_cmd`/
+  `run_cmd` (PyVRP `pip install -e .`, Cosmos `dotnet build`/`dotnet test`),
+  resolves the repo via an explicit `repo:` field, and lints C# as well as
+  Python held-out tests.
 - Methodologies: `baseline`, `karpathy`, `superpowers`, `ecc`, `custom`
   (external packs vendored at pinned commits, frozen offline).
 - Matrix driver + run protocol: resumable execution, inter-trial delay, Rich live
@@ -161,7 +168,8 @@ first real measurement sweep.
 - [ ] **First calibration run** — a small real sweep to land each task's pass
       rate in the 30–70% discrimination window.
 - [ ] **First grading session** — exercise the UI end-to-end on real trials.
-- [ ] **Task-suite expansion** — add tasks beyond PyVRP to broaden coverage.
+- [ ] **Task-suite expansion** — `cosmos-A` adds a second repo/language (.NET);
+      add more cross-repo tasks to broaden coverage.
 - [ ] **Pareto frontier visualization** — plot quality vs. cost so the
       tradeoffs the analyzer flags are visible at a glance (`report` command is
       still a stub).

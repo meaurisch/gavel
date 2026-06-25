@@ -1,0 +1,11 @@
+id: cosmos
+description: "CleanArchitectureCosmosDB repo context (.NET 8, Clean Architecture + Cosmos DB)"
+task_affinity:
+  - cosmos-A
+harnesses:
+  claude-code:
+    - src: content/CLAUDE.md
+      dest: CLAUDE.md
+  copilot:
+    - src: content/copilot-instructions.md
+      dest: .github/copilot-instructions.md

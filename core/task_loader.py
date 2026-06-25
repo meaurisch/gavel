@@ -25,5 +25,7 @@ def list_tasks(tasks_dir: Path = TASKS_DIR) -> list[str]:
 
 
 def resolve_repo_path(task: TaskSpec) -> Path:
-    repo_name = task.repo_url.rstrip("/").split("/")[-1].lower()
+    # An explicit `repo:` field wins (e.g. a vendored repo whose local dir name
+    # differs from its URL basename); otherwise fall back to the URL basename.
+    repo_name = task.repo or task.repo_url.rstrip("/").split("/")[-1].lower()
     return Path(__file__).parent.parent / "repos" / repo_name

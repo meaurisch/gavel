@@ -13,7 +13,7 @@ from core.repo_context_loader import (
 # --- shipped repo contexts ---
 
 def test_list_repo_contexts():
-    assert list_repo_contexts() == ["none", "repo-instructions"]
+    assert list_repo_contexts() == ["cosmos", "none", "repo-instructions"]
 
 
 def test_load_repo_context_noop():
