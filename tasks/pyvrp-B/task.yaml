@@ -2,9 +2,32 @@ id: pyvrp-B
 repo_url: https://github.com/PyVRP/PyVRP
 base_commit: de48e2eca5b6bb56a61517848d17d4428fcbd220
 instruction: |
-  Add unary operator support to the local search framework. Currently only binary operators (which exchange segments between two routes) exist. Implement a UnaryOperator base that operates on a single route, then add two concrete unary operators: RemoveOptional (removes optional clients from routes when doing so improves cost) and RemoveAdjacentDepot (removes unnecessary depot visits between consecutive route segments). Implement in C++, expose via pybind11, register in LocalSearch, and export from the Python search module.
+  The local-search framework only has binary operators today — every operator
+  exchanges segments between two routes. That leaves a whole class of
+  single-route improvements unreachable: we can't drop an optional client whose
+  prize doesn't justify its detour, and we can't clean up a redundant reload
+  depot left sitting between two consecutive trips. Both situations come up
+  routinely on prize-collecting and multi-trip instances, and right now the only
+  way out of them is a full re-solve.
+
+  Add unary-operator support to local search. Introduce a `UnaryOperator` base
+  that evaluates and applies a move on a single route, then implement two
+  concrete operators on top of it:
+    - `RemoveOptional` — removes an optional client from its route when doing so
+      lowers cost (i.e. the prize is not worth the detour).
+    - `RemoveAdjacentDepot` — removes an unnecessary reload depot between two
+      route segments when doing so lowers cost.
+  Wire both through the whole stack: implement in the C++ search core, expose
+  them via the pybind11 bindings, register them in LocalSearch, and export them
+  from the Python `pyvrp.search` module.
 run_cmd: "pytest tests/search/test_RemoveOptional.py tests/search/test_RemoveAdjacentDepot.py -v"
 held_out_tests_path: tasks/pyvrp-B/held_out_tests
 reference_diff_path: tasks/pyvrp-B/reference.diff
 build_cmd: "pip install -e . 2>&1"
 visible_test_cmd: null
+# Pre-calibration estimate (label by hand after a calibration sweep). hard:
+# broadest of the three tasks — a base-class abstraction plus two distinct
+# operators with subtle cost accounting (optional-client prizes, fixed vehicle
+# cost on empty routes, reload-depot service durations), all wired across C++,
+# pybind11 and Python. More surface area to get fully correct.
+difficulty: hard
