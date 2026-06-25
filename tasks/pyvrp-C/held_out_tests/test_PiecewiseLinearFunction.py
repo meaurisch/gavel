@@ -181,3 +181,35 @@ def test_raises_unsorted_breakpoints():
 
     with assert_raises(ValueError):  # not strictly increasing
         PiecewiseLinearFunction([1, 1], [(1, 1), (2, 2)])
+
+
+def test_multiple_segments_each_region():
+    """
+    Tests a four-breakpoint function across every region: it returns the active
+    segment's value below the first breakpoint, at each breakpoint (where it
+    switches to the next segment), within a region, and at/after the last
+    breakpoint. Also checks the breakpoints/segments round-trip unchanged. This
+    is an independent oracle data point separate from test_call.
+    """
+    breakpoints = [0, 10, 20, 30]
+    segments = [(1, 1), (5, 2), (9, 3), (13, 4)]
+    fn = PiecewiseLinearFunction(breakpoints, segments)
+
+    assert_equal(fn.breakpoints, breakpoints)
+    assert_equal(fn.segments, segments)
+
+    # Below the first breakpoint -> segment 0.
+    assert_equal(fn(-3), 1 + 1 * -3)
+
+    # At breakpoint b_i the function switches to segment i + 1.
+    assert_equal(fn(0), 5 + 2 * 0)
+    assert_equal(fn(10), 9 + 3 * 10)
+    assert_equal(fn(20), 13 + 4 * 20)
+
+    # Within a region, evaluation follows that segment's line.
+    assert_equal(fn(5), 5 + 2 * 5)
+    assert_equal(fn(25), 13 + 4 * 25)
+
+    # At and beyond the last breakpoint -> last segment.
+    assert_equal(fn(30), 13 + 4 * 30)
+    assert_equal(fn(1000), 13 + 4 * 1000)

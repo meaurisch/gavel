@@ -2,9 +2,30 @@ id: pyvrp-C
 repo_url: https://github.com/PyVRP/PyVRP
 base_commit: e37b47c0332dbf9df622e4972a52d3faee5c0c09
 instruction: |
-  Add a PiecewiseLinearFunction class to pyvrp. The class should represent a piecewise linear function defined by breakpoints and slopes, supporting efficient evaluation via binary search. It will be used for modelling non-linear duration costs. Implement in C++ as a header in pyvrp/cpp/, expose to Python via pybind11 bindings, and add the class to the pyvrp package exports.
+  We need a reusable building block for modelling non-linear duration costs: a
+  piecewise linear function. The same shape keeps coming up — a cost that grows
+  at one rate up to some threshold and at a different rate beyond it — and we
+  currently have nowhere to express it.
+
+  Add a `PiecewiseLinearFunction` class to pyvrp. It is defined by a list of
+  breakpoints together with a matching list of linear segments, where each
+  segment is an `(intercept, slope)` pair. Calling the function with a value
+  returns the value of the segment active at that point: below the first
+  breakpoint the first segment applies, and from each breakpoint onwards the next
+  segment takes over. The breakpoints must be strictly increasing and there must
+  be exactly one segment per breakpoint — reject inconsistent or unsorted input.
+  Evaluation must stay efficient even when there are many breakpoints.
+
+  Implement the class in C++ as a header under `pyvrp/cpp/`, expose it to Python
+  through the pybind11 bindings, and add it to the pyvrp package exports.
 run_cmd: "pytest tests/test_PiecewiseLinearFunction.py -v"
 held_out_tests_path: tasks/pyvrp-C/held_out_tests
 reference_diff_path: tasks/pyvrp-C/reference.diff
 build_cmd: "pip install -e . 2>&1"
 visible_test_cmd: null
+# Pre-calibration estimate (label by hand after a calibration sweep). medium:
+# the most self-contained of the three (a standalone value type), but getting it
+# fully right means nailing the half-open segment-selection convention, input
+# validation, and the equality/pickle surface, all wired through pybind11 to a
+# Python export.
+difficulty: medium
