@@ -2,9 +2,32 @@ id: pyvrp-A
 repo_url: https://github.com/PyVRP/PyVRP
 base_commit: 5871a0c1a8827bd84067bd4edf27fa6fa1cbfbdd
 instruction: |
-  Add a ReplaceGroup local-search operator to pyvrp.search. The operator should improve solutions for VRP variants with mutually-exclusive client groups by finding better placements for entire groups within routes. Implement the operator in C++, expose it via pybind11 bindings, register it in LocalSearch, and make it available from the Python search module.
+  Our solver handles VRP variants with mutually-exclusive client groups, where
+  exactly one member of each group should be visited. Today, once an initial
+  member of a group has been routed, local search never reconsiders that choice —
+  so we stay stuck on a more expensive member even when swapping in a cheaper one
+  from the same group would lower the route's cost.
+
+  Add a `ReplaceGroup` local-search operator to `pyvrp.search` that closes this
+  gap: it should let local search swap the currently-visited member of a
+  mutually-exclusive group for another member of the same group whenever that
+  reduces cost. It only applies to instances that actually contain such groups.
+  Implement it in the C++ search core, expose it through the pybind11 bindings,
+  register it with LocalSearch, and export it from the Python `pyvrp.search`
+  module so it sits alongside the other operators.
+
+  NOTE: This ticket is intentionally under-specified. The exact search strategy —
+  which candidate member to consider, how to break ties, the evaluation order — is
+  left to your judgement; any reasonable approach that finds cost-reducing
+  intra-group replacements is acceptable. Scope is limited to the ReplaceGroup
+  operator and its wiring: you do not need to add or change any other operator.
 run_cmd: "pytest tests/search/test_ReplaceGroup.py -v"
 held_out_tests_path: tasks/pyvrp-A/held_out_tests
 reference_diff_path: tasks/pyvrp-A/reference.diff
 build_cmd: "pip install -e . 2>&1"
 visible_test_cmd: null
+# Pre-calibration estimate (label by hand after a calibration sweep). medium:
+# a cross-layer C++/pybind11/Python operator that reuses the established
+# UnaryOperator + supports<> pattern, so it is non-trivial wiring rather than a
+# novel algorithm. Deliberately under-specified, which adds interpretation risk.
+difficulty: medium
