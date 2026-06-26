@@ -7,7 +7,7 @@ from core.models import TaskSpec
 
 def test_list_tasks():
     tasks = list_tasks()
-    assert set(tasks) == {"pyvrp-A", "pyvrp-B", "pyvrp-C", "cosmos-A"}
+    assert set(tasks) == {"pyvrp-A", "pyvrp-B", "pyvrp-C", "cosmos-A", "cosmos-B"}
 
 
 def test_load_task():
