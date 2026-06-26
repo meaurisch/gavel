@@ -17,7 +17,7 @@ fixed.
 
 | Axis | What it is | Example values |
 |------|-----------|----------------|
-| **Task** | The coding problem to solve | `pyvrp-A`, `pyvrp-B`, `pyvrp-C` |
+| **Task** | The coding problem to solve | `pyvrp-A`…`pyvrp-C`, `cosmos-A`, `cosmos-B` |
 | **Methodology** | General-purpose instruction / skill pack (the framework under test) | `baseline`, `superpowers`, `karpathy`, `ecc` |
 | **Repo-Context** | Repo-specific instructions (held fixed or varied per experiment) | `none`, `pyvrp-instructions` |
 | **Model** | The LLM model | `claude-sonnet-4-6`, `claude-opus-4-8` |
@@ -134,9 +134,11 @@ first real measurement sweep.
   `oracle`/`nop` for pipeline self-tests. `copilot-cli` is stubbed pending the
   Phase-1.5 spike (P2.1/P2.2).
 - Tasks: three cross-layer PyVRP features (`pyvrp-A` ReplaceGroup operator,
-  `pyvrp-B` unary-operator framework, `pyvrp-C` PiecewiseLinearFunction) plus
-  `cosmos-A` (a .NET 8 Clean-Architecture/Cosmos DB service — replace AutoMapper
-  with hand-written mappers for the ToDoItem + Audit aggregates), each with a
+  `pyvrp-B` unary-operator framework, `pyvrp-C` PiecewiseLinearFunction) plus two
+  .NET 8 Clean-Architecture/Cosmos DB tasks — `cosmos-A` (refactor: replace
+  AutoMapper with hand-written mappers for the ToDoItem + Audit aggregates) and
+  `cosmos-B` (feature: add a complete/reopen lifecycle across domain → MediatR
+  handlers → controller, plus an `isCompleted` search filter) — each with a
   reference diff and held-out tests; oracle/nop validation passing.
 - Validator is repo/language-agnostic: it runs each task's own `build_cmd`/
   `run_cmd` (PyVRP `pip install -e .`, Cosmos `dotnet build`/`dotnet test`),
@@ -168,8 +170,9 @@ first real measurement sweep.
 - [ ] **First calibration run** — a small real sweep to land each task's pass
       rate in the 30–70% discrimination window.
 - [ ] **First grading session** — exercise the UI end-to-end on real trials.
-- [ ] **Task-suite expansion** — `cosmos-A` adds a second repo/language (.NET);
-      add more cross-repo tasks to broaden coverage.
+- [ ] **Task-suite expansion** — `cosmos-A`/`cosmos-B` add a second repo/language
+      (.NET), one refactor and one feature; add more cross-repo tasks to broaden
+      coverage.
 - [ ] **Pareto frontier visualization** — plot quality vs. cost so the
       tradeoffs the analyzer flags are visible at a glance (`report` command is
       still a stub).

@@ -17,12 +17,12 @@ Living tracker for the sync & recalibration effort. Check items as checkpoints c
 - [x] settled and recorded in IMPLEMENTATION_PLAN.md §7
 
 ## Phase G — Golden cross-repo test set
-- [ ] G1 rubric (Chat+Research) integrated into task-design-guide + validators
-- [ ] G2 PyVRP A/B/C raised to golden + validated
-- [ ] G3a Cosmos AutoMapper task authored + validated
-- [ ] G3b Cosmos researched-candidate task authored + validated
-- [ ] stakes tier tagged per task; deliberately under-specified task marked
-- [ ] **CHECKPOINT: notepad triage + fix**
+- [x] G1 rubric (Chat+Research) integrated into task-design-guide + validators
+- [x] G2 PyVRP A/B/C raised to golden + validated
+- [x] G3a Cosmos AutoMapper task authored + validated
+- [x] G3b Cosmos researched-candidate task authored + validated
+- [x] stakes tier tagged per task; deliberately under-specified task marked
+- [x] **CHECKPOINT: notepad triage + fix**
 
 ## Phase A — Axis shakedown -> measurement
 - [ ] A1 execution spine (Task / gate / cost) — **CHECKPOINT**
