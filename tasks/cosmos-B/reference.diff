@@ -1,0 +1,335 @@
+diff --git a/src/CleanArchitectureCosmosDB.Core/Entities/ToDoItem.cs b/src/CleanArchitectureCosmosDB.Core/Entities/ToDoItem.cs
+index a6d0cfa..604c51d 100644
+--- a/src/CleanArchitectureCosmosDB.Core/Entities/ToDoItem.cs
++++ b/src/CleanArchitectureCosmosDB.Core/Entities/ToDoItem.cs
+@@ -23,6 +23,11 @@ namespace CleanArchitectureCosmosDB.Core.Entities
+             IsCompleted = true;
+         }
+ 
++        public void Reopen()
++        {
++            IsCompleted = false;
++        }
++
+         public override string ToString()
+         {
+             string status = IsCompleted ? "Done!" : "Not done.";
+diff --git a/src/CleanArchitectureCosmosDB.Core/Specifications/ToDoItemSearchAggregationSpecification.cs b/src/CleanArchitectureCosmosDB.Core/Specifications/ToDoItemSearchAggregationSpecification.cs
+index 9e3d957..acb415f 100644
+--- a/src/CleanArchitectureCosmosDB.Core/Specifications/ToDoItemSearchAggregationSpecification.cs
++++ b/src/CleanArchitectureCosmosDB.Core/Specifications/ToDoItemSearchAggregationSpecification.cs
+@@ -14,7 +14,8 @@ namespace CleanArchitectureCosmosDB.Core.Specifications
+                                              int pageSize = 50,
+                                              string sortColumn = "title",
+                                              SortDirection sortDirection = SortDirection.Ascending,
+-                                             bool exactSearch = false
++                                             bool exactSearch = false,
++                                             bool? isCompleted = null
+                                              )
+         {
+             if (!string.IsNullOrWhiteSpace(title))
+@@ -29,6 +30,12 @@ namespace CleanArchitectureCosmosDB.Core.Specifications
+                 }
+             }
+ 
++            // Filter by completion status when specified
++            if (isCompleted.HasValue)
++            {
++                Query.Where(item => item.IsCompleted == isCompleted.Value);
++            }
++
+         }
+     }
+ }
+diff --git a/src/CleanArchitectureCosmosDB.Core/Specifications/ToDoItemSearchSpecification.cs b/src/CleanArchitectureCosmosDB.Core/Specifications/ToDoItemSearchSpecification.cs
+index 89c75a5..df747df 100644
+--- a/src/CleanArchitectureCosmosDB.Core/Specifications/ToDoItemSearchSpecification.cs
++++ b/src/CleanArchitectureCosmosDB.Core/Specifications/ToDoItemSearchSpecification.cs
+@@ -10,7 +10,8 @@ namespace CleanArchitectureCosmosDB.Core.Specifications
+                                              int pageSize = 50,
+                                              string sortColumn = "title",
+                                              SortDirection sortDirection = SortDirection.Ascending,
+-                                             bool exactSearch = false
++                                             bool exactSearch = false,
++                                             bool? isCompleted = null
+                                              )
+         {
+             if (!string.IsNullOrWhiteSpace(title))
+@@ -25,6 +26,12 @@ namespace CleanArchitectureCosmosDB.Core.Specifications
+                 }
+             }
+ 
++            // Filter by completion status when specified
++            if (isCompleted.HasValue)
++            {
++                Query.Where(item => item.IsCompleted == isCompleted.Value);
++            }
++
+             // Pagination
+             if (pageSize != -1) //Display all entries and disable pagination 
+             {
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Controllers/ToDoItemController.cs b/src/CleanArchitectureCosmosDB.WebAPI/Controllers/ToDoItemController.cs
+index 5a5a146..5d4d6f6 100644
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Controllers/ToDoItemController.cs
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Controllers/ToDoItemController.cs
+@@ -108,6 +108,36 @@ namespace CleanArchitectureCosmosDB.WebAPI.Controllers
+             return NoContent();
+         }
+ 
++        // POST: api/ToDoItem/5/complete
++        /// <summary>
++        ///     Mark an item as completed
++        /// </summary>
++        /// <param name="id"></param>
++        /// <returns></returns>
++        [HttpPost("{id}/complete")]
++        [ApiConventionMethod(typeof(DefaultApiConventions), nameof(DefaultApiConventions.Update))]
++        public async Task<IActionResult> Complete(string id)
++        {
++            await _mediator.Send(new Complete.CompleteToDoItemCommand() { Id = id });
++
++            return NoContent();
++        }
++
++        // POST: api/ToDoItem/5/reopen
++        /// <summary>
++        ///     Reopen a completed item
++        /// </summary>
++        /// <param name="id"></param>
++        /// <returns></returns>
++        [HttpPost("{id}/reopen")]
++        [ApiConventionMethod(typeof(DefaultApiConventions), nameof(DefaultApiConventions.Update))]
++        public async Task<IActionResult> Reopen(string id)
++        {
++            await _mediator.Send(new Reopen.ReopenToDoItemCommand() { Id = id });
++
++            return NoContent();
++        }
++
+         // GET: api/ToDoItem/5/AuditHistory
+         /// <summary>
+         ///     Get audit history of an item by id
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Complete.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Complete.cs
+new file mode 100644
+index 0000000..677247e
+--- /dev/null
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Complete.cs
+@@ -0,0 +1,89 @@
++using CleanArchitectureCosmosDB.Core.Exceptions;
++using CleanArchitectureCosmosDB.Core.Interfaces;
++using FluentValidation;
++using MediatR;
++using System;
++using System.Threading;
++using System.Threading.Tasks;
++
++namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
++{
++    /// <summary>
++    ///     Complete related commands, validators, and handlers
++    /// </summary>
++    public class Complete
++    {
++        /// <summary>
++        ///     Model to mark an entity as completed
++        /// </summary>
++        public class CompleteToDoItemCommand : IRequest<CommandResponse>
++        {
++            /// <summary>
++            ///     Id
++            /// </summary>
++            public string Id { get; set; }
++        }
++
++        /// <summary>
++        ///     Command Response
++        /// </summary>
++        public class CommandResponse
++        {
++
++        }
++
++        /// <summary>
++        ///     Register Validation
++        /// </summary>
++        public class CompleteToDoItemCommandValidator : AbstractValidator<CompleteToDoItemCommand>
++        {
++            /// <summary>
++            ///     Validator ctor
++            /// </summary>
++            public CompleteToDoItemCommandValidator()
++            {
++                RuleFor(x => x.Id)
++                    .NotEmpty();
++            }
++        }
++
++        /// <summary>
++        ///     Handler
++        /// </summary>
++        public class CommandHandler : IRequestHandler<CompleteToDoItemCommand, CommandResponse>
++        {
++            private readonly IToDoItemRepository _repo;
++
++            /// <summary>
++            ///     Ctor
++            /// </summary>
++            /// <param name="repo"></param>
++            public CommandHandler(IToDoItemRepository repo)
++            {
++                this._repo = repo ?? throw new ArgumentNullException(nameof(repo));
++            }
++
++            /// <summary>
++            ///     Handle
++            /// </summary>
++            /// <param name="command"></param>
++            /// <param name="cancellationToken"></param>
++            /// <returns></returns>
++            public async Task<CommandResponse> Handle(CompleteToDoItemCommand command, CancellationToken cancellationToken)
++            {
++                CommandResponse response = new CommandResponse();
++
++                Core.Entities.ToDoItem entity = await _repo.GetItemAsync(command.Id);
++                if (entity == null)
++                {
++                    throw new EntityNotFoundException(nameof(ToDoItem), command.Id);
++                }
++
++                entity.MarkComplete();
++                await _repo.UpdateItemAsync(command.Id, entity);
++
++                return response;
++            }
++        }
++    }
++}
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Reopen.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Reopen.cs
+new file mode 100644
+index 0000000..4104c1a
+--- /dev/null
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Reopen.cs
+@@ -0,0 +1,89 @@
++using CleanArchitectureCosmosDB.Core.Exceptions;
++using CleanArchitectureCosmosDB.Core.Interfaces;
++using FluentValidation;
++using MediatR;
++using System;
++using System.Threading;
++using System.Threading.Tasks;
++
++namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
++{
++    /// <summary>
++    ///     Reopen related commands, validators, and handlers
++    /// </summary>
++    public class Reopen
++    {
++        /// <summary>
++        ///     Model to reopen a completed entity
++        /// </summary>
++        public class ReopenToDoItemCommand : IRequest<CommandResponse>
++        {
++            /// <summary>
++            ///     Id
++            /// </summary>
++            public string Id { get; set; }
++        }
++
++        /// <summary>
++        ///     Command Response
++        /// </summary>
++        public class CommandResponse
++        {
++
++        }
++
++        /// <summary>
++        ///     Register Validation
++        /// </summary>
++        public class ReopenToDoItemCommandValidator : AbstractValidator<ReopenToDoItemCommand>
++        {
++            /// <summary>
++            ///     Validator ctor
++            /// </summary>
++            public ReopenToDoItemCommandValidator()
++            {
++                RuleFor(x => x.Id)
++                    .NotEmpty();
++            }
++        }
++
++        /// <summary>
++        ///     Handler
++        /// </summary>
++        public class CommandHandler : IRequestHandler<ReopenToDoItemCommand, CommandResponse>
++        {
++            private readonly IToDoItemRepository _repo;
++
++            /// <summary>
++            ///     Ctor
++            /// </summary>
++            /// <param name="repo"></param>
++            public CommandHandler(IToDoItemRepository repo)
++            {
++                this._repo = repo ?? throw new ArgumentNullException(nameof(repo));
++            }
++
++            /// <summary>
++            ///     Handle
++            /// </summary>
++            /// <param name="command"></param>
++            /// <param name="cancellationToken"></param>
++            /// <returns></returns>
++            public async Task<CommandResponse> Handle(ReopenToDoItemCommand command, CancellationToken cancellationToken)
++            {
++                CommandResponse response = new CommandResponse();
++
++                Core.Entities.ToDoItem entity = await _repo.GetItemAsync(command.Id);
++                if (entity == null)
++                {
++                    throw new EntityNotFoundException(nameof(ToDoItem), command.Id);
++                }
++
++                entity.Reopen();
++                await _repo.UpdateItemAsync(command.Id, entity);
++
++                return response;
++            }
++        }
++    }
++}
+diff --git a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Search.cs b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Search.cs
+index 25b4835..952fac6 100644
+--- a/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Search.cs
++++ b/src/CleanArchitectureCosmosDB.WebAPI/Models/ToDoItem/Search.cs
+@@ -45,6 +45,11 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+             ///     Title
+             /// </summary>
+             public string TitleFilter { get; set; }
++
++            /// <summary>
++            ///     Filter by completion status. Null returns both completed and incompleted items.
++            /// </summary>
++            public bool? IsCompletedFilter { get; set; }
+         }
+ 
+         /// <summary>
+@@ -123,13 +128,15 @@ namespace CleanArchitectureCosmosDB.WebAPI.Models.ToDoItem
+                                                                       query.Start,
+                                                                       query.PageSize,
+                                                                       query.SortColumn,
+-                                                                      query.SortDirection ?? query.SortDirection.Value);
++                                                                      query.SortDirection ?? query.SortDirection.Value,
++                                                                      isCompleted: query.IsCompletedFilter);
+ 
+                 IEnumerable<Core.Entities.ToDoItem> entities = await _repo.GetItemsAsync(specification);
+                 response.Resource = entities.Select(x => _mapper.Map<ToDoItemModel>(x));
+ 
+                 // count
+-                ToDoItemSearchAggregationSpecification countSpecification = new ToDoItemSearchAggregationSpecification(query.TitleFilter);
++                ToDoItemSearchAggregationSpecification countSpecification = new ToDoItemSearchAggregationSpecification(query.TitleFilter,
++                                                                      isCompleted: query.IsCompletedFilter);
+                 response.TotalRecordsMatched = await _repo.GetItemsCountAsync(countSpecification);
+ 
+                 response.CurrentPage = (query.PageSize != 0) ? query.Start / query.PageSize : 0;

@@ -1,0 +1,59 @@
+id: cosmos-B
+repo: cosmos
+repo_url: https://github.com/ShawnShiSS/clean-architecture-azure-cosmos-db
+# base_commit is the same LOCAL synthesized net8 base as cosmos-A (branch
+# `cosmos-base`). cosmos-B is an *additive* feature task: the reference.diff is
+# applied forward to introduce the complete/reopen lifecycle, so the base already
+# lacks the feature. The broken GetItemsAsyncByCategory/ByTitle stubs are left
+# as-is on purpose (unrelated dead demo code).
+base_commit: 3b033a8f46c365d284d069524a52d34c3d5c3298
+instruction: |
+  Our ToDo API can create, update, and delete items, but a user still has no way to
+  mark one as done — and once it is done, no way to find it again. The domain even
+  carries an unused `ToDoItem.MarkComplete()` that nothing calls. Add a
+  complete/reopen lifecycle end to end, and let search filter by completion status.
+  Follow the existing MediatR vertical-slice conventions (see the Create / Delete /
+  Update slices).
+
+  What we need:
+
+  - A `ToDoItem.Reopen()` alongside `MarkComplete()` that returns an item to
+    not-done. Keep `IsCompleted`'s private setter — don't widen it.
+
+  - Two new slices under `WebAPI.Models.ToDoItem`, `Complete` and `Reopen`, built
+    like the existing Create / Delete slices (a nested command, a matching
+    `…CommandValidator`, and a `CommandHandler`). The commands —
+    `CompleteToDoItemCommand` and `ReopenToDoItemCommand` — each carry just the
+    item `Id`, validated non-empty. Each handler loads the item from the
+    repository, throws `EntityNotFoundException` when it doesn't exist, flips the
+    status (`MarkComplete()` / `Reopen()`), and persists the change back through the
+    repository. Handlers and validators are picked up by assembly scan, so no
+    manual DI wiring is needed.
+
+  - Two endpoints on `ToDoItemController`: `POST api/ToDoItem/{id}/complete` and
+    `POST api/ToDoItem/{id}/reopen`, each returning `NoContent`.
+
+  - Completion filtering on search. Give both `ToDoItemSearchSpecification` and
+    `ToDoItemSearchAggregationSpecification` an optional `isCompleted` filter: when
+    set, results are restricted to that status; when omitted, behaviour is unchanged
+    (both completed and incomplete items match) and the existing title / sort /
+    pagination behaviour stays intact. Surface it on `SearchToDoItemQuery` as
+    `IsCompletedFilter` and pass it through to both specifications, so the returned
+    page and its total count agree.
+
+  Behaviour must be unchanged otherwise.
+build_cmd: "dotnet build CleanArchitectureCosmosDB.sln"
+run_cmd: 'dotnet test tests/CleanArchitectureCosmosDB.UnitTests/CleanArchitectureCosmosDB.UnitTests.csproj --filter "FullyQualifiedName~CosmosB"'
+held_out_tests_path: tasks/cosmos-B/held_out_tests
+reference_diff_path: tasks/cosmos-B/reference.diff
+visible_test_cmd: null
+# Pre-calibration estimate (label by hand after a calibration sweep). medium: an
+# additive cross-layer feature (domain method + two specification filters + two new
+# MediatR slices with validators + Search wiring + two controller endpoints). The
+# public contract is well specified, so interpretation risk is low; difficulty is in
+# discovering the unused MarkComplete seam, respecting the private setter, and wiring
+# every layer to the existing conventions without breaking current behaviour. The
+# held-out suite kills the obvious mutants: the in-memory fake stores detached copies
+# (a handler that mutates but forgets UpdateItemAsync fails), and both the record and
+# aggregation specs plus the Search handler's filter passthrough are covered directly.
+difficulty: medium
