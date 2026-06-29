@@ -109,8 +109,15 @@ python cli.py run --task all --methodology all --repo-context all \
 
 Manage the pricing table with `python cli.py pricing list|fetch|add`.
 
-**WSL required for PyVRP tasks.** PyVRP's C++ doesn't compile under MSVC, so
-running and validating the `pyvrp-*` tasks needs WSL (Ubuntu):
+**WSL required for PyVRP tasks.** PyVRP's C++ doesn't compile under MSVC, so the
+`pyvrp-*` tasks build under WSL (Ubuntu). `cli.py run` handles this automatically:
+when a task is an editable `pip install -e .` and we're on Windows, the gate
+dispatches its build/test commands into WSL (`wsl -d <distro> -- bash -lc 'source
+<venv> && cd "$(wslpath -a …)" && …'`). Cosmos/.NET tasks stay on the Windows
+shell. Override the distro/venv with `SB_WSL_DISTRO` (default `Ubuntu`) and
+`SB_WSL_VENV` (default `~/pyvrp-venv/bin/activate`).
+
+The standalone task validator is not WSL-aware, so run it *inside* WSL:
 
 ```bash
 wsl -d Ubuntu -- bash -c 'source ~/pyvrp-venv/bin/activate && \
@@ -122,11 +129,14 @@ Claude Code CLI version used: 2.1.185
 
 ## Current state
 
-The full pipeline is built and tested (149 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
+The full pipeline is built and tested (160 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
 three-tier gate, axis-general blind grading, Bradley-Terry ranking, API-rate cost,
 and task-quality tooling. The task set now spans two repos/languages (PyVRP C++/Python
-and a .NET Cosmos DB service). Nothing has been run at scale yet; the next step is the
-first real measurement sweep.
+and a .NET Cosmos DB service). The execution spine is shaken out end-to-end on Windows:
+the `claude-code` runner (prompt via stdin), the three-tier gate — which now auto-dispatches
+PyVRP build/test into WSL — and the leakage scanner all run green on the golden tasks
+(oracle PASS / nop FAIL for every task). Nothing has been run at scale yet; the next step
+is the first real measurement sweep.
 
 **Engine & tasks (P0–P1)**
 - Core engine: models, DB, worktree isolation, runners, gate, leakage scanner.
@@ -170,9 +180,9 @@ first real measurement sweep.
 - [ ] **First calibration run** — a small real sweep to land each task's pass
       rate in the 30–70% discrimination window.
 - [ ] **First grading session** — exercise the UI end-to-end on real trials.
-- [ ] **Task-suite expansion** — `cosmos-A`/`cosmos-B` add a second repo/language
-      (.NET), one refactor and one feature; add more cross-repo tasks to broaden
-      coverage.
+- [x] **Second repo/language landed** — `cosmos-A`/`cosmos-B` add .NET (one
+      refactor, one feature), authored and validated.
+- [ ] **Task-suite expansion** — add more cross-repo tasks to broaden coverage.
 - [ ] **Pareto frontier visualization** — plot quality vs. cost so the
       tradeoffs the analyzer flags are visible at a glance (`report` command is
       still a stub).
