@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -166,3 +167,78 @@ def test_leakage_survives_undecodable_git_log_bytes(tiny_repo):
     # Must return a report rather than raising on the git-log decode.
     report = scan(tiny_repo, ["nonexistent_symbol_xyz"])
     assert report.any_found is False
+
+
+# --- WSL dispatch tests (mocked subprocess, no real build) ---
+
+
+def _mock_ok() -> MagicMock:
+    m = MagicMock()
+    m.returncode = 0
+    m.stdout = ""
+    m.stderr = ""
+    return m
+
+
+def test_gate_dispatches_pyvrp_build_to_wsl(tmp_path, monkeypatch):
+    """On Windows with an editable pip install, compile tier must call wsl."""
+    monkeypatch.setattr("core.toolchain.platform.system", lambda: "Windows")
+
+    held_out = tmp_path / "held_out"
+    held_out.mkdir()
+
+    task = TaskSpec(
+        id="pyvrp-X",
+        repo_url="x",
+        base_commit="x",
+        instruction="add something",
+        run_cmd="pytest tests/search/test_ReplaceGroup.py -v",
+        held_out_tests_path=str(held_out),
+        reference_diff_path="x",
+        build_cmd="pip install -e . 2>&1",
+    )
+    trial = Trial(
+        id="t-pyvrp", task_id="pyvrp-X", methodology_id="off",
+        repo_context_id="none", model="none", runner="nop", rep=0,
+    )
+
+    with patch("grading.gate.subprocess.run", return_value=_mock_ok()) as mock_run:
+        apply(trial, tmp_path, task)
+
+    # First call is compile tier (build_cmd).
+    first_arg = mock_run.call_args_list[0].args[0]
+    assert isinstance(first_arg, list)
+    assert first_arg[0] == "wsl"
+    script = first_arg[-1]
+    assert "pip install -e . --no-build-isolation" in script
+
+
+def test_gate_dispatches_dotnet_to_shell(tmp_path, monkeypatch):
+    """Cosmos/dotnet tasks must use shell=True, never wsl."""
+    monkeypatch.setattr("core.toolchain.platform.system", lambda: "Windows")
+
+    held_out = tmp_path / "held_out"
+    held_out.mkdir()
+
+    task = TaskSpec(
+        id="cosmos-A",
+        repo_url="x",
+        base_commit="x",
+        instruction="add something",
+        run_cmd="dotnet test CleanArchitectureCosmosDB.sln",
+        held_out_tests_path=str(held_out),
+        reference_diff_path="x",
+        build_cmd="dotnet build CleanArchitectureCosmosDB.sln",
+    )
+    trial = Trial(
+        id="t-cosmos", task_id="cosmos-A", methodology_id="off",
+        repo_context_id="none", model="none", runner="nop", rep=0,
+    )
+
+    with patch("grading.gate.subprocess.run", return_value=_mock_ok()) as mock_run:
+        apply(trial, tmp_path, task)
+
+    for call in mock_run.call_args_list:
+        first_arg = call.args[0]
+        assert isinstance(first_arg, str), f"Expected str cmd, got {type(first_arg)}"
+        assert call.kwargs.get("shell") is True

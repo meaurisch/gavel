@@ -21,6 +21,8 @@ from collections import namedtuple
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
 TASKS_DIR = PROJECT_ROOT / "tasks"
 REPOS_ROOT = PROJECT_ROOT / "repos"
 REPOS_DIR = REPOS_ROOT / "pyvrp"  # default; per-task repo via _repo_dir_for_task
@@ -93,10 +95,7 @@ def _repo_dir_for_task(task: dict) -> Path:
     return REPOS_ROOT / repo
 
 
-def _is_editable_pip_install(build_cmd: str) -> bool:
-    """True for a PyVRP-style ``pip install -e .`` that needs special handling."""
-    text = build_cmd or ""
-    return "pip install" in text and "-e" in text
+from core.toolchain import is_editable_pip_install as _is_editable_pip_install
 
 
 def _requires_native_toolchain(tasks: list[dict]) -> bool:
