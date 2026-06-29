@@ -40,9 +40,14 @@ class ClaudeCodeRunner:
         if claude_bin is None:
             raise FileNotFoundError("claude CLI not found on PATH")
 
+        # The instruction is delivered on stdin, not as a -p argument. On Windows
+        # `claude` resolves to claude.CMD, a batch shim run through cmd.exe; a
+        # newline inside an argument is treated as a command terminator, so a
+        # multi-line -p prompt is truncated at the first newline and every flag
+        # after it is dropped. stdin sidesteps all argv escaping/length issues.
         cmd = [
             claude_bin,
-            "-p", self._task.instruction,
+            "-p",
             "--output-format", "json",
             "--model", trial.model,
             "--dangerously-skip-permissions",
@@ -53,6 +58,7 @@ class ClaudeCodeRunner:
             proc = subprocess.run(
                 cmd,
                 cwd=str(worktree_path),
+                input=self._task.instruction,
                 capture_output=True,
                 text=True,
                 timeout=self._max_turns * 120,

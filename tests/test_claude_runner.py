@@ -184,6 +184,47 @@ def test_execute_empty_result_overrides_exit(tiny_repo):
         destroy_worktree(wt)
 
 
+def test_execute_passes_instruction_via_stdin(tiny_repo):
+    """Multi-line instructions must go through stdin, not argv.
+
+    A newline inside a -p argument is treated as a command terminator by the
+    Windows cmd.exe batch shim (claude.CMD), truncating the prompt at the first
+    newline and dropping every flag after it. Delivering the prompt on stdin
+    sidesteps all command-line escaping/length/newline issues.
+    """
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = TaskSpec(
+            id="t", repo_url="x", base_commit="x",
+            instruction="line one ends here\nsecond line with detail",
+            run_cmd="echo ok", held_out_tests_path="x", reference_diff_path="x",
+        )
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = _valid_claude_json()
+        mock_proc.stderr = ""
+
+        with patch("runners.claude_code.subprocess.run", return_value=mock_proc) as m:
+            runner.execute(trial, wt)
+
+        # The global subprocess.run patch also captures collect()'s git call;
+        # find the claude invocation specifically.
+        claude_calls = [c for c in m.call_args_list if "-p" in (c.args[0] if c.args else c.kwargs.get("args", []))]
+        assert len(claude_calls) == 1
+        cmd = claude_calls[0].args[0]
+        kwargs = claude_calls[0].kwargs
+        assert task.instruction not in cmd, "instruction must not be a CLI argument"
+        assert kwargs.get("input") == task.instruction, "instruction must be passed via stdin"
+    finally:
+        destroy_worktree(wt)
+
+
 def test_last_cost_none_on_parse_failure(tiny_repo):
     commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)
