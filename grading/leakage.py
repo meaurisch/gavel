@@ -21,6 +21,8 @@ def scan(repo_path: Path, feature_terms: list[str], last_n: int = 20) -> Leakage
         cwd=str(repo_path),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="ignore",
         check=True,
     ).stdout.splitlines()
 
@@ -40,6 +42,8 @@ def scan(repo_path: Path, feature_terms: list[str], last_n: int = 20) -> Leakage
         cwd=str(repo_path),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="ignore",
     ).stdout
     for lineno, line in enumerate(log_output.splitlines(), 1):
         if any(term in line for term in feature_terms):

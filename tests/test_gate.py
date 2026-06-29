@@ -149,3 +149,20 @@ def test_leakage_clean_when_no_terms(tiny_repo):
     report = scan(tiny_repo, ["nonexistent_symbol_xyz"])
     assert report.any_found is False
     assert report.hits == []
+
+
+def test_leakage_survives_undecodable_git_log_bytes(tiny_repo):
+    """`git log -p` may contain bytes that aren't valid in the platform default
+    codec (real repos like PyVRP have them). scan() must not crash decoding them.
+    """
+    # 0x9d is undefined in cp1252 and an invalid lone byte in utf-8 — but no NUL,
+    # so git treats the file as text and shows the byte in `git log -p`.
+    (tiny_repo / "weird.txt").write_bytes(b"a line with a high byte \x9d in it\n")
+    subprocess.run(["git", "add", "weird.txt"], cwd=str(tiny_repo), check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "add file with non-codec byte"],
+        cwd=str(tiny_repo), check=True, capture_output=True,
+    )
+    # Must return a report rather than raising on the git-log decode.
+    report = scan(tiny_repo, ["nonexistent_symbol_xyz"])
+    assert report.any_found is False
