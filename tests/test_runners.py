@@ -158,8 +158,8 @@ def _commit_count(repo: Path) -> int:
 def test_prepare_lays_context_under_methodology(tiny_repo: Path):
     commit = head_commit(tiny_repo)
     methodology = MethodologySpec(id="vanilla", files={"CLAUDE.md": ["# Methodology"]})
-    repo_context = RepoContextSpec(id="repo-instructions", files={"README-rules.md": ["# Repo rules"]})
-    trial = Trial(id="t-layer", task_id="test-task", methodology_id="vanilla", repo_context_id="repo-instructions", model="none", runner="nop", rep=0)
+    repo_context = RepoContextSpec(id="pyvrp-instructions", files={"README-rules.md": ["# Repo rules"]})
+    trial = Trial(id="t-layer", task_id="test-task", methodology_id="vanilla", repo_context_id="pyvrp-instructions", model="none", runner="nop", rep=0)
     wt = create_worktree(tiny_repo, commit)
     try:
         before = _commit_count(wt)

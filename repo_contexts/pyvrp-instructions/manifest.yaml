@@ -1,6 +1,9 @@
-id: repo-instructions
-description: "User's own repo-specific instructions (no external pack)"
-task_affinity: []  # empty = applies to all tasks
+id: pyvrp-instructions
+description: "PyVRP repo context (C++/pybind11 + Python VRP solver; builds under WSL)"
+task_affinity:
+  - pyvrp-A
+  - pyvrp-B
+  - pyvrp-C
 harnesses:
   claude-code:
     - src: content/CLAUDE.md

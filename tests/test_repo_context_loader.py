@@ -13,7 +13,7 @@ from core.repo_context_loader import (
 # --- shipped repo contexts ---
 
 def test_list_repo_contexts():
-    assert list_repo_contexts() == ["cosmos", "none", "repo-instructions"]
+    assert list_repo_contexts() == ["cosmos", "none", "pyvrp-instructions"]
 
 
 def test_load_repo_context_noop():
@@ -23,10 +23,10 @@ def test_load_repo_context_noop():
     assert spec.files == {}
 
 
-def test_get_task_affinity_empty_for_shipped():
-    # both shipped contexts apply to all tasks (empty affinity)
+def test_get_task_affinity_shipped():
     assert get_task_affinity("none") == []
-    assert get_task_affinity("repo-instructions") == []
+    assert get_task_affinity("cosmos") == ["cosmos-A", "cosmos-B"]
+    assert get_task_affinity("pyvrp-instructions") == ["pyvrp-A", "pyvrp-B", "pyvrp-C"]
 
 
 # --- controlled temp repo contexts ---

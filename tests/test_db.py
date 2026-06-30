@@ -67,11 +67,11 @@ def test_methodology_spec_insert_read(conn):
 
 def test_repo_context_spec_insert_read(conn):
     obj = RepoContextSpec(
-        id="repo-instructions",
+        id="pyvrp-instructions",
         files={"CLAUDE.md": ["# Repo rules", "Be concise"]},
     )
     insert_repo_context_spec(conn, obj)
-    got = get_repo_context_spec(conn, "repo-instructions")
+    got = get_repo_context_spec(conn, "pyvrp-instructions")
     assert got == obj
 
 

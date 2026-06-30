@@ -41,7 +41,7 @@ def test_methodology_spec_roundtrip():
 
 def test_repo_context_spec_roundtrip():
     obj = RepoContextSpec(
-        id="repo-instructions",
+        id="pyvrp-instructions",
         files={"CLAUDE.md": ["# Repo rules", "Be concise"]},
     )
     ta = TypeAdapter(RepoContextSpec)
