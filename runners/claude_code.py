@@ -75,9 +75,11 @@ class ClaudeCodeRunner:
         wall_seconds = time.monotonic() - start
 
         usage = None
+        parse_error: str | None = None
         try:
             usage = parse_claude_output(stdout)
         except ClaudeUsageParseError as e:
+            parse_error = str(e)
             logger.error("Trial %s: failed to parse Claude output: %s", trial.id, e)
 
         if usage is not None:
@@ -108,4 +110,4 @@ class ClaudeCodeRunner:
             exit_status = 1
 
         diff = collect(worktree_path)
-        return RunResult(trial_id=trial.id, diff=diff, exit_status=exit_status, wall_seconds=wall_seconds)
+        return RunResult(trial_id=trial.id, diff=diff, exit_status=exit_status, wall_seconds=wall_seconds, error=parse_error)

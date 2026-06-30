@@ -46,6 +46,7 @@ class RunResult:
     diff: str
     exit_status: int
     wall_seconds: float
+    error: str | None = None
 
 
 @dataclass

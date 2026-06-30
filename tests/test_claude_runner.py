@@ -248,6 +248,31 @@ def test_last_cost_none_on_parse_failure(tiny_repo):
         destroy_worktree(wt)
 
 
+def test_execute_parse_failure_sets_error(tiny_repo):
+    """Unparseable stdout yields RunResult with error set and last_cost None."""
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = "not json at all"
+        mock_proc.stderr = ""
+
+        with patch("runners.claude_code.subprocess.run", return_value=mock_proc):
+            result = runner.execute(trial, wt)
+
+        assert runner.last_cost is None
+        assert result.error is not None
+    finally:
+        destroy_worktree(wt)
+
+
 # --- Integration smoke test ---
 
 @pytest.mark.integration

@@ -64,6 +64,8 @@ def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
         runner.prepare(trial, wt_path, methodology, repo_context)
         run_result = runner.execute(trial, wt_path)
         summary["wall_seconds"] = run_result.wall_seconds
+        if run_result.error:
+            summary["error"] = run_result.error
 
         cost: CostRecord | None = None
         if isinstance(runner, ClaudeCodeRunner) and runner.last_cost is not None:
