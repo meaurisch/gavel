@@ -84,3 +84,50 @@ def test_execute_trial_propagates_run_result_error(tmp_path):
         summary = execute_trial(trial, conn)
 
     assert summary["error"] == "parse failed"
+
+
+def test_execute_trial_wall_covers_whole_trial(tmp_path):
+    """summary['wall_seconds'] must span the full execute_trial call (runner + gate),
+    not just run_result.wall_seconds."""
+    from unittest.mock import MagicMock, patch, call
+    from core.executor import execute_trial
+    from core.models import GateResult, MethodologySpec, RepoContextSpec, RunResult
+
+    trial = Trial(id="t-wall", task_id="t", methodology_id="s", repo_context_id="none", model="m", runner="nop", rep=0)
+    conn = connect(tmp_path / "test.db")
+
+    runner_wall = 1.5  # runner-only time stored in RunResult
+    stub_run_result = RunResult(
+        trial_id="t-wall", diff="", exit_status=0, wall_seconds=runner_wall, error=None
+    )
+
+    class StubRunner:
+        last_cost = None
+        def prepare(self, *args, **kwargs): pass
+        def execute(self, *args, **kwargs): return stub_run_result
+
+    stub_gate = GateResult(trial_id="t-wall", passed=True)
+
+    # time.monotonic sequence: trial_start=10.0, trial_end=17.0 → whole-trial wall=7.0
+    monotonic_values = iter([10.0, 17.0])
+
+    with patch("core.executor.load_task"), \
+         patch("core.executor.HARNESS_MAP", {}), \
+         patch("core.executor.load_methodology", return_value=MethodologySpec(id="s", files={})), \
+         patch("core.executor.load_repo_context", return_value=RepoContextSpec(id="none", files={})), \
+         patch("core.executor.resolve_repo_path", return_value=tmp_path), \
+         patch("core.executor.create_worktree", return_value=tmp_path), \
+         patch("core.executor.destroy_worktree"), \
+         patch("core.executor.make_runner", return_value=StubRunner()), \
+         patch("core.executor.gate_apply", return_value=stub_gate), \
+         patch("core.executor.insert_trial"), \
+         patch("core.executor.insert_run_result"), \
+         patch("core.executor.insert_gate_result"), \
+         patch("core.executor.time") as mock_time:
+        mock_time.monotonic.side_effect = lambda: next(monotonic_values)
+        summary = execute_trial(trial, conn)
+
+    assert summary["wall_seconds"] == pytest.approx(7.0), (
+        f"Expected whole-trial wall 7.0 but got {summary['wall_seconds']}; "
+        f"wall must not be runner-only ({runner_wall})"
+    )

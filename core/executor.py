@@ -42,6 +42,7 @@ def make_runner(runner_name: str, task):
 
 
 def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
+    trial_start = time.monotonic()
     summary = {
         "passed": None,
         "usd": 0.0,
@@ -63,7 +64,6 @@ def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
         runner = make_runner(trial.runner, task)
         runner.prepare(trial, wt_path, methodology, repo_context)
         run_result = runner.execute(trial, wt_path)
-        summary["wall_seconds"] = run_result.wall_seconds
         if run_result.error:
             summary["error"] = run_result.error
 
@@ -86,6 +86,7 @@ def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
         summary["error"] = str(e)
         logger.error("Trial %s failed: %s", trial.id, e, exc_info=True)
     finally:
+        summary["wall_seconds"] = time.monotonic() - trial_start
         if wt_path is not None and wt_path.exists():
             try:
                 destroy_worktree(wt_path)
