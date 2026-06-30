@@ -86,6 +86,7 @@ def run(
     full_matrix: bool = typer.Option(False, "--full-matrix", help="Ignore task affinity"),
     delay: float = typer.Option(0.0, help="Seconds between trials (rate limiting)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Print trial grid and exit"),
+    keep_worktree: bool = typer.Option(False, "--keep-worktree", help="Don't tear down worktrees (debug: inspect laid-down files)"),
     db: Path = typer.Option(Path("results.db"), help="Database path"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Debug logging"),
 ):
@@ -136,7 +137,7 @@ def run(
             results[trial.id] = summary
             live.update(_progress_table(trials, results))
 
-        execute_all(trials, conn, delay=delay, on_progress=on_progress)
+        execute_all(trials, conn, delay=delay, on_progress=on_progress, keep_worktree=keep_worktree)
 
     done = [r for r in results.values() if not r.get("skipped") and not r.get("error")]
     passed = sum(1 for r in done if r.get("passed"))

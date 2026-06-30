@@ -86,6 +86,43 @@ def test_execute_trial_propagates_run_result_error(tmp_path):
     assert summary["error"] == "parse failed"
 
 
+def test_execute_trial_keeps_worktree_when_requested(tmp_path):
+    """keep_worktree=True must skip teardown and surface the worktree path so the
+    laid-down commits can be inspected after the run."""
+    from unittest.mock import patch
+    from core.executor import execute_trial
+    from core.models import GateResult, MethodologySpec, RepoContextSpec, RunResult
+
+    trial = Trial(id="t-keep", task_id="t", methodology_id="s", repo_context_id="none", model="m", runner="nop", rep=0)
+    conn = connect(tmp_path / "test.db")
+    wt = tmp_path / "wt"
+    wt.mkdir()
+
+    stub_run_result = RunResult(trial_id="t-keep", diff="", exit_status=0, wall_seconds=0.1, error=None)
+
+    class StubRunner:
+        last_cost = None
+        def prepare(self, *args, **kwargs): pass
+        def execute(self, *args, **kwargs): return stub_run_result
+
+    with patch("core.executor.load_task"), \
+         patch("core.executor.HARNESS_MAP", {}), \
+         patch("core.executor.load_methodology", return_value=MethodologySpec(id="s", files={})), \
+         patch("core.executor.load_repo_context", return_value=RepoContextSpec(id="none", files={})), \
+         patch("core.executor.resolve_repo_path", return_value=tmp_path), \
+         patch("core.executor.create_worktree", return_value=wt), \
+         patch("core.executor.destroy_worktree") as mock_destroy, \
+         patch("core.executor.make_runner", return_value=StubRunner()), \
+         patch("core.executor.gate_apply", return_value=GateResult(trial_id="t-keep", passed=True)), \
+         patch("core.executor.insert_trial"), \
+         patch("core.executor.insert_run_result"), \
+         patch("core.executor.insert_gate_result"):
+        summary = execute_trial(trial, conn, keep_worktree=True)
+
+    mock_destroy.assert_not_called()
+    assert summary["worktree"] == str(wt)
+
+
 def test_execute_trial_wall_covers_whole_trial(tmp_path):
     """summary['wall_seconds'] must span the full execute_trial call (runner + gate),
     not just run_result.wall_seconds."""

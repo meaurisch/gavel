@@ -41,7 +41,7 @@ def make_runner(runner_name: str, task):
             raise ValueError(f"Unknown runner: {runner_name}")
 
 
-def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
+def execute_trial(trial: Trial, conn: sqlite3.Connection, keep_worktree: bool = False) -> dict:
     trial_start = time.monotonic()
     summary = {
         "passed": None,
@@ -49,6 +49,7 @@ def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
         "tokens": 0,
         "wall_seconds": 0.0,
         "error": None,
+        "worktree": None,
     }
 
     task = load_task(trial.task_id)
@@ -60,6 +61,7 @@ def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
     wt_path = None
     try:
         wt_path = create_worktree(repo_path, task.base_commit)
+        summary["worktree"] = str(wt_path)
 
         runner = make_runner(trial.runner, task)
         runner.prepare(trial, wt_path, methodology, repo_context)
@@ -87,7 +89,10 @@ def execute_trial(trial: Trial, conn: sqlite3.Connection) -> dict:
         logger.error("Trial %s failed: %s", trial.id, e, exc_info=True)
     finally:
         summary["wall_seconds"] = time.monotonic() - trial_start
-        if wt_path is not None and wt_path.exists():
+        if keep_worktree:
+            if wt_path is not None:
+                logger.info("Keeping worktree for %s at %s", trial.id, wt_path)
+        elif wt_path is not None and wt_path.exists():
             try:
                 destroy_worktree(wt_path)
             except Exception as e:
@@ -101,6 +106,7 @@ def execute_all(
     conn: sqlite3.Connection,
     delay: float = 0.0,
     on_progress=None,
+    keep_worktree: bool = False,
 ) -> list[dict]:
     results = []
     for i, trial in enumerate(trials):
@@ -113,7 +119,7 @@ def execute_all(
             continue
 
         logger.info("Running trial %d/%d: %s", i + 1, len(trials), trial.id)
-        summary = execute_trial(trial, conn)
+        summary = execute_trial(trial, conn, keep_worktree=keep_worktree)
         results.append(summary)
 
         if on_progress:
