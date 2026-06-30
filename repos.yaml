@@ -1,0 +1,13 @@
+# Per-repo defaults shared by every task that targets a repo.
+#
+# A repo entry with `visible_test_cmd` declares that the repo ships a unit suite
+# good enough to serve as the trial's VISIBLE tier — so individual tasks need not
+# each supply their own `visible_test_cmd`. Presence of the key IS the opt-in
+# (a task can still override or force-skip; see core/task_loader.py).
+#
+# This file lives at the PROJECT ROOT on purpose. It must NEVER move inside
+# repos/<repo>: a file in the checkout would leak into every worktree and become
+# visible to the model under test.
+
+cosmos:
+  visible_test_cmd: 'dotnet test tests/CleanArchitectureCosmosDB.UnitTests/CleanArchitectureCosmosDB.UnitTests.csproj'

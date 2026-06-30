@@ -15,6 +15,7 @@ class TaskSpec:
     visible_test_cmd: str | None = None
     difficulty: str | None = None        # "easy" | "medium" | "hard"
     repo: str | None = None              # local repos/<repo> dir; else repo_url basename
+    visible_tests_path: str | None = None  # dir of EXTRA visible test files to inject
 
 
 @dataclass
