@@ -46,7 +46,7 @@ def _grid_table(trials: list[Trial]) -> Table:
 
 def _progress_table(trials: list[Trial], results: dict[str, dict]) -> Table:
     table = Table(title="Execution Progress")
-    table.add_column("Trial", style="cyan", max_width=60)
+    table.add_column("Trial", style="cyan")
     table.add_column("Methodology")
     table.add_column("Context")
     table.add_column("Model")
@@ -57,19 +57,20 @@ def _progress_table(trials: list[Trial], results: dict[str, dict]) -> Table:
     table.add_column("Wall(s)", justify="right")
 
     for t in trials:
+        label = f"{t.task_id} #{t.rep}"
         s = results.get(t.id)
         if s is None:
-            table.add_row(t.id, t.methodology_id, t.repo_context_id, t.model, "[dim]pending[/]", "", "", "", "")
+            table.add_row(label, t.methodology_id, t.repo_context_id, t.model, "[dim]pending[/]", "", "", "", "")
         elif s.get("skipped"):
-            table.add_row(t.id, t.methodology_id, t.repo_context_id, t.model, "[yellow]skipped[/]", "", "", "", "")
+            table.add_row(label, t.methodology_id, t.repo_context_id, t.model, "[yellow]skipped[/]", "", "", "", "")
         elif s.get("error"):
-            table.add_row(t.id, t.methodology_id, t.repo_context_id, t.model, "[red]ERROR[/]", "", "", "", "")
+            table.add_row(label, t.methodology_id, t.repo_context_id, t.model, "[red]ERROR[/]", "", "", "", "")
         else:
             gate = "[green]PASS[/]" if s["passed"] else "[red]FAIL[/]"
             usd = f"${s['usd']:.3f}" if s["usd"] else ""
             tokens = f"{s['tokens']:,}" if s["tokens"] else ""
             wall = f"{s['wall_seconds']:.1f}"
-            table.add_row(t.id, t.methodology_id, t.repo_context_id, t.model, "[green]done[/]", gate, usd, tokens, wall)
+            table.add_row(label, t.methodology_id, t.repo_context_id, t.model, "[green]done[/]", gate, usd, tokens, wall)
 
     return table
 
