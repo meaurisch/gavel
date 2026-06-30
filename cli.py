@@ -1,4 +1,5 @@
 import logging
+import sys
 from pathlib import Path
 
 import typer
@@ -13,6 +14,15 @@ from core.models import Trial
 from core.methodology_loader import list_methodologies
 from core.repo_context_loader import list_repo_contexts
 from core.task_loader import list_tasks
+
+
+def _force_utf8(streams):
+    for s in streams:
+        if hasattr(s, "reconfigure") and getattr(s, "encoding", None) != "utf-8":
+            s.reconfigure(encoding="utf-8")
+
+
+_force_utf8([sys.stdout, sys.stderr])
 
 app = typer.Typer(no_args_is_help=True)
 pricing_app = typer.Typer(no_args_is_help=True, help="Manage model pricing table")
