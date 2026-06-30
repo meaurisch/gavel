@@ -127,6 +127,24 @@ def test_prepare_lays_down_methodology_files(tiny_repo: Path):
         destroy_worktree(wt)
 
 
+def test_prepare_lays_down_unicode_methodology_files(tiny_repo: Path):
+    """Methodology files routinely contain non-Latin-1 chars (→, emoji). Laydown
+    must write UTF-8, not the platform default codec (cp1252 on Windows)."""
+    commit = head_commit(tiny_repo)
+    methodology = MethodologySpec(
+        id="uni", files={"CLAUDE.md": ["# Rules", "plan → build → ship ✅"]}
+    )
+    trial = Trial(id="t-uni", task_id="test-task", methodology_id="uni", repo_context_id="none", model="none", runner="nop", rep=0)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        runner = NopRunner()
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+        content = (wt / "CLAUDE.md").read_text(encoding="utf-8")
+        assert "plan → build → ship ✅" in content
+    finally:
+        destroy_worktree(wt)
+
+
 # --- repo context + methodology layering ---
 
 def _commit_count(repo: Path) -> int:

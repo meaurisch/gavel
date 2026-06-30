@@ -68,7 +68,7 @@ def lay_down_files(worktree_path: Path, files: dict[str, list[str]], commit_mess
     for file_path, lines in files.items():
         target = worktree_path / file_path
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text("\n".join(lines) + "\n")
+        target.write_text("\n".join(lines) + "\n", encoding="utf-8")
     subprocess.run(
         ["git", "add", "-A"],
         cwd=str(worktree_path),
