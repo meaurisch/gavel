@@ -6,6 +6,7 @@ import pytest
 from core.models import MethodologySpec, RepoContextSpec, RunResult, TaskSpec, Trial
 from core.worktree import create_worktree, destroy_worktree
 from runners.base import Runner, collect
+from runners.claude_code import ClaudeCodeRunner
 from runners.nop import NopRunner
 from runners.oracle import OracleRunner
 from tests.conftest import head_commit
@@ -151,6 +152,77 @@ def test_prepare_lays_context_under_methodology(tiny_repo: Path):
         assert (wt / "README-rules.md").read_text().strip() == "# Repo rules"
         # two separate commits: context first, methodology second
         assert _commit_count(wt) == before + 2
+    finally:
+        destroy_worktree(wt)
+
+
+# --- task visible-tests laydown ---
+
+def _git_log_subjects(repo: Path) -> list[str]:
+    out = subprocess.run(
+        ["git", "log", "--format=%s"],
+        cwd=str(repo), check=True, capture_output=True, text=True,
+    )
+    return out.stdout.splitlines()
+
+
+def _visible_tests_task(tiny_repo: Path, visible_dir: Path) -> TaskSpec:
+    return TaskSpec(
+        id="vis-task",
+        repo_url="file://" + str(tiny_repo).replace("\\", "/"),
+        base_commit=head_commit(tiny_repo),
+        instruction="Do the thing",
+        run_cmd="echo ok",
+        held_out_tests_path="tests/",
+        reference_diff_path="x",
+        visible_tests_path=str(visible_dir),
+    )
+
+
+def test_prepare_lays_down_task_visible_tests(tiny_repo: Path, tmp_path: Path):
+    visible = tmp_path / "visible"
+    (visible / "tests" / "search").mkdir(parents=True)
+    (visible / "tests" / "search" / "test_visible.py").write_text(
+        "def test_seen():\n    assert True\n"
+    )
+    task = _visible_tests_task(tiny_repo, visible)
+    trial = Trial(id="t-vis", task_id="vis-task", methodology_id="off", repo_context_id="none", model="none", runner="claude-code", rep=0)
+    wt = create_worktree(tiny_repo, task.base_commit)
+    try:
+        before = _commit_count(wt)
+        runner = ClaudeCodeRunner(task)
+        runner.prepare(trial, wt, MethodologySpec(id="off", files={}), RepoContextSpec(id="none", files={}))
+        # File present in the worktree, mirroring the source layout.
+        injected = wt / "tests" / "search" / "test_visible.py"
+        assert injected.exists()
+        # Its own commit, laid down before repo-context + methodology (3 total).
+        assert _commit_count(wt) == before + 3
+        subjects = _git_log_subjects(wt)
+        assert subjects[2] == "setup-bench: lay down task visible tests"
+        assert subjects[1] == "setup-bench: lay down repo context files"
+        assert subjects[0] == "setup-bench: lay down methodology files"
+        # Committed => NOT part of the model's diff.
+        diff = collect(wt)
+        assert "test_visible.py" not in diff
+    finally:
+        destroy_worktree(wt)
+
+
+def test_prepare_skips_visible_tests_when_unset(tiny_repo: Path):
+    task = TaskSpec(
+        id="vis-task", repo_url="x", base_commit=head_commit(tiny_repo),
+        instruction="x", run_cmd="echo ok", held_out_tests_path="tests/",
+        reference_diff_path="x",
+    )
+    trial = Trial(id="t-novis", task_id="vis-task", methodology_id="off", repo_context_id="none", model="none", runner="claude-code", rep=0)
+    wt = create_worktree(tiny_repo, task.base_commit)
+    try:
+        before = _commit_count(wt)
+        runner = ClaudeCodeRunner(task)
+        runner.prepare(trial, wt, MethodologySpec(id="off", files={}), RepoContextSpec(id="none", files={}))
+        # Only the repo-context + methodology commits, no visible-tests commit.
+        assert _commit_count(wt) == before + 2
+        assert "lay down task visible tests" not in _git_log_subjects(wt)
     finally:
         destroy_worktree(wt)
 

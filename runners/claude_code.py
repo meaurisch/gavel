@@ -9,7 +9,7 @@ from pathlib import Path
 from core.models import CostRecord, MethodologySpec, RepoContextSpec, RunResult, TaskSpec, Trial
 from cost.claude_usage import ClaudeUsageParseError, parse_claude_output
 from cost.pricing import compute_api_rate_usd
-from runners.base import collect, lay_down_files
+from runners.base import collect, lay_down_dir, lay_down_files
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,15 @@ class ClaudeCodeRunner:
         methodology: MethodologySpec,
         repo_context: RepoContextSpec,
     ) -> None:
+        # Task-supplied extra visible tests go down first, in their own commit,
+        # before the repo-context and methodology commits — so they're visible to
+        # the model but stay out of its diff. (No-op unless the task sets it.)
+        if self._task.visible_tests_path:
+            lay_down_dir(
+                worktree_path,
+                Path(self._task.visible_tests_path),
+                "setup-bench: lay down task visible tests",
+            )
         lay_down_files(worktree_path, repo_context.files, "setup-bench: lay down repo context files")
         lay_down_files(worktree_path, methodology.files, "setup-bench: lay down methodology files")
 
