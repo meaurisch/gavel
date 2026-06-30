@@ -40,22 +40,30 @@ def parse_claude_output(raw: str | dict[str, Any]) -> ClaudeUsageResult:
 
     total_cost_usd = float(data["total_cost_usd"])
 
-    # Extract tokens from usage or fall back to modelUsage
-    usage = data.get("usage")
+    # Token counts: prefer the per-model `modelUsage` aggregate when it carries
+    # real tokens. In a run that delegates to subagents (Task tool), the top-level
+    # `usage` reports only the orchestrator's final message (~0 tokens) while the
+    # true totals — including every subagent model — live in `modelUsage`. Falling
+    # back to `modelUsage` only when `usage` was absent (the old behavior) silently
+    # dropped all delegated work, recording 0 tokens and $0 cost.
+    #
+    # Note the shape differs: top-level `usage` uses snake_case keys, but
+    # `modelUsage` entries use camelCase (verified against captured CLI output).
+    usage = data.get("usage") or {}
     model_usage = data.get("modelUsage", {})
 
-    if usage:
+    mu_input = sum(v.get("inputTokens", 0) for v in model_usage.values())
+    mu_output = sum(v.get("outputTokens", 0) for v in model_usage.values())
+    mu_cache = sum(v.get("cacheReadInputTokens", 0) for v in model_usage.values())
+
+    if mu_input or mu_output or mu_cache:
+        input_tokens = mu_input
+        output_tokens = mu_output
+        cache_read_tokens = mu_cache
+    else:
         input_tokens = usage.get("input_tokens", 0)
         output_tokens = usage.get("output_tokens", 0)
         cache_read_tokens = usage.get("cache_read_input_tokens", 0)
-    elif model_usage:
-        input_tokens = sum(v.get("input_tokens", 0) for v in model_usage.values())
-        output_tokens = sum(v.get("output_tokens", 0) for v in model_usage.values())
-        cache_read_tokens = sum(v.get("cache_read_input_tokens", 0) for v in model_usage.values())
-    else:
-        input_tokens = 0
-        output_tokens = 0
-        cache_read_tokens = 0
 
     result_text = data.get("result") or ""
 

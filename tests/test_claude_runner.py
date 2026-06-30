@@ -26,7 +26,17 @@ def _make_trial() -> Trial:
     return Trial(id="t-cc", task_id="t", methodology_id="off", repo_context_id="none", model="claude-sonnet-4-20250514", runner="claude_code", rep=0)
 
 
+_FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def _load_fixture(name: str) -> str:
+    return (_FIXTURES / name).read_text(encoding="utf-8")
+
+
 def _valid_claude_json(result: str = "Done", cost: float = 0.05, input_t: int = 1000, output_t: int = 500, cache_t: int = 200) -> str:
+    # modelUsage uses camelCase keys, matching the real `claude --output-format
+    # json` shape (verified against captured fixtures). It carries the same
+    # totals as top-level `usage` here, so the parser can prefer either.
     return json.dumps({
         "result": result,
         "is_error": False,
@@ -38,9 +48,9 @@ def _valid_claude_json(result: str = "Done", cost: float = 0.05, input_t: int = 
         },
         "modelUsage": {
             "claude-sonnet-4-20250514": {
-                "input_tokens": input_t,
-                "output_tokens": output_t,
-                "cache_read_input_tokens": cache_t,
+                "inputTokens": input_t,
+                "outputTokens": output_t,
+                "cacheReadInputTokens": cache_t,
             }
         },
         "num_turns": 2,
@@ -84,12 +94,13 @@ def test_parse_missing_cost_raises():
 
 
 def test_parse_model_usage_fallback():
+    # No top-level `usage` — tokens come from modelUsage (real camelCase shape).
     data = {
         "total_cost_usd": 0.08,
         "result": "Done",
         "modelUsage": {
-            "claude-sonnet-4-20250514": {"input_tokens": 600, "output_tokens": 300, "cache_read_input_tokens": 100},
-            "claude-haiku-4-5-20251001": {"input_tokens": 400, "output_tokens": 200, "cache_read_input_tokens": 50},
+            "claude-sonnet-4-20250514": {"inputTokens": 600, "outputTokens": 300, "cacheReadInputTokens": 100},
+            "claude-haiku-4-5-20251001": {"inputTokens": 400, "outputTokens": 200, "cacheReadInputTokens": 50},
         },
     }
     result = parse_claude_output(data)
@@ -97,6 +108,29 @@ def test_parse_model_usage_fallback():
     assert result.output_tokens == 500
     assert result.cache_read_tokens == 150
     assert result.is_error is False
+
+
+def test_parse_single_agent_fixture_uses_real_totals():
+    """Common path: a non-delegating run reports correct tokens. Guards the fix
+    from regressing single-agent trials. Real captured payload."""
+    result = parse_claude_output(_load_fixture("claude_usage_single.json"))
+    assert result.input_tokens == 9
+    assert result.output_tokens == 79
+    assert result.cache_read_tokens == 15157
+    assert result.total_cost_usd == 0.0203097
+    assert result.is_error is False
+
+
+def test_parse_multiagent_fixture_aggregates_modelusage():
+    """Delegating run: top-level `usage` reports only the orchestrator's final
+    message (10 in / 93 out), but the real per-model totals — including the
+    subagent — live in `modelUsage`. The parser must aggregate modelUsage:
+    sonnet 40/667 + haiku 1700/4 = 1740/671. Real captured payload."""
+    result = parse_claude_output(_load_fixture("claude_usage_multiagent.json"))
+    assert result.input_tokens == 1740
+    assert result.output_tokens == 671
+    assert result.cache_read_tokens == 91819
+    assert result.total_cost_usd == 0.1620787
 
 
 # --- Runner protocol ---
@@ -269,6 +303,41 @@ def test_execute_parse_failure_sets_error(tiny_repo):
 
         assert runner.last_cost is None
         assert result.error is not None
+    finally:
+        destroy_worktree(wt)
+
+
+def test_usd_equiv_falls_back_to_self_reported_when_api_zero(tiny_repo):
+    """If token-based pricing computes $0 (zero tokens) but the run self-reports a
+    non-zero total_cost_usd, usd_equiv must use the self-reported value, not $0.
+
+    Uses a priced model (claude-haiku-4-5) so compute_api_rate_usd returns 0.0
+    (not None) on zero tokens — exactly the case that silently zeroed real cost.
+    """
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = Trial(id="t-cc", task_id="t", methodology_id="off", repo_context_id="none", model="claude-haiku-4-5", runner="claude_code", rep=0)
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = json.dumps({
+            "result": "Done",
+            "is_error": False,
+            "total_cost_usd": 2.03,
+            "usage": {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0},
+        })
+        mock_proc.stderr = ""
+
+        with patch("runners.claude_code.subprocess.run", return_value=mock_proc):
+            runner.execute(trial, wt)
+
+        assert runner.last_cost is not None
+        assert runner.last_cost.usd_equiv == 2.03
     finally:
         destroy_worktree(wt)
 

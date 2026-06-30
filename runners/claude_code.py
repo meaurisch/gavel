@@ -98,11 +98,19 @@ class ClaudeCodeRunner:
                 usage.output_tokens,
                 usage.cache_read_tokens,
             )
+            # api_usd can be 0.0 (priced model, but 0 tokens parsed) — that must
+            # NOT clobber a real self-reported cost. Use the token-based rate only
+            # when it actually computed something; otherwise fall back to the
+            # self-reported total.
+            if api_usd:
+                usd_equiv = api_usd
+            else:
+                usd_equiv = usage.total_cost_usd
             self.last_cost = CostRecord(
                 trial_id=trial.id,
                 native_unit="usd_self_reported",
                 native_amount=usage.total_cost_usd,
-                usd_equiv=api_usd if api_usd is not None else usage.total_cost_usd,
+                usd_equiv=usd_equiv,
                 input_tokens=usage.input_tokens,
                 output_tokens=usage.output_tokens,
                 cache_read_tokens=usage.cache_read_tokens,
