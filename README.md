@@ -194,7 +194,10 @@ is the first real measurement sweep.
   resolves the repo via an explicit `repo:` field, and lints C# as well as
   Python held-out tests.
 - Methodologies: `baseline`, `karpathy`, `superpowers`, `ecc`, `custom`
-  (external packs vendored at pinned commits, frozen offline).
+  (external packs vendored at pinned commits, frozen offline). `custom` (the
+  user's own conductor/executor/validator/reviewer agents) is authored for both
+  the `copilot` harness (`.github/agents/`) and the `claude-code` harness
+  (`CLAUDE.md` + `.claude/agents/`, adapted from the Copilot originals).
 - Matrix driver + run protocol: resumable execution, inter-trial delay, Rich live
   progress table, `--dry-run` grid.
 

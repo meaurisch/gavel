@@ -54,11 +54,41 @@ def test_load_methodology_noop():
 
 # --- load_methodology empty harness ---
 
-def test_load_methodology_empty_harness():
-    spec = load_methodology("custom", "claude-code")
-    assert isinstance(spec, MethodologySpec)
-    assert spec.id == "custom"
+def test_load_methodology_empty_harness(tmp_path: Path):
+    """An explicitly empty harness mapping resolves to an empty files dict."""
+    methodology_dir = tmp_path / "methodologies" / "empty-harness"
+    methodology_dir.mkdir(parents=True)
+    manifest = {
+        "id": "empty-harness",
+        "description": "Empty claude-code mapping",
+        "harnesses": {"claude-code": []},
+    }
+    (methodology_dir / "manifest.yaml").write_text(yaml.dump(manifest), encoding="utf-8")
+    spec = load_methodology("empty-harness", "claude-code", methodologies_dir=tmp_path / "methodologies")
+    assert spec.id == "empty-harness"
     assert spec.files == {}
+
+
+# --- custom is authored for claude-code (not a silent baseline clone) ---
+
+def test_load_methodology_custom_claude_code():
+    """custom must lay down real claude-code-native files: a CLAUDE.md workflow
+    preamble plus the seven .claude/agents/*.md subagents."""
+    spec = load_methodology("custom", "claude-code")
+    assert spec.id == "custom"
+    assert "CLAUDE.md" in spec.files
+    expected_agents = {
+        "conductor", "executor", "planner", "task-validator",
+        "task-reviewer", "overall-validator", "overall-reviewer",
+    }
+    agent_dests = {
+        d for d in spec.files if d.startswith(".claude/agents/") and d.endswith(".md")
+    }
+    assert agent_dests == {f".claude/agents/{a}.md" for a in expected_agents}
+    # native frontmatter, not copilot: model alias + a `name:` line, no VS Code tool ids
+    conductor = "\n".join(spec.files[".claude/agents/conductor.md"])
+    assert "name: conductor" in conductor
+    assert "read/readFile" not in conductor  # copilot tool ids must be gone
 
 
 # --- load_methodology with real files ---

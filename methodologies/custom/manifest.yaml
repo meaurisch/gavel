@@ -16,4 +16,8 @@ harnesses:
       dest: .github/agents/overall-reviewer.agent.md
     - src: content/overall-validator.agent.md
       dest: .github/agents/overall-validator.agent.md
-  claude-code: []
+  claude-code:
+    - src: content-claude-code/CLAUDE.md
+      dest: CLAUDE.md
+    - src: content-claude-code/agents/
+      dest: .claude/agents/
