@@ -116,18 +116,18 @@ The only manual parts in the `manual` runner are: you drive your IDE, and (for C
 
 Green-light Phase 1's measurement (and again before the work-confirmation tier) only when all are true:
 
-- [ ] Proxy repos cloned; Cosmos augmentation done and **capped at 1–2 aggregates** (AutoMapper replaced with hand-written mappers + per-pair mapping tests).
-- [ ] Each task authored: feature reverted cleanly, base commit pinned, run command verified.
-- [ ] Held-out tests extracted **and strengthened** beyond what the original PR shipped (insufficient tests = false-positive merges).
-- [ ] Leakage check **green** for every task (no dangling references in tree / recent git log / comments).
-- [ ] Methodology packs installed in each harness's native form and **frozen** (snapshot committed).
-- [ ] Repo-contexts authored and **frozen**, each tagged with `task_affinity`; `none` control present.
-- [ ] Instructions-OFF ablation (`baseline` methodology + `none` repo-context) works.
-- [ ] **Three-tier gate validated** (compile / visible / hidden) — `oracle` → all-pass, `nop` → fails at the first meaningful tier — on every task.
-- [ ] Runner abstraction validated with `manual` + `claude-code`.
-- [ ] Cost capture validated: token counts priced from `pricing.toml`; Claude self-reported figure parsed as secondary; Copilot calculator reproduces a known dashboard delta within tolerance.
-- [ ] Pairwise UI tested with dummy diffs (anonymization confirmed — the grader cannot tell which **value of the comparison axis** a diff came from; every axis id is blinded).
-- [ ] Matrix driver scripted; full dry run on one task × all methodologies × repo-contexts completed.
+- [x] Proxy repos cloned; Cosmos augmentation done and **capped at 1–2 aggregates** (AutoMapper replaced with hand-written mappers + per-pair mapping tests).
+- [x] Each task authored: feature reverted cleanly, base commit pinned, run command verified.
+- [x] Held-out tests extracted **and strengthened** beyond what the original PR shipped (insufficient tests = false-positive merges).
+- [x] Leakage check **green** for every task (no dangling references in tree / recent git log / comments).
+- [x] Methodology packs installed in each harness's native form and **frozen** (snapshot committed).
+- [x] Repo-contexts authored and **frozen**, each tagged with `task_affinity`; `none` control present.
+- [ ] Instructions-OFF ablation (`baseline` methodology + `none` repo-context) works. *(awaits A1 — first real trial)*
+- [ ] **Three-tier gate validated** (compile / visible / hidden) — `oracle` → all-pass, `nop` → fails at the first meaningful tier — on every task. *(pyvrp via validate_tasks; cosmos + spine validation awaits A1)*
+- [ ] Runner abstraction validated with `manual` + `claude-code`. *(awaits A1)*
+- [ ] Cost capture validated: token counts priced from `pricing.toml`; Claude self-reported figure parsed as secondary; Copilot calculator reproduces a known dashboard delta within tolerance. *(awaits A1 / Copilot spike)*
+- [ ] Pairwise UI tested with dummy diffs (anonymization confirmed — the grader cannot tell which **value of the comparison axis** a diff came from; every axis id is blinded). *(awaits J1)*
+- [x] Matrix driver scripted; full dry run on one task × all methodologies × repo-contexts completed.
 
 ---
 
