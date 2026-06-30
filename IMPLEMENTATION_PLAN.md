@@ -74,7 +74,7 @@ setup-bench/
     baseline/ karpathy/ superpowers/ ecc/ custom/
       manifest.yaml      # native files per harness: CLAUDE.md / AGENTS.md / copilot-instructions.md
   repo_contexts/
-    none/ repo-instructions/
+    cosmos/ none/ pyvrp-instructions/
       manifest.yaml      # noop control + repo-specific instructions; `task_affinity` tags
   ui/                    # local web app for blind pairwise grading (axis picker + cascading cells)
   cli.py                 # `setup-bench run|grade|report|pricing`

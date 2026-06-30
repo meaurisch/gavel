@@ -114,7 +114,7 @@ Per-axis pattern: (1) functional check (oracle/nop, `--dry-run`, Haiku, 1 rep);
   scanner.
 - **A2 · Methodology axis.** baseline/karpathy/superpowers/ecc/custom on one
   task, cheap model; per-harness manifest lay-down; baseline lays nothing.
-- **A3 · Repo-Context axis.** `none` vs `repo-instructions`; `task_affinity`
+- **A3 · Repo-Context axis.** `none` vs `pyvrp-instructions`; `task_affinity`
   filtering + `--full-matrix` override.
 - **A4 · Model axis.** Haiku/Sonnet/Opus on one cell; cost deltas visible.
 
