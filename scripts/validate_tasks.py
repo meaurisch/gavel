@@ -96,6 +96,22 @@ def _repo_dir_for_task(task: dict) -> Path:
 
 
 from core.toolchain import is_editable_pip_install as _is_editable_pip_install
+from core.repo_loader import get_repo_visible_test_cmd
+
+
+def _resolve_visible_test_cmd(task: dict) -> str | None:
+    """Effective visible_test_cmd for a task (mirrors core.task_loader).
+
+    explicit string -> use it; null/unset -> the repo's repos.yaml cmd if any;
+    the "none" sentinel -> None (force-skip even when the repo declares a suite).
+    """
+    raw = (task.get("visible_test_cmd") or "").strip()
+    if raw == "none":
+        return None
+    if raw and raw.lower() != "null":
+        return raw
+    repo_id = str(task.get("repo", "")).strip() or task["id"].split("-")[0]
+    return get_repo_visible_test_cmd(repo_id)
 
 
 def _requires_native_toolchain(tasks: list[dict]) -> bool:
@@ -535,13 +551,38 @@ def _validate_pass_to_pass_with_gold(task: dict) -> tuple[bool, str]:
                 log.warning("  Failed to destroy pass-to-pass worktree %s", wt_path)
 
 
+def _validate_visible_suite(task: dict) -> tuple[bool | None, str]:
+    """The resolved visible_test_cmd must be GREEN on the clean base commit.
+
+    This is what makes a repos.yaml flag (or a task override) honest: you can't
+    declare a visible suite that doesn't build/pass. Returns (None, ...) when the
+    task resolves to no visible_test_cmd (nothing to check).
+    """
+    cmd = _resolve_visible_test_cmd(task)
+    if not cmd:
+        return None, "no visible_test_cmd"
+    wt_path = None
+    try:
+        wt_path = _create_worktree(task["base_commit"], _repo_dir_for_task(task))
+        if not _build_or_install(task, wt_path):
+            return False, "build/install failed on clean base commit"
+        return _run_tests(wt_path, cmd)
+    finally:
+        if wt_path and wt_path.exists():
+            try:
+                _destroy_worktree(wt_path)
+            except Exception:
+                log.warning("  Failed to destroy visible-suite worktree %s", wt_path)
+
+
 def validate_transitions(task_dir: Path) -> dict:
-    """Run build-gate, FAIL_TO_PASS, and PASS_TO_PASS(gold) checks for one task."""
+    """Run build-gate, FAIL_TO_PASS, PASS_TO_PASS(gold), and visible-suite checks."""
     task = _load_task(task_dir)
     task_id = task["id"]
     result = {
         "task_id": task_id, "build_gate": None,
-        "fail_to_pass": None, "pass_to_pass": None, "errors": [],
+        "fail_to_pass": None, "pass_to_pass": None,
+        "visible_suite": None, "errors": [],
     }
 
     log.info("[%s] Build gate: build_cmd succeeds on clean base", task_id)
@@ -581,6 +622,19 @@ def validate_transitions(task_dir: Path) -> dict:
         result["errors"].append(f"PASS_TO_PASS: {exc}")
         log.exception("  PASS_TO_PASS error")
 
+    log.info("[%s] VISIBLE_SUITE: resolved visible_test_cmd is green on clean base", task_id)
+    try:
+        vs, out = _validate_visible_suite(task)
+        result["visible_suite"] = vs
+        if vs is False:
+            result["errors"].append(
+                f"VISIBLE_SUITE: resolved visible_test_cmd FAILED on clean base\n{out[-2000:]}"
+            )
+            log.error("  VISIBLE_SUITE problem (visible tests failed on base):\n%s", out[-2000:])
+    except Exception as exc:
+        result["errors"].append(f"VISIBLE_SUITE: {exc}")
+        log.exception("  VISIBLE_SUITE error")
+
     return result
 
 
@@ -601,12 +655,22 @@ def render_transitions_summary(all_results: list[dict]) -> tuple[str, bool]:
             else "FAIL (broken!)" if r["pass_to_pass"] is False
             else "SKIP"
         )
-        ok = (bg is not False) and bool(r["fail_to_pass"]) and bool(r["pass_to_pass"])
+        vs_val = r.get("visible_suite")
+        vis = (
+            "PASS" if vs_val
+            else "FAIL (broken!)" if vs_val is False
+            else "SKIP"
+        )
+        ok = (
+            (bg is not False) and bool(r["fail_to_pass"])
+            and bool(r["pass_to_pass"]) and (vs_val is not False)
+        )
         if not ok:
             all_ok = False
         status = "OK" if ok else "PROBLEM"
         lines.append(
-            f"  {r['task_id']:12s}  build={build:5s}  F2P={ftp:16s}  P2P={ptp:14s}  [{status}]"
+            f"  {r['task_id']:12s}  build={build:5s}  F2P={ftp:16s}  "
+            f"P2P={ptp:14s}  vis={vis:14s}  [{status}]"
         )
         for err in r["errors"]:
             lines.append(f"    ERROR: {err.split(chr(10))[0]}")

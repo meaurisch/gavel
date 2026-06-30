@@ -18,6 +18,51 @@ def test_render_summary_all_ok():
     assert "OK" in text
 
 
+def test_render_summary_flags_broken_visible_suite():
+    results = [{
+        "task_id": "cosmos-A", "build_gate": True,
+        "fail_to_pass": True, "pass_to_pass": True, "visible_suite": False,
+        "errors": ["VISIBLE_SUITE: resolved visible_test_cmd FAILED on clean base"],
+    }]
+    text, ok = vt.render_transitions_summary(results)
+    assert ok is False
+    assert "PROBLEM" in text
+
+
+def test_render_summary_visible_suite_skip_is_ok():
+    results = [{
+        "task_id": "pyvrp-A", "build_gate": True,
+        "fail_to_pass": True, "pass_to_pass": True, "visible_suite": None,
+        "errors": [],
+    }]
+    text, ok = vt.render_transitions_summary(results)
+    assert ok is True
+    assert "vis=SKIP" in text
+
+
+# --- resolved visible_test_cmd (override / inherit / none / undeclared) ---
+
+def test_resolve_visible_explicit_override():
+    task = {"id": "cosmos-A", "repo": "cosmos", "visible_test_cmd": "pytest mine.py"}
+    assert vt._resolve_visible_test_cmd(task) == "pytest mine.py"
+
+
+def test_resolve_visible_inherits_from_repos_yaml():
+    # cosmos is declared in the shipped repos.yaml; null -> inherit.
+    task = {"id": "cosmos-A", "repo": "cosmos", "visible_test_cmd": "null"}
+    assert vt._resolve_visible_test_cmd(task) is not None
+
+
+def test_resolve_visible_none_sentinel_force_skips():
+    task = {"id": "cosmos-A", "repo": "cosmos", "visible_test_cmd": "none"}
+    assert vt._resolve_visible_test_cmd(task) is None
+
+
+def test_resolve_visible_undeclared_repo():
+    task = {"id": "pyvrp-A", "visible_test_cmd": "null"}
+    assert vt._resolve_visible_test_cmd(task) is None
+
+
 def test_render_summary_flags_weak_tests():
     results = [{
         "task_id": "pyvrp-B", "build_gate": True,
