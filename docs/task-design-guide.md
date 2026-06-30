@@ -76,6 +76,33 @@ filter actually build and filter tasks. Each line is tagged with how it's checke
 - [ ] An engineer with repo access but no ability to ask questions could decide
       what a correct solution looks like (SWE-bench Verified issue-severity 0–1). `(eyeball)`
 - [ ] Scope is bounded — in-scope vs out-of-scope stated where ambiguous. `(eyeball)`
+- [ ] Any task-supplied visible tests (`visible_tests_path`) do NOT duplicate the
+      held-out oracle. `(eyeball)`
+
+### Visible-test composition (tier 2)
+
+The visible tier is the tests the agent is *allowed to see*. Two knobs feed it:
+
+- `visible_test_cmd` (task) — the command run for the visible tier.
+- `visible_tests_path` (task) — a dir of EXTRA visible test files this task
+  injects. They're committed before the repo-context/methodology commits, so
+  they're visible to the model but never appear in its diff.
+- A **repo** can declare a shared default in `repos.yaml` (project root) so tasks
+  needn't each supply a `visible_test_cmd`. Presence of the key is the opt-in.
+  Keep `repos.yaml` at the project root — a file inside `repos/<repo>` would leak
+  into every worktree and become visible to the model.
+
+The effective `visible_test_cmd` resolves as:
+
+| `visible_test_cmd` in task.yaml | Effective visible tier |
+|---|---|
+| an explicit string | that string (task overrides the repo) |
+| `null` / unset | the repo's `repos.yaml` cmd if it declares one, else none |
+| `none` (sentinel) | none — force-skip even if the repo declares a suite |
+
+> **Guardrail:** visible tests that ARE the hidden tests let the model trivially
+> satisfy the gate. Task-supplied visible tests must not duplicate the held-out
+> oracle; the gate keeps asserting held-out files aren't pre-present in the worktree.
 
 ### Facet 2 — Instruction language
 - [ ] Reads like a real senior-engineer issue (motivation + symptom + expectation),
@@ -157,6 +184,10 @@ tests as the suite matures.
   the tests don't actually require the feature → too weak.
 - **PASS_TO_PASS (gold)** — hidden tests *pass* after applying `reference.diff`.
   If they fail, either the tests or the reference diff are broken.
+- **visible suite** — the *resolved* `visible_test_cmd` (task override, `repos.yaml`
+  default, or none) is green on the clean base commit. Skipped when it resolves to
+  none. This keeps a declared visible suite honest — you can't ship one that
+  doesn't build/pass.
 
 Run it in WSL (PyVRP requires Linux to build):
 

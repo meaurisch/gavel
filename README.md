@@ -127,6 +127,45 @@ wsl -d Ubuntu -- bash -c 'source ~/pyvrp-venv/bin/activate && \
 
 Claude Code CLI version used: 2.1.185
 
+### Task fields & visible-test composition
+
+A task lives in `tasks/<id>/task.yaml`. Beyond the required fields (`id`,
+`repo_url`, `base_commit`, `instruction`, `run_cmd`, `held_out_tests_path`,
+`reference_diff_path`, `build_cmd`), two fields control the **visible** tier (tier
+2 of the gate — the tests the agent is allowed to see):
+
+- `visible_test_cmd` — the command run for the visible tier.
+- `visible_tests_path` — a directory of EXTRA visible test files this task injects
+  into the worktree (committed before the repo-context/methodology commits, so
+  they're visible to the model but never appear in its diff).
+
+A **repo** can also declare a default visible suite once, instead of every task
+repeating it. `repos.yaml` at the project root maps a repo id to its defaults:
+
+```yaml
+cosmos:
+  visible_test_cmd: 'dotnet test tests/CleanArchitectureCosmosDB.UnitTests/CleanArchitectureCosmosDB.UnitTests.csproj'
+```
+
+Presence of the key IS the opt-in. `repos.yaml` lives at the project root on
+purpose — never inside `repos/<repo>`, where it would leak into every worktree
+and become visible to the model. The effective `visible_test_cmd` resolves as:
+
+| `visible_test_cmd` in task.yaml | Effective visible tier |
+|---|---|
+| an explicit string | that string (task overrides the repo) |
+| `null` / unset | the repo's `repos.yaml` cmd if it declares one, else none |
+| `none` (sentinel) | none — force-skip even if the repo declares a suite |
+
+`scripts/validate_tasks.py --validate-transitions` now also asserts the *resolved*
+visible suite is green on the clean base commit (skipped when it resolves to none),
+so a declared suite can't be one that doesn't build/pass.
+
+> **Guardrail:** task-supplied visible tests must NOT duplicate the held-out
+> oracle. Visible tests that ARE the hidden tests let the model trivially satisfy
+> the gate. The gate already asserts held-out files aren't pre-present in the
+> worktree; keep that assertion.
+
 ## Current state
 
 The full pipeline is built and tested (160 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
