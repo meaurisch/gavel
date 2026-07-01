@@ -138,6 +138,19 @@ class ClaudeCodeRunner:
                 cache_read_tokens=usage.cache_read_tokens,
             )
 
+        if exit_status != 0 and usage is None:
+            # claude never produced parseable output at all — it didn't complete
+            # an attempt (most likely a transient failure, e.g. rate-limiting).
+            # Raise instead of returning a RunResult: core.executor's existing
+            # except-block skips insert_trial() on a raised exception, so
+            # trial_exists() stays False and the trial is naturally retried on
+            # the next `cli.py run` — the documented "resumable" behavior.
+            # Persisting a RunResult here would permanently burn the trial ID.
+            raise RuntimeError(
+                f"claude CLI failed to execute for trial {trial.id}: "
+                f"exit={exit_status}, parse_error={parse_error}, stderr={stderr[:500]!r}"
+            )
+
         if exit_status != 0:
             logger.warning("Trial %s: claude exited with code %d. stderr: %s", trial.id, exit_status, stderr[:500])
         elif usage is not None and usage.is_error:

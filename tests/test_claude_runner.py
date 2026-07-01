@@ -385,6 +385,35 @@ def test_execute_empty_diff_sets_error(tiny_repo):
         destroy_worktree(wt)
 
 
+def test_execute_no_parseable_output_raises(tiny_repo):
+    """A `claude` invocation that exits nonzero with no parseable output (e.g.
+    rate-limited, killed before producing any JSON) never actually completed an
+    attempt. It must raise so core.executor's existing except-block skips
+    insert_trial(), leaving trial_exists() False and the trial naturally
+    retryable on the next `cli.py run` — NOT silently persisted as a fake
+    "empty diff" trial that permanently burns the trial ID.
+    """
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 1
+        mock_proc.stdout = ""
+        mock_proc.stderr = ""
+
+        with patch("runners.claude_code.subprocess.run", return_value=mock_proc):
+            with pytest.raises(Exception):
+                runner.execute(trial, wt)
+    finally:
+        destroy_worktree(wt)
+
+
 def test_execute_nonempty_diff_no_empty_error(tiny_repo):
     """Guard: a run that DID produce changes must not get the empty-diff error."""
     commit = head_commit(tiny_repo)
