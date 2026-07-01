@@ -176,5 +176,5 @@ shakedown and measurement runs.
 | `--max-turns` cap per harness | **60** | moderate cost ceiling per trial |
 | `custom` methodology | **in scope** | include in methodology sweeps; freeze/vendor at a pinned commit once stable — do not block on it (may not be ready) |
 | Default comparison axis | **none — chosen per experiment** | pick the comparison target at grade time; no fixed default |
-| Work models (Copilot grid) | **TBD — pending Phase-1.5 spike** | set after the spike confirms the surface |
+| Work models (Copilot grid) | **Deferred — Copilot out of scope for now (2026-07-01)** | R0 spike skipped: no Copilot plan on hand, not worth a paid trial now. Revive with prompts 11–13 if a plan becomes available; the Runner axis is otherwise covered by the `manual` runner |
 | Final task set + stakes tiers | **to finalize in Phase G** | PyVRP A/B/C + 2 Cosmos tasks; tag each with a stakes tier and mark the deliberately under-specified one when the golden set is frozen |

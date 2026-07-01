@@ -69,7 +69,13 @@ CHECKPOINT.
 
 ---
 
-## Phase R — Copilot (spike-gated)
+## Phase R — Copilot (spike-gated) — DEFERRED (2026-07-01)
+
+> **Skipped for now.** No Copilot account/subscription on hand, and the R0 spike
+> isn't worth a paid trial at this stage. Phase R is parked — **jump straight from
+> Phase A to Phase J.** The Runner axis stays coverable via the `manual` runner
+> if/when this is revisited. Revive the phase (the three prompts below) if a
+> Copilot plan becomes available. See IMPLEMENTATION_PLAN.md §7 (work-models row).
 
 | Step | Service | Paste this prompt | Then |
 |---|---|---|---|
@@ -77,8 +83,9 @@ CHECKPOINT.
 | **R1** Build P2.1 + P2.2 — **only if R0 PASSED** | Claude Code | `recalibration_prompts/12-R1-build-copilot.md` | Tick **R1** |
 | **R2** Runner axis | Claude Code | `recalibration_prompts/13-R2-runner-axis.md` | CHECKPOINT → tick **R2** |
 
-> **If R0 FAILED:** skip R1. In R2, use the `manual` runner in place of
-> `copilot-cli` (the prompt explains how), then continue to Phase J.
+> **If R0 FAILED (or Phase R stays deferred):** skip R1. Cover the Runner axis with
+> the `manual` runner in place of `copilot-cli` (prompt 13 explains how) if/when
+> you want it, then continue to Phase J.
 
 ---
 
@@ -106,7 +113,8 @@ CHECKPOINT.
 
 - **G2/G3:** which single task is the deliberately under-specified one; stakes
   tier per task → record in `IMPLEMENTATION_PLAN.md` §7.
-- **R0:** is Copilot CLI representative + permitted; which work models → §7.
+- **R0:** ~~is Copilot CLI representative + permitted; which work models → §7~~
+  — **deferred 2026-07-01** (Phase R parked; no Copilot plan).
 - **J1:** the blind grades themselves — you are the gold standard.
 
 When everything is ticked in `docs/superpowers/recalibration-checklist.md`, the

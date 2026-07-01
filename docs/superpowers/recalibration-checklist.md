@@ -30,13 +30,17 @@ Living tracker for the sync & recalibration effort. Check items as checkpoints c
 - [ ] A3 repo-context axis — **CHECKPOINT**
 - [ ] A4 model axis — **CHECKPOINT**
 
-## Phase R — Copilot (spike-gated)
-- [ ] R0 spike run + decision (HUMAN; sets work models)
-- [ ] R1 P2.1 + P2.2 built (only if spike passed)
-- [ ] R2 runner axis sweep — **CHECKPOINT**
+## Phase R — Copilot (spike-gated) — DEFERRED (2026-07-01)
+Skipped for now: no Copilot account/subscription on hand, and the R0 spike isn't
+worth a paid trial at this stage. The Runner axis stays coverable via the `manual`
+runner if/when revisited. Revive this phase (prompts 11–13) if a Copilot plan
+becomes available. Work-models row in IMPLEMENTATION_PLAN.md §7 marked deferred.
+- [~] R0 spike — SKIPPED (decided 2026-07-01: Copilot out of scope for now)
+- [~] R1 P2.1 + P2.2 — not built (deferred with the phase)
+- [~] R2 runner axis sweep — deferred (`manual`-runner fallback available)
 
 ## Phase J — Judgment end
-- [ ] J1 grading UI shakedown (HUMAN grades) — **CHECKPOINT**
+- [ ] J1 grading UI shakedown (HUMAN grades) — **NEXT** — **CHECKPOINT**
 - [ ] J2 Bradley-Terry + analyzer validated
 - [ ] J3 report command + Pareto frontier built (Design) — **FINAL CHECKPOINT**
 

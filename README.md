@@ -222,8 +222,9 @@ measurement sweep.
 **Engine & tasks (P0–P1)**
 - Core engine: models, DB, worktree isolation, runners, gate, leakage scanner.
 - Runners: `claude-code` (headless) and `manual` (human-in-IDE), plus
-  `oracle`/`nop` for pipeline self-tests. `copilot-cli` is stubbed pending the
-  Phase-1.5 spike (P2.1/P2.2).
+  `oracle`/`nop` for pipeline self-tests. `copilot-cli` stays a stub — the
+  Phase-1.5 spike (P2.1/P2.2) is **deferred** (Copilot out of scope for now; see
+  Next up).
 - Tasks: three cross-layer PyVRP features (`pyvrp-A` ReplaceGroup operator,
   `pyvrp-B` unary-operator framework, `pyvrp-C` PiecewiseLinearFunction) plus two
   .NET 8 Clean-Architecture/Cosmos DB tasks — `cosmos-A` (refactor: replace
@@ -271,7 +272,12 @@ measurement sweep.
 - [x] **Provenance-aware leakage assertion** — held-out-path collisions now
       overwrite-and-run for agent-provenance files while staying fatal for genuine
       setup leaks (see the gate guardrail note).
-- [ ] **First grading session** — exercise the UI end-to-end on real trials.
+- [ ] **J1 — grading UI shakedown (NEXT)** — launch the pairwise UI and grade
+      real trials end-to-end (blind A/B, axis picker, anonymization). This is the
+      immediate next step now that Phase R is parked.
+- [~] **Phase R (Copilot) — DEFERRED (2026-07-01)** — no Copilot account/plan on
+      hand; the R0 spike isn't worth a paid trial now. Runner axis stays coverable
+      via the `manual` runner. Revive prompts 11–13 if a Copilot plan appears.
 - [x] **Second repo/language landed** — `cosmos-A`/`cosmos-B` add .NET (one
       refactor, one feature), authored and validated.
 - [ ] **Task-suite expansion** — add more cross-repo tasks to broaden coverage.
@@ -279,7 +285,7 @@ measurement sweep.
       tradeoffs the analyzer flags are visible at a glance (`report` command is
       still a stub).
 - [x] Open knobs in `IMPLEMENTATION_PLAN.md` §7 settled (reps=3, max-turns=60,
-      `custom` in scope, comparison axis per-experiment; work models pending the
-      Copilot spike).
+      `custom` in scope, comparison axis per-experiment; work models **deferred** —
+      Copilot out of scope for now, see the deferred Phase R above).
 - [ ] **Sync & recalibration** in progress — golden cross-repo test set, then
       axis-by-axis shakedown. See `docs/superpowers/recalibration-checklist.md`.
