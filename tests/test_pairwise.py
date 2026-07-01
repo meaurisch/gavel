@@ -58,6 +58,22 @@ def test_anonymize_longest_first_substring():
     assert "[model]" in result
 
 
+def test_anonymize_sorts_ids_globally_across_axes():
+    diff = _make_diff(
+        "runner = agent-v2-experimental",
+    )
+    result = anonymize_diff(diff, {
+        "methodology": ["v2"],
+        "model": [],
+        "repo_context": [],
+        "runner": ["agent-v2-experimental"],
+    })
+    assert "[runner]" in result
+    assert "agent-" not in result, "leaked fragment 'agent-'"
+    assert "experimental" not in result, "leaked fragment 'experimental'"
+    assert "agent-v2-experimental" not in result
+
+
 def test_generate_pairs_groups_by_axis_model():
     trials = [
         make_trial(id="t-m1", model="m1"),

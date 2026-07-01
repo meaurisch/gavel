@@ -152,11 +152,15 @@ def anonymize_diff(diff: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
 
     cleaned = "".join(kept_parts)
 
+    sid_tokens: list[tuple[str, str]] = []
     for axis, ids in axis_ids_by_axis.items():
         token = AXIS_TOKENS[axis]
-        for sid in sorted(ids, key=len, reverse=True):
-            pattern = re.compile(re.escape(sid), re.IGNORECASE)
-            cleaned = pattern.sub(token, cleaned)
+        for sid in ids:
+            sid_tokens.append((sid, token))
+
+    for sid, token in sorted(sid_tokens, key=lambda pair: len(pair[0]), reverse=True):
+        pattern = re.compile(re.escape(sid), re.IGNORECASE)
+        cleaned = pattern.sub(token, cleaned)
 
     return cleaned
 
