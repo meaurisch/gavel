@@ -13,7 +13,9 @@ from runners.base import collect, lay_down_dir, lay_down_files
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_MAX_TURNS = 25
+# Per-trial turn cap. Settled in IMPLEMENTATION_PLAN §7 (2026-06-24) as a
+# moderate cost ceiling; a lower cap truncates cross-layer tasks mid-work.
+_DEFAULT_MAX_TURNS = 60
 
 
 class ClaudeCodeRunner:

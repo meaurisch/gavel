@@ -139,6 +139,13 @@ def test_claude_code_runner_conforms_to_protocol():
     assert isinstance(ClaudeCodeRunner(_make_task()), Runner)
 
 
+def test_default_max_turns_matches_settled_cap():
+    """IMPLEMENTATION_PLAN §7 settled the per-trial turn cap at 60. A too-low
+    default truncates cross-layer tasks (both non-haiku shakedown runs exited 1
+    on the 25-turn cap). The runner default must match the settled value."""
+    assert ClaudeCodeRunner(_make_task())._max_turns == 60
+
+
 # --- Runner execute with mocked subprocess ---
 
 def test_execute_success_mock(tiny_repo):
