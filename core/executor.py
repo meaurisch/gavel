@@ -13,7 +13,7 @@ from core.db import (
     trial_exists,
 )
 from core.matrix import HARNESS_MAP
-from core.models import CostRecord, Trial
+from core.models import CostRecord, GateResult, Trial
 from core.methodology_loader import load_methodology
 from core.repo_context_loader import load_repo_context
 from core.task_loader import load_task, resolve_repo_path
@@ -75,7 +75,15 @@ def execute_trial(trial: Trial, conn: sqlite3.Connection, keep_worktree: bool = 
             summary["usd"] = cost.usd_equiv
             summary["tokens"] = cost.input_tokens + cost.output_tokens
 
-        gate_result = gate_apply(trial, wt_path, task)
+        # The gate can raise (e.g. the agent wrote a file at the held-out test
+        # path, tripping the leakage assertion). A gate crash must never discard
+        # the trial and its already-billed cost — record it as a FAIL instead.
+        try:
+            gate_result = gate_apply(trial, wt_path, task)
+        except Exception as e:
+            logger.error("Trial %s: gate crashed, recording as FAIL: %s", trial.id, e, exc_info=True)
+            gate_result = GateResult(trial_id=trial.id, passed=False, hidden_output=f"gate error: {e}")
+            summary["error"] = summary["error"] or f"gate error: {e}"
         summary["passed"] = gate_result.passed
 
         insert_trial(conn, trial)

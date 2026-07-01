@@ -123,6 +123,62 @@ def test_execute_trial_keeps_worktree_when_requested(tmp_path):
     assert summary["worktree"] == str(wt)
 
 
+def test_execute_trial_persists_cost_when_gate_raises(tmp_path):
+    """A gate exception must NOT discard an already-incurred cost. The trial,
+    run_result, and cost_record must persist, and the gate is recorded as a FAIL.
+
+    Regression: the shakedown's opus trial crashed in the gate (agent wrote a file
+    at the held-out test path) and the whole trial — including its real, billed
+    cost — was silently dropped, recording $0 / nothing.
+    """
+    from unittest.mock import patch
+    from core.executor import execute_trial
+    from core.db import get_cost_record, get_gate_result, get_run_result, get_trial
+    from core.models import CostRecord, MethodologySpec, RepoContextSpec, RunResult
+    from runners.claude_code import ClaudeCodeRunner
+
+    trial = Trial(id="t-gate-crash", task_id="t", methodology_id="s", repo_context_id="none", model="claude-opus-4-8", runner="claude-code", rep=0)
+    conn = connect(tmp_path / "test.db")
+
+    cost = CostRecord(
+        trial_id="t-gate-crash", native_unit="usd_self_reported", native_amount=1.84,
+        usd_equiv=1.84, input_tokens=100, output_tokens=200, cache_read_tokens=300,
+    )
+    stub_run_result = RunResult(trial_id="t-gate-crash", diff="some diff", exit_status=0, wall_seconds=0.1, error=None)
+
+    class StubRunner(ClaudeCodeRunner):
+        def __init__(self):
+            self.last_cost = cost
+        def prepare(self, *a, **k): pass
+        def execute(self, *a, **k): return stub_run_result
+
+    with patch("core.executor.load_task"), \
+         patch("core.executor.HARNESS_MAP", {}), \
+         patch("core.executor.load_methodology", return_value=MethodologySpec(id="s", files={})), \
+         patch("core.executor.load_repo_context", return_value=RepoContextSpec(id="none", files={})), \
+         patch("core.executor.resolve_repo_path", return_value=tmp_path), \
+         patch("core.executor.create_worktree", return_value=tmp_path), \
+         patch("core.executor.destroy_worktree"), \
+         patch("core.executor.make_runner", return_value=StubRunner()), \
+         patch("core.executor.gate_apply", side_effect=AssertionError("held-out test already present")):
+        summary = execute_trial(trial, conn)
+
+    # Cost survives the gate crash — the whole point.
+    saved = get_cost_record(conn, "t-gate-crash")
+    assert saved is not None, "cost_record was discarded when the gate raised"
+    assert saved.usd_equiv == pytest.approx(1.84)
+    # Trial + run_result persisted (diff captured).
+    assert get_trial(conn, "t-gate-crash") is not None
+    rr = get_run_result(conn, "t-gate-crash")
+    assert rr is not None and rr.diff == "some diff"
+    # Gate recorded as a FAIL, not lost.
+    gr = get_gate_result(conn, "t-gate-crash")
+    assert gr is not None and gr.passed is False
+    # Summary still carries the cost and surfaces the gate error.
+    assert summary["usd"] == pytest.approx(1.84)
+    assert "held-out test already present" in (summary["error"] or "")
+
+
 def test_execute_trial_wall_covers_whole_trial(tmp_path):
     """summary['wall_seconds'] must span the full execute_trial call (runner + gate),
     not just run_result.wall_seconds."""
