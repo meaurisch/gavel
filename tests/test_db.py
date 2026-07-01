@@ -11,6 +11,7 @@ from core.db import (
     get_run_result,
     get_task_spec,
     get_trial,
+    grading_readiness,
     insert_cost_record,
     insert_gate_result,
     insert_methodology_spec,
@@ -32,6 +33,7 @@ from core.models import (
     TaskSpec,
     Trial,
 )
+from grading.pairwise import AXIS_FIELDS
 
 
 @pytest.fixture()
@@ -286,3 +288,39 @@ def test_list_cell_trials_includes_failing(conn):
     insert_trial(conn, Trial(id="nogate", task_id="c1", methodology_id="m3", repo_context_id="ctx", model="m", runner="r", rep=0))
     cell2 = list_cell_trials(conn, task_id="c1", model="m")
     assert "nogate" in {t.id for t in cell2}
+
+
+def test_grading_readiness_shape_and_counts(conn):
+    # Gradable cell on the "model" axis: task=c1, methodology=m1, repo_context=ctx, runner=r
+    # with 2 distinct passing models.
+    trials = [
+        Trial(id="p1", task_id="c1", methodology_id="m1", repo_context_id="ctx", model="modelone", runner="r", rep=0),
+        Trial(id="p2", task_id="c1", methodology_id="m1", repo_context_id="ctx", model="modeltwo", runner="r", rep=0),
+        # failing trial -> should not count toward distinct_passing_values
+        Trial(id="f1", task_id="c1", methodology_id="m1", repo_context_id="ctx", model="modelthree", runner="r", rep=0),
+        # non-gradable cell: only 1 distinct passing model
+        Trial(id="p3", task_id="c2", methodology_id="m1", repo_context_id="ctx", model="modelone", runner="r", rep=0),
+    ]
+    for t in trials:
+        insert_trial(conn, t)
+    insert_gate_result(conn, GateResult(trial_id="p1", passed=True))
+    insert_gate_result(conn, GateResult(trial_id="p2", passed=True))
+    insert_gate_result(conn, GateResult(trial_id="f1", passed=False))
+    insert_gate_result(conn, GateResult(trial_id="p3", passed=True))
+
+    result = grading_readiness(conn)
+
+    assert result["total_hidden_gate_passers"] == 3
+
+    assert set(result["axes"]) == set(AXIS_FIELDS)
+    for axis in AXIS_FIELDS:
+        entry = result["axes"][axis]
+        assert set(entry) == {"distinct_passing_values", "gradeable_cells"}
+        assert isinstance(entry["distinct_passing_values"], int)
+        assert isinstance(entry["gradeable_cells"], int)
+
+    model_entry = result["axes"]["model"]
+    # distinct passing models: modelone, modeltwo, modelone (dup) -> 2 distinct
+    assert model_entry["distinct_passing_values"] == 2
+    # only c1/m1/ctx/r is gradeable (2 distinct passing models); c2 cell has 1
+    assert model_entry["gradeable_cells"] == 1

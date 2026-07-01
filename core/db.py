@@ -346,6 +346,30 @@ def list_cell_trials(
     return [ta.validate_python(dict(r)) for r in rows]
 
 
+def grading_readiness(conn: sqlite3.Connection) -> dict:
+    """Diagnostic: how much passing data exists to grade, per axis."""
+    total_hidden_gate_passers = conn.execute(
+        "SELECT COUNT(*) FROM gate_result WHERE passed = 1"
+    ).fetchone()[0]
+
+    axes: dict[str, dict] = {}
+    for axis, comparison_col in AXIS_FIELDS.items():
+        distinct_passing_values = conn.execute(
+            f"""SELECT COUNT(DISTINCT t.{comparison_col}) FROM trial t
+                JOIN gate_result g ON t.id = g.trial_id
+                WHERE g.passed = 1"""
+        ).fetchone()[0]
+        axes[axis] = {
+            "distinct_passing_values": distinct_passing_values,
+            "gradeable_cells": len(list_grading_cells(conn, axis)),
+        }
+
+    return {
+        "total_hidden_gate_passers": total_hidden_gate_passers,
+        "axes": axes,
+    }
+
+
 def list_grading_cells(conn: sqlite3.Connection, axis: str) -> list[dict]:
     if axis not in AXIS_FIELDS:
         raise ValueError(f"Unknown axis {axis!r}; valid: {sorted(AXIS_FIELDS)}")

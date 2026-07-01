@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from core.db import (
     connect,
+    grading_readiness,
     insert_judgment,
     list_judgments,
     list_passing_trials,
@@ -93,6 +94,16 @@ app.mount(
 class AxisInfo(BaseModel):
     axis: str
     n_cells: int
+
+
+class AxisReadiness(BaseModel):
+    distinct_passing_values: int
+    gradeable_cells: int
+
+
+class GradingStatusResponse(BaseModel):
+    total_hidden_gate_passers: int
+    axes: dict[str, AxisReadiness]
 
 
 class GateScorecard(BaseModel):
@@ -216,6 +227,11 @@ async def get_axes() -> list[AxisInfo]:
         if cells:
             result.append(AxisInfo(axis=axis, n_cells=len(cells)))
     return result
+
+
+@app.get("/api/grading-status")
+async def get_grading_status() -> GradingStatusResponse:
+    return GradingStatusResponse(**grading_readiness(_conn))
 
 
 @app.get("/api/cells")

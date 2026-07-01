@@ -9,6 +9,7 @@ from core.db import (
     insert_cost_record,
 )
 from core.models import Trial, RunResult, GateResult, CostRecord
+from grading.pairwise import AXIS_FIELDS
 from ui import server
 
 
@@ -214,6 +215,25 @@ def test_reveal_skips_bt_with_few_judgments(client):
     rev = client.get("/api/reveal", params={"session_id": data["session_id"]})
     body = rev.json()
     assert body["bt_scores"] is None
+
+
+def test_grading_status_reports_readiness(client):
+    resp = client.get("/api/grading-status")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    assert isinstance(body["total_hidden_gate_passers"], int)
+    assert body["total_hidden_gate_passers"] >= 1
+
+    assert set(body["axes"]) == set(AXIS_FIELDS)
+    for axis in AXIS_FIELDS:
+        entry = body["axes"][axis]
+        assert set(entry) == {"distinct_passing_values", "gradeable_cells"}
+        assert isinstance(entry["distinct_passing_values"], int)
+        assert isinstance(entry["gradeable_cells"], int)
+
+    model_entry = body["axes"]["model"]
+    assert model_entry["gradeable_cells"] >= 1
 
 
 def test_stats_returns_per_value(client):
