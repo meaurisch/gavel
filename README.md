@@ -195,7 +195,7 @@ guessed the same test path. The overwritten agent file is restored after the run
 
 ## Current state
 
-The full pipeline is built and tested (195 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
+The full pipeline is built and tested (204 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
 three-tier gate, axis-general blind grading, Bradley-Terry ranking, API-rate cost,
 and task-quality tooling. The task set now spans two repos/languages (PyVRP C++/Python
 and a .NET Cosmos DB service). The execution spine is shaken out end-to-end on Windows:
@@ -204,14 +204,20 @@ PyVRP build/test into WSL — and the leakage scanner all run green on the golde
 (oracle PASS / nop FAIL for every task).
 
 A **Model-axis shakedown** (cosmos-A, baseline, haiku/sonnet/opus, 1 rep) exercised
-the runner against real models and surfaced two runner bugs, both now fixed:
-`collect()` diffed against live HEAD, so a committing agent's entire diff vanished
-(the sonnet trial recorded a 0-length diff after $1.84 of real work) — it now diffs
-against the setup baseline captured before the agent runs; and the runner's default
-turn cap (25) contradicted the settled §7 cap (60), truncating cross-layer tasks —
-now reconciled. All three models priced correctly at their own API rate. The held-out-
-path-collision behavior (agent writes a test where the oracle lives) is documented as a
-deliberate fail-closed gate FAIL. The next step is the first real measurement sweep.
+the runner against real models and surfaced a batch of runner/gate bugs, all now
+fixed. The two headline ones: `collect()` diffed against live HEAD, so a committing
+agent's entire diff vanished (the sonnet trial recorded a 0-length diff after $1.84
+of real work) — it now diffs against the setup baseline captured before the agent
+runs; and the runner's default turn cap (25) contradicted the settled §7 cap (60),
+truncating cross-layer tasks — now reconciled. The follow-ups then landed:
+`RunResult.error` is now persisted to `results.db` (it was dropped at insert), an
+empty agent diff is surfaced as an explicit error (a real no-op signal now that the
+diff-loss bug is fixed), `collect()` requires an explicit baseline (no silent HEAD
+default for the next committing runner to trip over), and the held-out-path collision
+(agent writes a test where the oracle lives) is now handled **provenance-aware**:
+overwrite-and-run for the agent's own file, still fatal for a genuine setup leak. All
+three models priced correctly at their own API rate. The next step is the first real
+measurement sweep.
 
 **Engine & tasks (P0–P1)**
 - Core engine: models, DB, worktree isolation, runners, gate, leakage scanner.
@@ -259,11 +265,12 @@ deliberate fail-closed gate FAIL. The next step is the first real measurement sw
       diff-loss (baseline-ref) and max-turns (25→60) runner bugs it surfaced.
 - [ ] **First calibration run** — a small real sweep to land each task's pass
       rate in the 30–70% discrimination window.
-- [ ] **Persist `RunResult.error`** — the field exists on the dataclass but the
-      `run_result` table has no column, so parse/exit errors are dropped at insert
-      (only shown in the live progress table). Add the column + backfill.
-- [ ] **Provenance-aware leakage assertion** — prerequisite for overwrite-and-run
-      handling of held-out-path collisions (see the gate guardrail note).
+- [x] **Persist `RunResult.error`** — added the `run_result.error` column (+ backfill);
+      parse/exit/gate-crash errors now survive to `results.db`, and an all-no-op
+      (empty-diff) trial is flagged as an explicit error.
+- [x] **Provenance-aware leakage assertion** — held-out-path collisions now
+      overwrite-and-run for agent-provenance files while staying fatal for genuine
+      setup leaks (see the gate guardrail note).
 - [ ] **First grading session** — exercise the UI end-to-end on real trials.
 - [x] **Second repo/language landed** — `cosmos-A`/`cosmos-B` add .NET (one
       refactor, one feature), authored and validated.
