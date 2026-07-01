@@ -45,6 +45,18 @@ class ClaudeCodeRunner:
         self.last_cost = None
         start = time.monotonic()
 
+        # Baseline for the diff: the worktree HEAD as it stands after prepare()
+        # and before the agent touches anything. The agent may commit its own
+        # work, which advances HEAD — so we must diff against this fixed ref, not
+        # the live HEAD, or a committing agent's entire diff vanishes.
+        baseline = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(worktree_path),
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
         claude_bin = shutil.which("claude")
         if claude_bin is None:
             raise FileNotFoundError("claude CLI not found on PATH")
@@ -78,7 +90,7 @@ class ClaudeCodeRunner:
         except subprocess.TimeoutExpired:
             logger.error("Trial %s: claude timed out after %d seconds", trial.id, self._max_turns * 120)
             wall_seconds = time.monotonic() - start
-            diff = collect(worktree_path)
+            diff = collect(worktree_path, baseline)
             return RunResult(trial_id=trial.id, diff=diff, exit_status=1, wall_seconds=wall_seconds)
 
         wall_seconds = time.monotonic() - start
@@ -126,5 +138,5 @@ class ClaudeCodeRunner:
             )
             exit_status = 1
 
-        diff = collect(worktree_path)
+        diff = collect(worktree_path, baseline)
         return RunResult(trial_id=trial.id, diff=diff, exit_status=exit_status, wall_seconds=wall_seconds, error=parse_error)

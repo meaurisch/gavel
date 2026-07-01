@@ -52,6 +52,26 @@ def test_collect_captures_new_files(tiny_repo: Path):
         destroy_worktree(wt)
 
 
+def test_collect_captures_committed_changes(tiny_repo: Path):
+    """An agent may COMMIT its work mid-session. collect() must diff against the
+    setup baseline captured before the agent ran, not against the live HEAD — a
+    commit advances HEAD, so `git diff HEAD` returns empty and silently discards
+    the agent's entire (already-billed) diff. This is exactly what erased the
+    sonnet trial's $1.84 of work on the cosmos-A shakedown."""
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        baseline = head_commit(wt)  # post-setup baseline, before the "agent" runs
+        (wt / "feature.py").write_text("def feature():\n    return 42\n")
+        subprocess.run(["git", "add", "-A"], cwd=str(wt), check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "agent work"], cwd=str(wt), check=True, capture_output=True)
+        diff = collect(wt, baseline)
+        assert "feature.py" in diff
+        assert "+    return 42" in diff
+    finally:
+        destroy_worktree(wt)
+
+
 # --- nop ---
 
 def test_nop_produces_empty_diff(tiny_repo: Path):

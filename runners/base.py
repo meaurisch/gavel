@@ -21,7 +21,16 @@ class Runner(Protocol):
     def execute(self, trial: Trial, worktree_path: Path) -> RunResult: ...
 
 
-def collect(worktree_path: Path) -> str:
+def collect(worktree_path: Path, baseline_ref: str = "HEAD") -> str:
+    """Capture the agent's changes as a diff against `baseline_ref`.
+
+    `baseline_ref` should be the worktree HEAD captured *before* the agent ran
+    (the post-prepare setup commit). Diffing against a fixed baseline — not the
+    live `HEAD` — is essential: an agent that COMMITS its work advances HEAD, so
+    `git diff HEAD` would return empty and silently discard the whole diff (this
+    erased the sonnet trial on the cosmos-A shakedown). Runners that never commit
+    (nop/oracle/manual) can rely on the "HEAD" default.
+    """
     subprocess.run(
         ["git", "add", "-A"],
         cwd=str(worktree_path),
@@ -29,7 +38,7 @@ def collect(worktree_path: Path) -> str:
         capture_output=True,
     )
     result = subprocess.run(
-        ["git", "diff", "HEAD"],
+        ["git", "diff", baseline_ref],
         cwd=str(worktree_path),
         check=True,
         capture_output=True,
