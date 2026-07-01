@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 
 from core.models import MethodologySpec, RepoContextSpec, RunResult, TaskSpec, Trial
-from runners.base import collect, lay_down_files
+from runners.base import capture_baseline, collect, lay_down_files
 
 
 class ManualRunner:
@@ -21,6 +21,7 @@ class ManualRunner:
 
     def execute(self, trial: Trial, worktree_path: Path) -> RunResult:
         start = time.monotonic()
+        baseline = capture_baseline(worktree_path)
         print("=" * 50)
         print(f"MANUAL TRIAL: {trial.id}")
         print(f"Open this directory in your IDE:")
@@ -31,7 +32,7 @@ class ManualRunner:
         print()
         input("Press Enter when finished...")
         print("=" * 50)
-        diff = collect(worktree_path)
+        diff = collect(worktree_path, baseline)
         return RunResult(
             trial_id=trial.id,
             diff=diff,

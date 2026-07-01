@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 
 from core.models import MethodologySpec, RepoContextSpec, RunResult, TaskSpec, Trial
-from runners.base import collect, lay_down_files
+from runners.base import capture_baseline, collect, lay_down_files
 
 
 class OracleRunner:
@@ -22,6 +22,7 @@ class OracleRunner:
 
     def execute(self, trial: Trial, worktree_path: Path) -> RunResult:
         start = time.monotonic()
+        baseline = capture_baseline(worktree_path)
         ref_path = Path(self._task.reference_diff_path)
         subprocess.run(
             ["git", "apply", str(ref_path.resolve())],
@@ -30,7 +31,7 @@ class OracleRunner:
             capture_output=True,
             text=True,
         )
-        diff = collect(worktree_path)
+        diff = collect(worktree_path, baseline)
         return RunResult(
             trial_id=trial.id,
             diff=diff,

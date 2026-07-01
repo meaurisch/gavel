@@ -10,7 +10,7 @@ from core.models import CostRecord, MethodologySpec, RepoContextSpec, RunResult,
 from cost.claude_usage import ClaudeUsageParseError, parse_claude_output
 from cost.pricing import compute_api_rate_usd
 from grading.gate import BASELINE_REF
-from runners.base import collect, lay_down_dir, lay_down_files
+from runners.base import capture_baseline, collect, lay_down_dir, lay_down_files
 
 logger = logging.getLogger(__name__)
 
@@ -52,13 +52,7 @@ class ClaudeCodeRunner:
         # and before the agent touches anything. The agent may commit its own
         # work, which advances HEAD — so we must diff against this fixed ref, not
         # the live HEAD, or a committing agent's entire diff vanishes.
-        baseline = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=str(worktree_path),
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
+        baseline = capture_baseline(worktree_path)
 
         # Record the baseline as a worktree-local ref so the gate can tell a
         # held-out file the agent produced itself (provenance = agent, not a leak)

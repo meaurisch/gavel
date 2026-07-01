@@ -5,7 +5,7 @@ import pytest
 
 from core.models import MethodologySpec, RepoContextSpec, RunResult, TaskSpec, Trial
 from core.worktree import create_worktree, destroy_worktree
-from runners.base import Runner, collect
+from runners.base import Runner, capture_baseline, collect
 from runners.claude_code import ClaudeCodeRunner
 from runners.nop import NopRunner
 from runners.oracle import OracleRunner
@@ -44,10 +44,33 @@ def test_collect_captures_new_files(tiny_repo: Path):
     commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)
     try:
+        baseline = capture_baseline(wt)
         (wt / "new_file.py").write_text("print('hello')\n")
-        diff = collect(wt)
+        diff = collect(wt, baseline)
         assert "new_file.py" in diff
         assert "+print('hello')" in diff
+    finally:
+        destroy_worktree(wt)
+
+
+def test_collect_requires_explicit_baseline(tiny_repo: Path):
+    """collect() has no silent default. A runner whose harness COMMITS must pass a
+    baseline captured before the agent ran, or its diff is erased (5fb9787). With
+    no default, forgetting the baseline fails loudly at call time instead."""
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        with pytest.raises(TypeError):
+            collect(wt)  # type: ignore[call-arg]
+    finally:
+        destroy_worktree(wt)
+
+
+def test_capture_baseline_returns_head(tiny_repo: Path):
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        assert capture_baseline(wt) == head_commit(wt)
     finally:
         destroy_worktree(wt)
 
@@ -230,6 +253,7 @@ def test_prepare_lays_down_task_visible_tests(tiny_repo: Path, tmp_path: Path):
         before = _commit_count(wt)
         runner = ClaudeCodeRunner(task)
         runner.prepare(trial, wt, MethodologySpec(id="off", files={}), RepoContextSpec(id="none", files={}))
+        baseline = capture_baseline(wt)
         # File present in the worktree, mirroring the source layout.
         injected = wt / "tests" / "search" / "test_visible.py"
         assert injected.exists()
@@ -240,7 +264,7 @@ def test_prepare_lays_down_task_visible_tests(tiny_repo: Path, tmp_path: Path):
         assert subjects[1] == "setup-bench: lay down repo context files"
         assert subjects[0] == "setup-bench: lay down methodology files"
         # Committed => NOT part of the model's diff.
-        diff = collect(wt)
+        diff = collect(wt, baseline)
         assert "test_visible.py" not in diff
     finally:
         destroy_worktree(wt)

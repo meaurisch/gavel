@@ -21,15 +21,30 @@ class Runner(Protocol):
     def execute(self, trial: Trial, worktree_path: Path) -> RunResult: ...
 
 
-def collect(worktree_path: Path, baseline_ref: str = "HEAD") -> str:
+def capture_baseline(worktree_path: Path) -> str:
+    """Resolve the worktree HEAD to a fixed SHA. Every runner must call this
+    *after* prepare() and *before* the agent runs, then pass the result to
+    collect(). Capturing before the agent runs is what makes the diff survive a
+    harness that COMMITS its work (see collect)."""
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=str(worktree_path),
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def collect(worktree_path: Path, baseline_ref: str) -> str:
     """Capture the agent's changes as a diff against `baseline_ref`.
 
-    `baseline_ref` should be the worktree HEAD captured *before* the agent ran
-    (the post-prepare setup commit). Diffing against a fixed baseline — not the
-    live `HEAD` — is essential: an agent that COMMITS its work advances HEAD, so
-    `git diff HEAD` would return empty and silently discard the whole diff (this
-    erased the sonnet trial on the cosmos-A shakedown). Runners that never commit
-    (nop/oracle/manual) can rely on the "HEAD" default.
+    `baseline_ref` is the worktree HEAD captured *before* the agent ran (via
+    capture_baseline). Diffing against a fixed baseline — not the live `HEAD` —
+    is essential: an agent that COMMITS its work advances HEAD, so `git diff HEAD`
+    would return empty and silently discard the whole diff (this erased the sonnet
+    trial on the cosmos-A shakedown). The argument is required on purpose — there
+    is no silent "HEAD" default to forget, which would quietly resurrect that bug
+    for the next runner (e.g. Copilot) whose harness commits.
     """
     subprocess.run(
         ["git", "add", "-A"],

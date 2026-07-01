@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 
 from core.models import MethodologySpec, RepoContextSpec, RunResult, Trial
-from runners.base import collect, lay_down_files
+from runners.base import capture_baseline, collect, lay_down_files
 
 
 class NopRunner:
@@ -18,7 +18,8 @@ class NopRunner:
 
     def execute(self, trial: Trial, worktree_path: Path) -> RunResult:
         start = time.monotonic()
-        diff = collect(worktree_path)
+        baseline = capture_baseline(worktree_path)
+        diff = collect(worktree_path, baseline)
         return RunResult(
             trial_id=trial.id,
             diff=diff,
