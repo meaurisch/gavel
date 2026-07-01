@@ -562,6 +562,23 @@
       return axis.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
     }
 
+    // ── Empty-state detail from /api/grading-status ────
+    const FALLBACK_EMPTY_MESSAGE = 'No grading-ready data. Run some trials first.';
+
+    async function buildEmptyMessage() {
+      try {
+        const resp = await fetch('/api/grading-status');
+        const status = await resp.json();
+        const axisParts = Object.entries(status.axes).map(([axis, info]) =>
+          `${friendlyName(axis)}: ${info.distinct_passing_values} distinct passing value(s) (need 2+ in one cell)`
+        );
+        return `No gradeable cells yet. ${status.total_hidden_gate_passers} hidden-gate passers total. `
+          + axisParts.join('; ') + '.';
+      } catch (e) {
+        return FALLBACK_EMPTY_MESSAGE;
+      }
+    }
+
     // ── Boot: load axes ───────────────────────────────
     async function loadAxes() {
       let axesData = [];
@@ -573,7 +590,7 @@
       }
 
       if (axesData.length === 0) {
-        $emptyMessage.textContent = 'No grading-ready data. Run some trials first.';
+        $emptyMessage.textContent = await buildEmptyMessage();
         $emptyMessage.classList.remove('hidden');
         $axisSelect.classList.add('hidden');
         $cellPickers.classList.add('hidden');
