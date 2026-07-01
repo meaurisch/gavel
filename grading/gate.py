@@ -49,6 +49,8 @@ def _run_command(cmd: str, cwd: Path, task: TaskSpec) -> tuple[bool, str]:
             wsl_argv(cmd, cwd),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="ignore",
             timeout=900,
         )
     else:
@@ -58,6 +60,8 @@ def _run_command(cmd: str, cwd: Path, task: TaskSpec) -> tuple[bool, str]:
             shell=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="ignore",
         )
     return (result.returncode == 0, result.stdout + result.stderr)
 

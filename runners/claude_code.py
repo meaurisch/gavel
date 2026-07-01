@@ -90,6 +90,8 @@ class ClaudeCodeRunner:
                 input=self._task.instruction,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="ignore",
                 timeout=self._max_turns * 120,
             )
             exit_status = proc.returncode

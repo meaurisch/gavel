@@ -266,6 +266,39 @@ def test_execute_passes_instruction_via_stdin(tiny_repo):
         destroy_worktree(wt)
 
 
+def test_execute_claude_call_uses_utf8_encoding(tiny_repo):
+    """The `claude` subprocess call must decode stdout/stderr as UTF-8 (errors
+    ignored), not the platform default codec (cp1252 on Windows). Claude's
+    `--output-format json` output can contain bytes outside cp1252's range;
+    without an explicit encoding, Python's reader thread swallows the decode
+    error and communicate() silently returns None, crashing later `.strip()`
+    calls (AttributeError: 'NoneType' object has no attribute 'strip')."""
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = _valid_claude_json()
+        mock_proc.stderr = ""
+
+        with patch("runners.claude_code.subprocess.run", return_value=mock_proc) as m:
+            runner.execute(trial, wt)
+
+        claude_calls = [c for c in m.call_args_list if "-p" in (c.args[0] if c.args else c.kwargs.get("args", []))]
+        assert len(claude_calls) == 1
+        kwargs = claude_calls[0].kwargs
+        assert kwargs.get("encoding") == "utf-8"
+        assert kwargs.get("errors") == "ignore"
+    finally:
+        destroy_worktree(wt)
+
+
 def test_last_cost_none_on_parse_failure(tiny_repo):
     commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)

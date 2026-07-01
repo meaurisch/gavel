@@ -75,6 +75,28 @@ def test_capture_baseline_returns_head(tiny_repo: Path):
         destroy_worktree(wt)
 
 
+def test_collect_survives_undecodable_diff_bytes(tiny_repo: Path):
+    """`git diff` output may contain bytes that aren't valid in the platform
+    default codec (cp1252 on Windows) — e.g. UTF-8 content the agent wrote into
+    a file. Without an explicit encoding, Python's subprocess reader thread
+    swallows the decode error and communicate() silently returns None for that
+    stream, so `result.stdout` becomes None and callers crash on `.strip()` etc.
+    collect() must decode as UTF-8 (errors ignored) and always return a string.
+    """
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        baseline = capture_baseline(wt)
+        # 0x9d is undefined in cp1252 and an invalid lone byte in utf-8 — but no
+        # NUL, so git still treats the file as text and shows the byte in the diff.
+        (wt / "weird.txt").write_bytes(b"a line with a high byte \x9d in it\n")
+        diff = collect(wt, baseline)
+        assert diff is not None
+        assert "weird.txt" in diff
+    finally:
+        destroy_worktree(wt)
+
+
 def test_collect_captures_committed_changes(tiny_repo: Path):
     """An agent may COMMIT its work mid-session. collect() must diff against the
     setup baseline captured before the agent ran, not against the live HEAD — a

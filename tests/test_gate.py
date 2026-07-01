@@ -267,6 +267,39 @@ def test_gate_dispatches_pyvrp_build_to_wsl(tmp_path, monkeypatch):
     assert "pip install -e . --no-build-isolation" in script
 
 
+def test_gate_wsl_command_uses_utf8_encoding(tmp_path, monkeypatch):
+    """Hidden-test stdout+stderr can contain agent-written content with bytes
+    outside cp1252's range. Without an explicit encoding, Python's subprocess
+    reader thread swallows the decode error and communicate() silently returns
+    None, crashing the `result.stdout + result.stderr` concat downstream."""
+    monkeypatch.setattr("core.toolchain.platform.system", lambda: "Windows")
+
+    held_out = tmp_path / "held_out"
+    held_out.mkdir()
+
+    task = TaskSpec(
+        id="pyvrp-X",
+        repo_url="x",
+        base_commit="x",
+        instruction="add something",
+        run_cmd="pytest tests/search/test_ReplaceGroup.py -v",
+        held_out_tests_path=str(held_out),
+        reference_diff_path="x",
+        build_cmd="pip install -e . 2>&1",
+    )
+    trial = Trial(
+        id="t-pyvrp", task_id="pyvrp-X", methodology_id="off",
+        repo_context_id="none", model="none", runner="nop", rep=0,
+    )
+
+    with patch("grading.gate.subprocess.run", return_value=_mock_ok()) as mock_run:
+        apply(trial, tmp_path, task)
+
+    first_call = mock_run.call_args_list[0]
+    assert first_call.kwargs.get("encoding") == "utf-8"
+    assert first_call.kwargs.get("errors") == "ignore"
+
+
 def test_gate_dispatches_dotnet_to_shell(tmp_path, monkeypatch):
     """Cosmos/dotnet tasks must use shell=True, never wsl."""
     monkeypatch.setattr("core.toolchain.platform.system", lambda: "Windows")
@@ -300,3 +333,39 @@ def test_gate_dispatches_dotnet_to_shell(tmp_path, monkeypatch):
             continue
         assert isinstance(first_arg, str), f"Expected str cmd, got {type(first_arg)}"
         assert call.kwargs.get("shell") is True
+
+
+def test_gate_shell_command_uses_utf8_encoding(tmp_path, monkeypatch):
+    """Same decode risk as the wsl branch (test_gate_wsl_command_uses_utf8_encoding),
+    for the shell=True dispatch path (e.g. dotnet/cosmos tasks)."""
+    monkeypatch.setattr("core.toolchain.platform.system", lambda: "Windows")
+
+    held_out = tmp_path / "held_out"
+    held_out.mkdir()
+
+    task = TaskSpec(
+        id="cosmos-A",
+        repo_url="x",
+        base_commit="x",
+        instruction="add something",
+        run_cmd="dotnet test CleanArchitectureCosmosDB.sln",
+        held_out_tests_path=str(held_out),
+        reference_diff_path="x",
+        build_cmd="dotnet build CleanArchitectureCosmosDB.sln",
+    )
+    trial = Trial(
+        id="t-cosmos", task_id="cosmos-A", methodology_id="off",
+        repo_context_id="none", model="none", runner="nop", rep=0,
+    )
+
+    with patch("grading.gate.subprocess.run", return_value=_mock_ok()) as mock_run:
+        apply(trial, tmp_path, task)
+
+    task_calls = [
+        c for c in mock_run.call_args_list
+        if not (isinstance(c.args[0], list) and c.args[0][:1] == ["git"])
+    ]
+    assert task_calls
+    for call in task_calls:
+        assert call.kwargs.get("encoding") == "utf-8"
+        assert call.kwargs.get("errors") == "ignore"
