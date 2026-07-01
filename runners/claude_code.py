@@ -141,4 +141,12 @@ class ClaudeCodeRunner:
             exit_status = 1
 
         diff = collect(worktree_path, baseline)
-        return RunResult(trial_id=trial.id, diff=diff, exit_status=exit_status, wall_seconds=wall_seconds, error=parse_error)
+        # An empty diff means the agent produced no changes. Since 5fb9787 fixed
+        # the diff-erasure bug, this is a real signal (not a false negative) — a
+        # committing agent's work now survives — so surface it as an explicit
+        # error to distinguish an all-no-op trial in the DB. A parse error is more
+        # informative, so it wins if both happened.
+        error = parse_error
+        if error is None and not diff.strip():
+            error = "agent produced an empty diff (no changes)"
+        return RunResult(trial_id=trial.id, diff=diff, exit_status=exit_status, wall_seconds=wall_seconds, error=error)

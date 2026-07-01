@@ -314,6 +314,75 @@ def test_execute_parse_failure_sets_error(tiny_repo):
         destroy_worktree(wt)
 
 
+def test_execute_empty_diff_sets_error(tiny_repo):
+    """A parseable, billed run that leaves NO changes in the worktree is a real
+    signal (since 5fb9787 an empty diff is no longer a false negative). It must
+    surface as an explicit error so an all-no-op trial is distinguishable in the DB.
+    """
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        def fake_run(cmd, *a, **k):
+            m = MagicMock()
+            m.returncode = 0
+            m.stderr = ""
+            if cmd[:2] == ["git", "diff"]:
+                m.stdout = ""          # agent produced no changes
+            elif cmd[:2] == ["git", "rev-parse"]:
+                m.stdout = "BASELINE"
+            else:
+                m.stdout = _valid_claude_json()  # the claude call
+            return m
+
+        with patch("runners.claude_code.subprocess.run", side_effect=fake_run):
+            result = runner.execute(trial, wt)
+
+        assert result.diff == ""
+        assert result.error is not None
+        assert "empty diff" in result.error.lower()
+        # a clean, billed run still records its cost
+        assert runner.last_cost is not None
+    finally:
+        destroy_worktree(wt)
+
+
+def test_execute_nonempty_diff_no_empty_error(tiny_repo):
+    """Guard: a run that DID produce changes must not get the empty-diff error."""
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        def fake_run(cmd, *a, **k):
+            m = MagicMock()
+            m.returncode = 0
+            m.stderr = ""
+            if cmd[:2] == ["git", "diff"]:
+                m.stdout = "--- a/x\n+++ b/x\n"
+            elif cmd[:2] == ["git", "rev-parse"]:
+                m.stdout = "BASELINE"
+            else:
+                m.stdout = _valid_claude_json()
+            return m
+
+        with patch("runners.claude_code.subprocess.run", side_effect=fake_run):
+            result = runner.execute(trial, wt)
+
+        assert result.error is None
+    finally:
+        destroy_worktree(wt)
+
+
 def test_usd_equiv_falls_back_to_self_reported_when_api_zero(tiny_repo):
     """If token-based pricing computes $0 (zero tokens) but the run self-reports a
     non-zero total_cost_usd, usd_equiv must use the self-reported value, not $0.
