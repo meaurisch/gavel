@@ -170,25 +170,28 @@ so a declared suite can't be one that doesn't build/pass.
 
 An agent can naturally create a test at a path the held-out oracle also occupies
 (on the cosmos-A shakedown, opus wrote `tests/.../Mappers/AuditMapperTest.cs`).
-The gate's `assert not dest.exists()` then fires and the trial is recorded as a
-**hidden-gate FAIL** (fail-closed — the gate refuses to run rather than trust the
-agent's own copy of a held-out test). The agent's work is *not* lost: it is still
-captured in the diff (see the baseline-diff fix) and enters blind grading; only
-the definitive hidden tier fails.
+The gate now handles this **provenance-aware**, SWE-bench style: the oracle always
+wins, but only a *genuine* leak stays fatal.
 
-**Decision: keep fail-closed.** The oracle is the source of truth and must never
-be replaced by the agent's version at its own path. Two alternatives were
-considered and rejected for now:
+**How provenance is determined.** The runner records the post-prepare, pre-agent
+HEAD as a worktree-local ref (`refs/worktree/setup-bench-baseline`, see
+`grading.gate.BASELINE_REF`). At gate time, for a colliding held-out path:
 
-- *Use the oracle, ignore the agent's file* — safe, but silently discards a real
-  signal (the agent thought a test belonged there).
-- *Overwrite-and-run SWE-bench-style* (oracle wins, agent's test content survives
-  in the diff) — the fairest option and the likely future direction, but it
-  requires the leakage assertion to become **provenance-aware**: distinguish a
-  held-out file present via the *setup* (a genuine leak — must stay fatal) from
-  one present via the *agent's own diff* (not a leak — safe to overwrite). That
-  change touches the protected assertion and is deferred until it can be designed
-  and reviewed deliberately.
+- **Present in the baseline tree** (came in via a setup commit — repo-context /
+  methodology / visible-tests) → *setup* provenance → **genuine leak, fatal.** The
+  model would have seen the oracle. The assertion still fires.
+- **Present only in the agent's diff** (not in the baseline — the agent never saw
+  the oracle, which lives outside the worktree until now) → *agent* provenance →
+  **not a leak.** The gate overwrites the path with the true oracle and runs that;
+  the agent's own content already survives in the captured diff for blind grading.
+- **No baseline ref** (nop / oracle / manual don't record one) → provenance is
+  unprovable → **fatal**, exactly as before. We only relax where provenance is
+  proven.
+
+This keeps the protected invariant intact — *the model never sees the oracle, and
+the gate runs the true oracle* — while no longer failing an agent that merely
+guessed the same test path. The overwritten agent file is restored after the run
+(leave-no-trace), mirroring the oracle-file cleanup.
 
 ## Current state
 

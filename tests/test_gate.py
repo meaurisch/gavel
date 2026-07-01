@@ -111,6 +111,7 @@ def test_gate_fails_for_nop(tiny_repo, held_out_dir, tmp_path):
 
 
 def test_gate_asserts_held_out_absent(tiny_repo, held_out_dir, tmp_path):
+    # No baseline ref -> provenance is unprovable -> any collision stays fatal.
     task = _make_task(tiny_repo, held_out_dir, tmp_path)
     trial = Trial(id="t-cheat", task_id="test-task", methodology_id="off", repo_context_id="none", model="none", runner="nop", rep=0)
     wt = create_worktree(tiny_repo, task.base_commit)
@@ -119,6 +120,59 @@ def test_gate_asserts_held_out_absent(tiny_repo, held_out_dir, tmp_path):
         (wt / "tests" / "check_hello.py").write_text("# planted")
         with pytest.raises(AssertionError, match="held-out test already present"):
             apply(trial, wt, task)
+    finally:
+        destroy_worktree(wt)
+
+
+def _set_baseline_ref(wt: Path, sha: str) -> None:
+    subprocess.run(
+        ["git", "update-ref", "refs/worktree/setup-bench-baseline", sha],
+        cwd=str(wt), check=True, capture_output=True,
+    )
+
+
+def test_gate_fatal_when_held_out_present_via_setup(tiny_repo, held_out_dir, tmp_path):
+    """A held-out path present in the baseline tree is a genuine setup leak: the
+    model would have seen the oracle. Must stay fatal."""
+    task = _make_task(tiny_repo, held_out_dir, tmp_path)
+    trial = Trial(id="t-leak", task_id="test-task", methodology_id="off", repo_context_id="none", model="claude-sonnet-4-20250514", runner="claude-code", rep=0)
+    wt = create_worktree(tiny_repo, task.base_commit)
+    try:
+        # Simulate a setup commit that lays a file at the held-out path, then
+        # capture the baseline *including* it — i.e. the model would see it.
+        (wt / "tests").mkdir()
+        (wt / "tests" / "check_hello.py").write_text("# leaked via setup\n")
+        subprocess.run(["git", "add", "-A"], cwd=str(wt), check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "setup: leak"], cwd=str(wt), check=True, capture_output=True)
+        _set_baseline_ref(wt, _head_commit(wt))
+        with pytest.raises(AssertionError, match="via setup"):
+            apply(trial, wt, task)
+    finally:
+        destroy_worktree(wt)
+
+
+def test_gate_overwrites_agent_planted_held_out(tiny_repo, held_out_dir, tmp_path):
+    """A held-out path present only in the agent's diff (not the baseline) is NOT
+    a leak — the agent never saw the oracle. The gate overwrites it with the true
+    oracle and runs that (oracle wins), then restores the agent's file."""
+    task = _make_task(tiny_repo, held_out_dir, tmp_path)
+    trial = Trial(id="t-agent", task_id="test-task", methodology_id="off", repo_context_id="none", model="claude-sonnet-4-20250514", runner="claude-code", rep=0)
+    wt = create_worktree(tiny_repo, task.base_commit)
+    try:
+        # Baseline = clean base (no tests/); the agent then plants a cheating stub
+        # that would always pass if it were the one that ran.
+        _set_baseline_ref(wt, _head_commit(wt))
+        (wt / "tests").mkdir()
+        planted = wt / "tests" / "check_hello.py"
+        cheat = "import sys\nsys.exit(0)\n"
+        planted.write_text(cheat)
+
+        result = apply(trial, wt, task)
+
+        # The oracle ran, not the stub: hello.txt was never fixed -> real check fails.
+        assert result.passed is False
+        # The agent's file is restored (leave-no-trace).
+        assert planted.read_text() == cheat
     finally:
         destroy_worktree(wt)
 
@@ -240,5 +294,9 @@ def test_gate_dispatches_dotnet_to_shell(tmp_path, monkeypatch):
 
     for call in mock_run.call_args_list:
         first_arg = call.args[0]
+        # Skip the gate's own git infra calls (e.g. baseline-ref provenance lookup);
+        # this test is about how *task* commands dispatch.
+        if isinstance(first_arg, list) and first_arg[:1] == ["git"]:
+            continue
         assert isinstance(first_arg, str), f"Expected str cmd, got {type(first_arg)}"
         assert call.kwargs.get("shell") is True

@@ -9,6 +9,7 @@ from pathlib import Path
 from core.models import CostRecord, MethodologySpec, RepoContextSpec, RunResult, TaskSpec, Trial
 from cost.claude_usage import ClaudeUsageParseError, parse_claude_output
 from cost.pricing import compute_api_rate_usd
+from grading.gate import BASELINE_REF
 from runners.base import collect, lay_down_dir, lay_down_files
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,17 @@ class ClaudeCodeRunner:
             capture_output=True,
             text=True,
         ).stdout.strip()
+
+        # Record the baseline as a worktree-local ref so the gate can tell a
+        # held-out file the agent produced itself (provenance = agent, not a leak)
+        # from one that came in via setup (provenance = setup, a real leak). See
+        # grading.gate.BASELINE_REF.
+        subprocess.run(
+            ["git", "update-ref", BASELINE_REF, baseline],
+            cwd=str(worktree_path),
+            check=True,
+            capture_output=True,
+        )
 
         claude_bin = shutil.which("claude")
         if claude_bin is None:
