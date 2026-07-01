@@ -414,6 +414,39 @@ def test_execute_no_parseable_output_raises(tiny_repo):
         destroy_worktree(wt)
 
 
+def test_execute_zero_token_failure_raises(tiny_repo):
+    """A `claude` invocation that exits nonzero but DOES produce valid JSON —
+    e.g. an immediate rejection formatted as a well-formed error envelope with
+    zero billed tokens — is the same "never actually did an attempt" case as
+    unparseable stdout, just a different JSON shape. It must also raise so the
+    trial ID isn't permanently burned as a fake completed trial.
+    """
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        mock_proc = MagicMock()
+        mock_proc.returncode = 1
+        mock_proc.stdout = json.dumps({
+            "result": "",
+            "is_error": True,
+            "total_cost_usd": 0,
+            "usage": {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0},
+        })
+        mock_proc.stderr = ""
+
+        with patch("runners.claude_code.subprocess.run", return_value=mock_proc):
+            with pytest.raises(Exception):
+                runner.execute(trial, wt)
+    finally:
+        destroy_worktree(wt)
+
+
 def test_execute_nonempty_diff_no_empty_error(tiny_repo):
     """Guard: a run that DID produce changes must not get the empty-diff error."""
     commit = head_commit(tiny_repo)

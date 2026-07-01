@@ -138,9 +138,12 @@ class ClaudeCodeRunner:
                 cache_read_tokens=usage.cache_read_tokens,
             )
 
-        if exit_status != 0 and usage is None:
-            # claude never produced parseable output at all — it didn't complete
-            # an attempt (most likely a transient failure, e.g. rate-limiting).
+        zero_tokens = usage is not None and usage.input_tokens == 0 and usage.output_tokens == 0
+        if exit_status != 0 and (usage is None or zero_tokens):
+            # claude never completed an attempt (most likely a transient failure,
+            # e.g. rate-limiting) — either it produced no parseable output at all,
+            # or it produced a valid-but-empty-usage JSON envelope (an immediate
+            # rejection formatted as a JSON error, zero tokens billed either way).
             # Raise instead of returning a RunResult: core.executor's existing
             # except-block skips insert_trial() on a raised exception, so
             # trial_exists() stays False and the trial is naturally retried on
