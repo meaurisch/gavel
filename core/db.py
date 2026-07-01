@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS run_result (
     trial_id TEXT PRIMARY KEY,
     diff TEXT NOT NULL,
     exit_status INTEGER NOT NULL,
-    wall_seconds REAL NOT NULL
+    wall_seconds REAL NOT NULL,
+    error TEXT
 );
 
 CREATE TABLE IF NOT EXISTS cost_record (
@@ -114,6 +115,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "task_spec", "build_cmd", "TEXT")
     _ensure_column(conn, "task_spec", "visible_test_cmd", "TEXT")
     _ensure_column(conn, "task_spec", "difficulty", "TEXT")
+    _ensure_column(conn, "run_result", "error", "TEXT")
     conn.commit()
 
 
@@ -155,8 +157,8 @@ def insert_trial(conn: sqlite3.Connection, t: Trial) -> None:
 
 def insert_run_result(conn: sqlite3.Connection, r: RunResult) -> None:
     conn.execute(
-        "INSERT INTO run_result VALUES (?, ?, ?, ?)",
-        (r.trial_id, r.diff, r.exit_status, r.wall_seconds),
+        "INSERT INTO run_result VALUES (?, ?, ?, ?, ?)",
+        (r.trial_id, r.diff, r.exit_status, r.wall_seconds, r.error),
     )
     conn.commit()
 

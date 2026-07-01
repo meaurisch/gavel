@@ -106,6 +106,48 @@ def test_run_result_insert_read(conn):
     assert got == obj
 
 
+def test_run_result_error_round_trips(conn):
+    obj = RunResult(
+        trial_id="t-err",
+        diff="",
+        exit_status=1,
+        wall_seconds=4.2,
+        error="failed to parse Claude output: no JSON found",
+    )
+    insert_run_result(conn, obj)
+    got = get_run_result(conn, "t-err")
+    assert got == obj
+    assert got.error == "failed to parse Claude output: no JSON found"
+
+
+def test_run_result_error_defaults_none(conn):
+    obj = RunResult(trial_id="t-ok", diff="x", exit_status=0, wall_seconds=1.0)
+    insert_run_result(conn, obj)
+    got = get_run_result(conn, "t-ok")
+    assert got.error is None
+
+
+def test_init_schema_migrates_legacy_run_result(tmp_path):
+    # A DB created before run_result.error existed.
+    db_path = tmp_path / "legacy_rr.db"
+    raw = sqlite3.connect(str(db_path))
+    raw.execute(
+        """CREATE TABLE run_result (
+            trial_id TEXT PRIMARY KEY, diff TEXT NOT NULL,
+            exit_status INTEGER NOT NULL, wall_seconds REAL NOT NULL)"""
+    )
+    raw.execute(
+        "INSERT INTO run_result VALUES (?, ?, ?, ?)",
+        ("legacy", "d", 0, 1.5),
+    )
+    raw.commit()
+    raw.close()
+
+    conn = connect(db_path)  # connect() -> init_schema() must migrate
+    got = get_run_result(conn, "legacy")
+    assert got.error is None
+
+
 def test_cost_record_insert_read(conn):
     obj = CostRecord(
         trial_id="t-001",
