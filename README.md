@@ -166,6 +166,30 @@ so a declared suite can't be one that doesn't build/pass.
 > the gate. The gate already asserts held-out files aren't pre-present in the
 > worktree; keep that assertion.
 
+#### Held-out-path collision (agent writes a test where the oracle lives)
+
+An agent can naturally create a test at a path the held-out oracle also occupies
+(on the cosmos-A shakedown, opus wrote `tests/.../Mappers/AuditMapperTest.cs`).
+The gate's `assert not dest.exists()` then fires and the trial is recorded as a
+**hidden-gate FAIL** (fail-closed — the gate refuses to run rather than trust the
+agent's own copy of a held-out test). The agent's work is *not* lost: it is still
+captured in the diff (see the baseline-diff fix) and enters blind grading; only
+the definitive hidden tier fails.
+
+**Decision: keep fail-closed.** The oracle is the source of truth and must never
+be replaced by the agent's version at its own path. Two alternatives were
+considered and rejected for now:
+
+- *Use the oracle, ignore the agent's file* — safe, but silently discards a real
+  signal (the agent thought a test belonged there).
+- *Overwrite-and-run SWE-bench-style* (oracle wins, agent's test content survives
+  in the diff) — the fairest option and the likely future direction, but it
+  requires the leakage assertion to become **provenance-aware**: distinguish a
+  held-out file present via the *setup* (a genuine leak — must stay fatal) from
+  one present via the *agent's own diff* (not a leak — safe to overwrite). That
+  change touches the protected assertion and is deferred until it can be designed
+  and reviewed deliberately.
+
 ## Current state
 
 The full pipeline is built and tested (160 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
