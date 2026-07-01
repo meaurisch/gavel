@@ -272,9 +272,11 @@ measurement sweep.
 - [x] **Provenance-aware leakage assertion** — held-out-path collisions now
       overwrite-and-run for agent-provenance files while staying fatal for genuine
       setup leaks (see the gate guardrail note).
-- [ ] **J1 — grading UI shakedown (NEXT)** — launch the pairwise UI and grade
-      real trials end-to-end (blind A/B, axis picker, anonymization). This is the
-      immediate next step now that Phase R is parked.
+- [ ] **J1 — grading UI shakedown (BLOCKED)** — the pairwise UI needs gradeable
+      data, and there is none: only baseline/none trials exist, so
+      `scripts/check_grading_ready.py --db results.db` reports 0 gradeable cells
+      (as of 2026-07-01). Unblock by running **A2** (methodology axis) and **A3**
+      (repo-context axis) for real — not the shakedown dry-runs — then launch J1.
 - [~] **Phase R (Copilot) — DEFERRED (2026-07-01)** — no Copilot account/plan on
       hand; the R0 spike isn't worth a paid trial now. Runner axis stays coverable
       via the `manual` runner. Revive prompts 11–13 if a Copilot plan appears.

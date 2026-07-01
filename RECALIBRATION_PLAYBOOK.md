@@ -91,6 +91,13 @@ CHECKPOINT.
 
 ## Phase J — The judgment end (where you act)
 
+> **Prerequisite before J1:** real **A2** (`08-A2-methodology-axis.md`, drop
+> `--dry-run`) and **A3** (`09-A3-repo-context-axis.md`, drop `--dry-run`) must
+> have actually run — not just the shakedown dry-runs — and
+> `scripts/check_grading_ready.py --db results.db` must exit 0 (>=1 gradeable
+> cell on some axis) before you paste J1. With only baseline/none trials there
+> is nothing to grade. Diagnosed in `recalibration_prompts/22-J1-prereq-fixes.md`.
+
 | Step | Service | Paste this prompt | Then |
 |---|---|---|---|
 | **J1** Grading UI shakedown | Claude Code launch + **YOU grade** | `recalibration_prompts/14-J1-grading-shakedown.md` | — |

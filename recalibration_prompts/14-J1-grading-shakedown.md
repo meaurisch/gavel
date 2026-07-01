@@ -8,6 +8,17 @@ the sweeps so far — axis picker + cascading cell pickers — and confirm blind
 
 ---
 
+### Step 0 — Pre-flight (do this first):
+
+```
+.venv\Scripts\python.exe scripts\check_grading_ready.py --db results.db
+```
+
+If it exits **1** (0 gradeable cells across all axes), **stop** — do NOT launch
+the UI. There is nothing to grade until a real axis sweep exists. Go run **A2**
+(`08-A2-methodology-axis.md`) and **A3** (`09-A3-repo-context-axis.md`) for real
+(drop `--dry-run`) first, then come back. Only proceed to Step 1 when it exits 0.
+
 ### Step 1 — Launch. Paste to Claude Code (or run it yourself):
 
 ```

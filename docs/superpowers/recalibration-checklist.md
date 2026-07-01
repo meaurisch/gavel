@@ -25,10 +25,10 @@ Living tracker for the sync & recalibration effort. Check items as checkpoints c
 - [x] **CHECKPOINT: notepad triage + fix**
 
 ## Phase A — Axis shakedown -> measurement
-- [ ] A1 execution spine (Task / gate / cost) — **CHECKPOINT**
+- [x] A1 execution spine (Task / gate / cost) — verified via results.db (cosmos-A oracle+nop+claude-code; pyvrp-A/B/C oracle+nop trials) — **CHECKPOINT**
 - [ ] A2 methodology axis — **CHECKPOINT**
 - [ ] A3 repo-context axis — **CHECKPOINT**
-- [ ] A4 model axis — **CHECKPOINT**
+- [x] A4 model axis — verified via results.db (cosmos-A/baseline/none/claude-code across haiku+sonnet+opus) + follow-up fixes 5c9fea7, df1bfd5, 7a5121d, 686cf00 — **CHECKPOINT**
 
 ## Phase R — Copilot (spike-gated) — DEFERRED (2026-07-01)
 Skipped for now: no Copilot account/subscription on hand, and the R0 spike isn't
@@ -40,7 +40,7 @@ becomes available. Work-models row in IMPLEMENTATION_PLAN.md §7 marked deferred
 - [~] R2 runner axis sweep — deferred (`manual`-runner fallback available)
 
 ## Phase J — Judgment end
-- [ ] J1 grading UI shakedown (HUMAN grades) — **NEXT** — **CHECKPOINT**
+- [ ] J1 grading UI shakedown (HUMAN grades) — **BLOCKED: run A2 + A3 for real first, then `scripts/check_grading_ready.py --db results.db` must report >=1 gradeable cell** (0 as of 2026-07-01; see `recalibration_prompts/22`) — **CHECKPOINT**
 - [ ] J2 Bradley-Terry + analyzer validated
 - [ ] J3 report command + Pareto frontier built (Design) — **FINAL CHECKPOINT**
 
