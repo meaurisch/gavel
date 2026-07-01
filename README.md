@@ -192,14 +192,23 @@ considered and rejected for now:
 
 ## Current state
 
-The full pipeline is built and tested (160 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
+The full pipeline is built and tested (195 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
 three-tier gate, axis-general blind grading, Bradley-Terry ranking, API-rate cost,
 and task-quality tooling. The task set now spans two repos/languages (PyVRP C++/Python
 and a .NET Cosmos DB service). The execution spine is shaken out end-to-end on Windows:
 the `claude-code` runner (prompt via stdin), the three-tier gate — which now auto-dispatches
 PyVRP build/test into WSL — and the leakage scanner all run green on the golden tasks
-(oracle PASS / nop FAIL for every task). Nothing has been run at scale yet; the next step
-is the first real measurement sweep.
+(oracle PASS / nop FAIL for every task).
+
+A **Model-axis shakedown** (cosmos-A, baseline, haiku/sonnet/opus, 1 rep) exercised
+the runner against real models and surfaced two runner bugs, both now fixed:
+`collect()` diffed against live HEAD, so a committing agent's entire diff vanished
+(the sonnet trial recorded a 0-length diff after $1.84 of real work) — it now diffs
+against the setup baseline captured before the agent runs; and the runner's default
+turn cap (25) contradicted the settled §7 cap (60), truncating cross-layer tasks —
+now reconciled. All three models priced correctly at their own API rate. The held-out-
+path-collision behavior (agent writes a test where the oracle lives) is documented as a
+deliberate fail-closed gate FAIL. The next step is the first real measurement sweep.
 
 **Engine & tasks (P0–P1)**
 - Core engine: models, DB, worktree isolation, runners, gate, leakage scanner.
@@ -243,8 +252,15 @@ is the first real measurement sweep.
 
 ## Next up
 
+- [x] **Model-axis shakedown** — ran cosmos-A across haiku/sonnet/opus; fixed the
+      diff-loss (baseline-ref) and max-turns (25→60) runner bugs it surfaced.
 - [ ] **First calibration run** — a small real sweep to land each task's pass
       rate in the 30–70% discrimination window.
+- [ ] **Persist `RunResult.error`** — the field exists on the dataclass but the
+      `run_result` table has no column, so parse/exit errors are dropped at insert
+      (only shown in the live progress table). Add the column + backfill.
+- [ ] **Provenance-aware leakage assertion** — prerequisite for overwrite-and-run
+      handling of held-out-path collisions (see the gate guardrail note).
 - [ ] **First grading session** — exercise the UI end-to-end on real trials.
 - [x] **Second repo/language landed** — `cosmos-A`/`cosmos-B` add .NET (one
       refactor, one feature), authored and validated.
