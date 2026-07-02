@@ -324,3 +324,23 @@ def test_grading_readiness_shape_and_counts(conn):
     assert model_entry["distinct_passing_values"] == 2
     # only c1/m1/ctx/r is gradeable (2 distinct passing models); c2 cell has 1
     assert model_entry["gradeable_cells"] == 1
+
+
+def test_grading_session_round_trip(tmp_path):
+    from core.db import connect, get_grading_session, insert_grading_session, list_grading_sessions
+    from core.models import GradingSession
+
+    conn = connect(tmp_path / "t.db")
+    s = GradingSession(
+        id="sess1",
+        axis="methodology",
+        cell={"task_id": "taskone", "model": "modelA"},
+        pairs=[("t1", "t2"), ("t2", "t3")],
+        created_at="2026-07-02T00:00:00+00:00",
+    )
+    insert_grading_session(conn, s)
+
+    loaded = get_grading_session(conn, "sess1")
+    assert loaded == s
+    assert get_grading_session(conn, "missing") is None
+    assert list_grading_sessions(conn) == [s]

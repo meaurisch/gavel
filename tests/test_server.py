@@ -296,3 +296,25 @@ def test_pairs_excludes_passing_trial_without_run_result(tmp_path):
         ids = {p["left"]["label"] for p in body["pairs"]} | {p["right"]["label"] for p in body["pairs"]}
         assert ids <= {"A", "B"}
         assert body["total_pairs"] >= 1
+
+
+def test_session_survives_server_restart(client):
+    resp = client.get("/api/pairs", params={
+        "axis": "model", "task": "taskone", "methodology": "methoda",
+        "repo_context": "ctxa", "runner": "runnera",
+    })
+    assert resp.status_code == 200
+    body = resp.json()
+    sid = body["session_id"]
+
+    r = client.post("/api/judge", json={"session_id": sid, "pair_index": 0, "choice": "A"})
+    assert r.status_code == 200
+
+    # Simulate a server restart: drop all in-memory session state.
+    server._sessions.clear()
+
+    # Judging and revealing must still work off the persisted session.
+    reveal = client.get("/api/reveal", params={"session_id": sid})
+    assert reveal.status_code == 200
+    judged = [p for p in reveal.json()["pairs"] if p["choice"] == "A"]
+    assert len(judged) == 1

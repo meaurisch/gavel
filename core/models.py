@@ -90,9 +90,22 @@ class Judgment:
 
 
 @dataclass
+class GradingSession:
+    """A persisted grading session: which axis was compared, in which cell,
+    over which ordered trial pairs. Persisting this (not just the judgments)
+    lets the Bradley-Terry ranking be rebuilt after a server restart and lets
+    `report` consume past sessions."""
+    id: str
+    axis: str
+    cell: dict[str, str]           # task_id + the pinned axis values
+    pairs: list[tuple[str, str]]   # ordered (left_trial_id, right_trial_id)
+    created_at: str
+
+
+@dataclass
 class LeakageReport:
     hits: list[str]
     any_found: bool
 
 
-ALL_MODELS = (TaskSpec, MethodologySpec, RepoContextSpec, Trial, RunResult, CostRecord, GateResult, Judgment, LeakageReport)
+ALL_MODELS = (TaskSpec, MethodologySpec, RepoContextSpec, Trial, RunResult, CostRecord, GateResult, Judgment, GradingSession, LeakageReport)

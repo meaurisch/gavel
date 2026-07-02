@@ -7,6 +7,7 @@ from pydantic import TypeAdapter
 from core.models import (
     CostRecord,
     GateResult,
+    GradingSession,
     Judgment,
     MethodologySpec,
     RepoContextSpec,
@@ -77,6 +78,14 @@ CREATE TABLE IF NOT EXISTS gate_result (
     visible_output TEXT,
     hidden_passed INTEGER,
     hidden_output TEXT
+);
+
+CREATE TABLE IF NOT EXISTS grading_session (
+    id TEXT PRIMARY KEY,
+    axis TEXT NOT NULL,
+    cell TEXT NOT NULL,
+    pairs TEXT NOT NULL,
+    created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS judgment (
@@ -281,6 +290,35 @@ def list_judgments(conn: sqlite3.Connection, session_id: str) -> list[Judgment]:
     ).fetchall()
     ta = TypeAdapter(Judgment)
     return [ta.validate_python(dict(r)) for r in rows]
+
+
+# -- grading sessions --
+
+def insert_grading_session(conn: sqlite3.Connection, s: GradingSession) -> None:
+    conn.execute(
+        "INSERT INTO grading_session VALUES (?, ?, ?, ?, ?)",
+        (s.id, s.axis, json.dumps(s.cell), json.dumps(s.pairs), s.created_at),
+    )
+    conn.commit()
+
+
+def _session_from_row(row) -> GradingSession:
+    d = dict(row)
+    d["cell"] = json.loads(d["cell"])
+    d["pairs"] = [tuple(p) for p in json.loads(d["pairs"])]
+    return TypeAdapter(GradingSession).validate_python(d)
+
+
+def get_grading_session(conn: sqlite3.Connection, id: str) -> GradingSession | None:
+    row = conn.execute("SELECT * FROM grading_session WHERE id = ?", (id,)).fetchone()
+    if row is None:
+        return None
+    return _session_from_row(row)
+
+
+def list_grading_sessions(conn: sqlite3.Connection) -> list[GradingSession]:
+    rows = conn.execute("SELECT * FROM grading_session ORDER BY created_at").fetchall()
+    return [_session_from_row(r) for r in rows]
 
 
 # -- grading queries --

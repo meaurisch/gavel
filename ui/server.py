@@ -15,6 +15,8 @@ from pydantic import BaseModel
 from core.db import (
     connect,
     grading_readiness,
+    get_grading_session,
+    insert_grading_session,
     insert_judgment,
     list_judgments,
     list_passing_trials,
@@ -27,7 +29,7 @@ from core.db import (
 )
 from core.matrix import HARNESS_MAP
 from core.methodology_loader import load_methodology
-from core.models import Judgment
+from core.models import GradingSession, Judgment
 from core.repo_context_loader import load_repo_context
 
 from grading.pairwise import generate_pairs, anonymize_diff, compute_proxy, DiffProxy, AXIS_FIELDS
@@ -77,6 +79,35 @@ class SessionState:
 
 
 _sessions: dict[str, SessionState] = {}
+
+
+def _get_session(session_id: str) -> SessionState | None:
+    """In-memory cache first, then the grading_session table — a session must
+    survive a server restart (its judgments are already persisted)."""
+    session = _sessions.get(session_id)
+    if session is not None:
+        return session
+
+    stored = get_grading_session(_conn, session_id)
+    if stored is None:
+        return None
+
+    # Rebuild judgments_made from the persisted judgments.
+    index_by_pair = {pair: i for i, pair in enumerate(stored.pairs)}
+    made = {
+        index_by_pair[(j.left_trial_id, j.right_trial_id)]
+        for j in list_judgments(_conn, session_id)
+        if (j.left_trial_id, j.right_trial_id) in index_by_pair
+    }
+    session = SessionState(
+        session_id=stored.id,
+        axis=stored.axis,
+        cell=stored.cell,
+        pairs=list(stored.pairs),
+        judgments_made=made,
+    )
+    _sessions[session_id] = session
+    return session
 
 
 def _inert_axis_ids(trials) -> set[str]:
@@ -336,6 +367,13 @@ async def get_pairs(
         pairs=id_pairs,
     )
     _sessions[session_id] = session
+    insert_grading_session(_conn, GradingSession(
+        id=session_id,
+        axis=axis,
+        cell=cell,
+        pairs=id_pairs,
+        created_at=datetime.now(timezone.utc).isoformat(),
+    ))
 
     # Blind all axis ids across all four axes (minus causally-inert ones —
     # ids that lay down no files can't leak into a diff, and redacting them
@@ -397,7 +435,7 @@ async def get_pairs(
 
 @app.post("/api/judge")
 async def judge(req: JudgeRequest) -> JudgeResponse:
-    session = _sessions.get(req.session_id)
+    session = _get_session(req.session_id)
     if session is None:
         raise HTTPException(404, "Session not found")
 
@@ -433,7 +471,7 @@ async def judge(req: JudgeRequest) -> JudgeResponse:
 
 @app.get("/api/reveal")
 async def reveal(session_id: str) -> RevealResponse:
-    session = _sessions.get(session_id)
+    session = _get_session(session_id)
     if session is None:
         raise HTTPException(404, "Session not found")
 
