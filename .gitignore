@@ -43,3 +43,8 @@ worktrees/
 methodologies/**/vendor/
 repo_contexts/**/vendor/
 *.log
+
+# Generated artifacts
+reports/
+results-demo.db
+results-*.db

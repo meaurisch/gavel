@@ -353,6 +353,29 @@ def setup(
 
 
 @app.command()
+def demo(
+    db: Path = typer.Option(Path("results-demo.db"), help="Demo database path"),
+    force: bool = typer.Option(False, "--force", help="Overwrite an existing demo DB"),
+):
+    """Seed a synthetic demo database (zero API spend, no repos needed) so you
+    can try the grading UI and the report right away."""
+    sys.path.insert(0, str(Path(__file__).parent / "scripts"))
+    from seed_demo import seed_demo
+
+    if db.exists():
+        if not force:
+            console.print(f"[yellow]{db} already exists — pass --force to overwrite.[/]")
+            raise typer.Exit(code=1)
+        db.unlink()
+
+    seed_demo(db)
+    console.print(f"[green]Demo data seeded into {db}[/] (ids are prefixed 'demo-' — this is synthetic showcase data).\n")
+    console.print("Try it:")
+    console.print(f"  [bold]python cli.py grade  --db {db}[/]   # blind pairwise grading UI")
+    console.print(f"  [bold]python cli.py report --db {db}[/]   # ranking + Pareto frontier artifact")
+
+
+@app.command()
 def doctor():
     """Check toolchains, task repos, vendor packs, and pricing readiness."""
     sys.path.insert(0, str(Path(__file__).parent / "scripts"))
