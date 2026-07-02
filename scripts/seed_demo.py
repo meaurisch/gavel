@@ -249,12 +249,14 @@ def seed_demo(db_path: Path) -> sqlite3.Connection:
     choices: list[str] = []
     for i, stronger in enumerate(order):
         for weaker in order[i + 1:]:
-            for k in range(min(len(passers[stronger]), len(passers[weaker]))):
-                pairs.append((passers[stronger][k], passers[weaker][k]))
-                choices.append("A")
-    if len(choices) >= 6:
-        choices[3] = "B"     # one upset
-        choices[5] = "tie"   # one tie
+            for a in passers[stronger]:
+                for b in passers[weaker]:
+                    pairs.append((a, b))
+                    choices.append("A")
+    # A few upsets/ties for realism (deterministic positions).
+    for idx, choice in ((3, "B"), (5, "tie"), (11, "tie"), (17, "B"), (23, "tie")):
+        if idx < len(choices):
+            choices[idx] = choice
 
     session_id = "demo-pregraded-session"
     insert_grading_session(conn, GradingSession(

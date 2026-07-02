@@ -37,12 +37,11 @@ def _nice_ticks(lo: float, hi: float, n: int = 5) -> list[float]:
         step = m * mag
         if raw <= step:
             break
-    start = math.floor(lo / step) * step
+    start = math.ceil(lo / step - 1e-9) * step
     ticks = []
     t = start
-    while t <= hi + step * 0.5:
-        if t >= lo - step * 0.5:
-            ticks.append(round(t, 10))
+    while t <= hi + step * 1e-9:
+        ticks.append(round(t, 10))
         t += step
     return ticks
 
@@ -50,6 +49,8 @@ def _nice_ticks(lo: float, hi: float, n: int = 5) -> list[float]:
 def _fmt_usd(v: float | None) -> str:
     if v is None:
         return "—"
+    if v == 0:
+        return "$0"
     return f"${v:,.2f}" if v >= 0.10 else f"${v:,.3f}"
 
 
@@ -127,7 +128,9 @@ def render_pareto_svg(report: ReportData) -> str:
             d += f" L {X(nxt.mean_usd):.1f} {Y(_elo(nxt.bt_strength)):.1f}"
         parts.append(f'<path class="frontier-line" d="{d}"/>')
 
-    # Points: CI bar, marker, pick ring, direct label, native tooltip
+    # Points: CI bar, marker, pick ring, native tooltip. Direct labels are
+    # collected first so overlapping ones can be pushed apart before emission.
+    labels: list[dict] = []
     for s in sorted(pts, key=lambda p: p.mean_usd):
         x = X(s.mean_usd)
         y = Y(_elo(s.bt_strength))
@@ -159,8 +162,19 @@ def render_pareto_svg(report: ReportData) -> str:
         )
 
         label = s.value + (f"  ({' + '.join(badges)})" if badges else "")
+        labels.append({"x": x + 12, "y": y, "text": label, "cls": cls})
+
+    # De-overlap direct labels: labels whose x-ranges can collide get pushed
+    # apart vertically (14px line height).
+    labels.sort(key=lambda l: l["y"])
+    for i, lab in enumerate(labels):
+        for prev in labels[:i]:
+            if abs(lab["x"] - prev["x"]) < 170 and lab["y"] - prev["y"] < 14:
+                lab["y"] = prev["y"] + 14
+    for lab in labels:
         parts.append(
-            f'<text class="pt-label {cls}" x="{x + 12:.1f}" y="{y:.1f}" dy="0.32em">{_esc(label)}</text>'
+            f'<text class="pt-label {lab["cls"]}" x="{lab["x"]:.1f}" y="{lab["y"]:.1f}" '
+            f'dy="0.32em">{_esc(lab["text"])}</text>'
         )
 
     # Legend (top-right margin space)
