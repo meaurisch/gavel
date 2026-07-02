@@ -26,7 +26,10 @@ Living tracker for the sync & recalibration effort. Check items as checkpoints c
 
 ## Phase A — Axis shakedown -> measurement
 - [x] A1 execution spine (Task / gate / cost) — verified via results.db (cosmos-A oracle+nop+claude-code; pyvrp-A/B/C oracle+nop trials) — **CHECKPOINT**
-- [ ] A2 methodology axis — **CHECKPOINT**
+- [ ] A2 methodology axis — partial: baseline vs karpathy ran for real on cosmos-A
+      (claude-haiku-4-5, reps=2, $1.23, 2026-07-02) proving cross-methodology
+      lay-down + gate + cost on the live CLI; the full 5-methodology reps=3 sweep
+      remains — **CHECKPOINT**
 - [ ] A3 repo-context axis — **CHECKPOINT**
 - [x] A4 model axis — verified via results.db (cosmos-A/baseline/none/claude-code across haiku+sonnet+opus) + follow-up fixes 5c9fea7, df1bfd5, 7a5121d, 686cf00 — **CHECKPOINT**
 
@@ -40,9 +43,21 @@ becomes available. Work-models row in IMPLEMENTATION_PLAN.md §7 marked deferred
 - [~] R2 runner axis sweep — deferred (`manual`-runner fallback available)
 
 ## Phase J — Judgment end
-- [ ] J1 grading UI shakedown (HUMAN grades) — **BLOCKED: run A2 + A3 for real first, then `scripts/check_grading_ready.py --db results.db` must report >=1 gradeable cell** (0 as of 2026-07-01; see `recalibration_prompts/22`) — **CHECKPOINT**
-- [ ] J2 Bradley-Terry + analyzer validated
-- [ ] J3 report command + Pareto frontier built (Design) — **FINAL CHECKPOINT**
+- [x] J1 grading UI shakedown — done 2026-07-02, unblocked differently than planned:
+      gradeable data came from (a) the synthetic demo DB (`python cli.py demo`) and
+      (b) four REAL manual-runner cosmos-B trials (two hand-authored solution
+      variants, all hidden-gate PASS, `check_grading_ready` reported the project's
+      first gradeable cell). Driven end-to-end with Playwright (screenshots in
+      `docs/screenshots/`), blinding verified on the served diffs. Found+fixed the
+      founder bug: diff panes had NEVER rendered (wrong diff2html global). Sessions
+      now persist across server restarts; judgments are latest-wins per pair.
+- [x] J2 Bradley-Terry + analyzer validated — exercised live via /api/reveal and
+      `cli.py report` on demo + real data; covered by tests/test_bradley_terry.py,
+      test_analyzer.py, test_aggregate.py.
+- [x] J3 report command + Pareto frontier built — `cli.py report`: BT ranking with
+      bootstrap CIs, gate tiers, cost rollup, analyzer flags, stakes picks, and a
+      self-contained HTML artifact with the inline-SVG frontier chart. — **FINAL
+      CHECKPOINT** done via an 8-angle adversarial review (8 findings, all fixed).
 
 ## Phase M — First calibration sweep
 - [ ] tasks landed in 30-70% band; first real ranking produced

@@ -56,9 +56,10 @@ Status reflects the current code state.
 **`P3-aggregation-report.md` (the original single "P3"):** folded into the P3.x
 series. Its pairwise win-matrix / preponderance ranking is **superseded by P3.5**
 (Bradley-Terry replaces it). Its cost-frontier + stakes decision rollup + HTML
-report are **not yet built** by any P3.x prompt — they remain as post-P3.7 work
-(P3.7's "Next up" lists the Pareto-frontier visualization). Kept as a pointer,
-not deleted.
+report **shipped 2026-07-02** as `cli.py report` (grading/aggregate.py +
+grading/report_html.py): BT ranking with CIs, cost rollup, Pareto frontier with
+the §6 stakes picks, self-contained HTML artifact. Kept as a pointer, not
+deleted.
 
 ## Studio reconciliation, at a glance
 

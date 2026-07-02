@@ -122,11 +122,11 @@ Green-light Phase 1's measurement (and again before the work-confirmation tier) 
 - [x] Leakage check **green** for every task (no dangling references in tree / recent git log / comments).
 - [x] Methodology packs installed in each harness's native form and **frozen** (snapshot committed).
 - [x] Repo-contexts authored and **frozen**, each tagged with `task_affinity`; `none` control present.
-- [ ] Instructions-OFF ablation (`baseline` methodology + `none` repo-context) works. *(awaits A1 — first real trial)*
-- [ ] **Three-tier gate validated** (compile / visible / hidden) — `oracle` → all-pass, `nop` → fails at the first meaningful tier — on every task. *(pyvrp via validate_tasks; cosmos + spine validation awaits A1)*
-- [ ] Runner abstraction validated with `manual` + `claude-code`. *(awaits A1)*
-- [ ] Cost capture validated: token counts priced from `pricing.toml`; Claude self-reported figure parsed as secondary; Copilot calculator reproduces a known dashboard delta within tolerance. *(awaits A1 / Copilot spike)*
-- [ ] Pairwise UI tested with dummy diffs (anonymization confirmed — the grader cannot tell which **value of the comparison axis** a diff came from; every axis id is blinded). *(awaits J1)*
+- [x] Instructions-OFF ablation (`baseline` methodology + `none` repo-context) works. *(real baseline/none haiku trials ran 2026-07-02)*
+- [x] **Three-tier gate validated** (compile / visible / hidden) — `oracle` → all-pass, `nop` → fails at the first meaningful tier — on every task. *(all 5 tasks on the reproducibly-rebuilt bases: pyvrp via WSL, cosmos via dotnet 8, 2026-07-02)*
+- [x] Runner abstraction validated with `manual` + `claude-code`. *(manual: 4 cosmos-B variant trials through the full pipeline; claude-code: 3 billed haiku trials, 2026-07-02)*
+- [x] Cost capture validated: token counts priced from `pricing.toml`; Claude self-reported figure parsed as secondary. *(3 billed trials, $1.23 total, token-priced; Copilot calculator deferred with Phase R)*
+- [x] Pairwise UI tested with dummy diffs (anonymization confirmed — the grader cannot tell which **value of the comparison axis** a diff came from; every axis id is blinded). *(J1 done 2026-07-02: demo + real data, blinding asserted on served diffs)*
 - [x] Matrix driver scripted; full dry run on one task × all methodologies × repo-contexts completed.
 
 ---

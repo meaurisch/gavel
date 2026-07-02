@@ -85,11 +85,37 @@ The full design — architecture, phasing, run protocol, decision rule — lives
 `IMPLEMENTATION_PLAN.md`. Guidance on writing discriminative tasks is in
 `docs/task-design-guide.md`.
 
+## Quickstart
+
+```powershell
+git clone <this-repo> setup-bench && cd setup-bench
+.\tasks.ps1 Setup     # venv + deps + clone task repos + rebuild task bases + doctor
+```
+
+`Setup` runs `python cli.py setup`, which makes a fresh clone fully runnable:
+it clones the task repos, **deterministically rebuilds the synthesized task
+base commits** (see `tasks/_repo_setup/repos.lock.yaml` — same sha on every
+machine), and vendors the methodology packs. `python cli.py doctor` then
+prints a green/red readiness table (git, claude CLI, dotnet, WSL, bases,
+vendor packs, pricing).
+
+Want to see the tool before spending a cent? Seed the synthetic demo:
+
+```powershell
+python cli.py demo                       # builds results-demo.db (zero API spend)
+python cli.py grade  --db results-demo.db    # blind pairwise grading UI
+python cli.py report --db results-demo.db    # ranking + Pareto frontier artifact
+```
+
+![Blind pairwise grading](docs/screenshots/grading-compare.png)
+
 ## How to run it
 
 ```powershell
-.\tasks.ps1 Run       # execute trials
+.\tasks.ps1 Run       # execute trials (passes args through to `cli.py run`)
 .\tasks.ps1 Grade     # launch the pairwise grading UI
+.\tasks.ps1 Report    # rank an axis: BT scores + CIs, cost, Pareto frontier
+.\tasks.ps1 Watch     # run tests on every file change
 ```
 
 Under the hood these call `cli.py`. The main options:
@@ -99,13 +125,21 @@ python cli.py run --task all --methodology all --repo-context all \
     --model claude-sonnet-4-6 --reps 3 --dry-run
 ```
 
-- `--task / --methodology / --repo-context` — an id or `all`
+- `--task / --methodology / --repo-context` — an id, comma-separated ids, or `all`
 - `--model` — comma-separated model ids (required)
 - `--runner` — execution harness (default `claude-code`)
 - `--reps` — repetitions per cell (default 3)
 - `--full-matrix` — ignore `task_affinity` and run every task/context pairing
 - `--dry-run` — print the trial grid and exit
 - `--delay` — seconds between trials (rate limiting)
+
+After grading, `python cli.py report --axis methodology` prints the
+Bradley-Terry ranking (Elo + bootstrap CIs), three-tier gate pass rates, the
+cost rollup, analyzer flags, and the two stakes-based picks — and writes a
+self-contained HTML artifact under `reports/` with the quality-vs-cost Pareto
+frontier:
+
+![Pareto frontier report](docs/screenshots/report-pareto.png)
 
 Manage the pricing table with `python cli.py pricing list|fetch|add`.
 
@@ -125,7 +159,7 @@ wsl -d Ubuntu -- bash -c 'source ~/pyvrp-venv/bin/activate && \
   python scripts/validate_tasks.py --verbose --skip-toolchain-check'
 ```
 
-Claude Code CLI version used: 2.1.185
+Claude Code CLI version used: 2.1.198
 
 ### Task fields & visible-test composition
 
@@ -195,29 +229,39 @@ guessed the same test path. The overwritten agent file is restored after the run
 
 ## Current state
 
-The full pipeline is built and tested (204 tests green (1 env-gated test deselected)) — engine, 5-axis matrix,
-three-tier gate, axis-general blind grading, Bradley-Terry ranking, API-rate cost,
-and task-quality tooling. The task set now spans two repos/languages (PyVRP C++/Python
-and a .NET Cosmos DB service). The execution spine is shaken out end-to-end on Windows:
-the `claude-code` runner (prompt via stdin), the three-tier gate — which now auto-dispatches
-PyVRP build/test into WSL — and the leakage scanner all run green on the golden tasks
-(oracle PASS / nop FAIL for every task).
+The full pipeline is built and tested (267 tests green, 1 env-gated test
+deselected) — engine, 5-axis matrix, three-tier gate, axis-general blind
+grading, Bradley-Terry ranking, API-rate cost, the report command with the
+quality-vs-cost Pareto frontier, and task-quality tooling. The task set spans
+two repos/languages (PyVRP C++/Python and a .NET Cosmos DB service).
 
-A **Model-axis shakedown** (cosmos-A, baseline, haiku/sonnet/opus, 1 rep) exercised
-the runner against real models and surfaced a batch of runner/gate bugs, all now
-fixed. The two headline ones: `collect()` diffed against live HEAD, so a committing
-agent's entire diff vanished (the sonnet trial recorded a 0-length diff after $1.84
-of real work) — it now diffs against the setup baseline captured before the agent
-runs; and the runner's default turn cap (25) contradicted the settled §7 cap (60),
-truncating cross-layer tasks — now reconciled. The follow-ups then landed:
-`RunResult.error` is now persisted to `results.db` (it was dropped at insert), an
-empty agent diff is surfaced as an explicit error (a real no-op signal now that the
-diff-loss bug is fixed), `collect()` requires an explicit baseline (no silent HEAD
-default for the next committing runner to trip over), and the held-out-path collision
-(agent writes a test where the oracle lives) is now handled **provenance-aware**:
-overwrite-and-run for the agent's own file, still fatal for a genuine setup leak. All
-three models priced correctly at their own API rate. The next step is the first real
-measurement sweep.
+**A fresh clone is fully reproducible.** Task base commits are locally
+synthesized (a task's feature reverse-applied onto a pinned upstream anchor;
+for cosmos, a csproj/sln-only net8 migration patch) and are rebuilt by
+`python cli.py setup` with pure git plumbing under fixed metadata — every
+machine derives the same base shas, locked in
+`tasks/_repo_setup/repos.lock.yaml`. All five tasks re-validate on the
+rebuilt bases: oracle PASS / nop FAIL (pyvrp via WSL, cosmos via dotnet 8).
+
+**The whole decision loop has run end-to-end.** The grading UI was shaken out
+with Playwright on both the synthetic demo DB and real pipeline data: four
+manual-runner cosmos-B trials (two hand-authored solution variants) passed
+the hidden gate, were graded blind through the UI — with blinding verified on
+the served diffs — and produced a Bradley-Terry ranking and report, at zero
+API cost. A minimal real sweep (cosmos-A × baseline/karpathy ×
+claude-haiku-4-5 × 2 reps, $1.23 total) exercised the claude-code runner,
+per-methodology lay-down, the gate tiers, token-priced cost capture, and the
+retry-on-transient-failure path against the live CLI. Hidden-gate passes:
+0/3 — cosmos-A remains uncalibrated for haiku (a known, measured gap; see
+Next up).
+
+That shakedown also caught and fixed a founder bug: the grading UI's diff
+panes had never rendered (wrong diff2html global — blank panes by
+construction, invisible until gradeable data existed). Sessions are now
+persisted (rankings survive a server restart), judgments are
+latest-wins-per-pair (re-grading can't double-weight Bradley-Terry), diff
+blinding matches whole tokens without mangling identifiers, and errored-but-
+billed trials are counted in the run-summary cost total.
 
 **Engine & tasks (P0–P1)**
 - Core engine: models, DB, worktree isolation, runners, gate, leakage scanner.
@@ -262,32 +306,23 @@ measurement sweep.
 
 ## Next up
 
-- [x] **Model-axis shakedown** — ran cosmos-A across haiku/sonnet/opus; fixed the
-      diff-loss (baseline-ref) and max-turns (25→60) runner bugs it surfaced.
-- [ ] **First calibration run** — a small real sweep to land each task's pass
-      rate in the 30–70% discrimination window.
-- [x] **Persist `RunResult.error`** — added the `run_result.error` column (+ backfill);
-      parse/exit/gate-crash errors now survive to `results.db`, and an all-no-op
-      (empty-diff) trial is flagged as an explicit error.
-- [x] **Provenance-aware leakage assertion** — held-out-path collisions now
-      overwrite-and-run for agent-provenance files while staying fatal for genuine
-      setup leaks (see the gate guardrail note).
-- [ ] **J1 — grading UI shakedown (BLOCKED)** — the pairwise UI needs gradeable
-      data, and there is none: only baseline/none trials exist, so
-      `scripts/check_grading_ready.py --db results.db` reports 0 gradeable cells
-      (as of 2026-07-01). Unblock by running **A2** (methodology axis) and **A3**
-      (repo-context axis) for real — not the shakedown dry-runs — then launch J1.
+- [ ] **First calibration sweep** — land each task's real pass rate in the
+      30–70% discrimination window. cosmos-A is the known outlier: 0 hidden-gate
+      passes across 9 real haiku trials so far (its gate is too strict for the
+      cheap model). Use `scripts/calibrate_tasks.py` + human judgment per
+      `recalibration_prompts/19-M-calibration-sweep.md` — a frozen golden task
+      only changes with a human OK.
+- [ ] **A2/A3 measurement runs** — the full methodology and repo-context sweeps
+      at reps=3 (bounded, ~$10; see `recalibration_prompts/23`–`26`), then blind
+      grading on the real data. The grade→rank path is already proven end-to-end
+      on manual-runner data.
+- [ ] **Pure-Python starter task** — one task on a small pip+pytest repo so
+      newcomers need neither WSL nor the dotnet SDK. The reproducible-base
+      recipe is ready (`tasks/_repo_setup/repos.lock.yaml` +
+      `scripts/bootstrap_repos.py:build_base`); an authoring run was cut short
+      by an account spend limit — pick a self-contained feature (a
+      more-itertools-style utility is the ideal shape), reverse-apply it onto a
+      pinned anchor, strengthen its tests, validate oracle/nop.
 - [~] **Phase R (Copilot) — DEFERRED (2026-07-01)** — no Copilot account/plan on
-      hand; the R0 spike isn't worth a paid trial now. Runner axis stays coverable
-      via the `manual` runner. Revive prompts 11–13 if a Copilot plan appears.
-- [x] **Second repo/language landed** — `cosmos-A`/`cosmos-B` add .NET (one
-      refactor, one feature), authored and validated.
-- [ ] **Task-suite expansion** — add more cross-repo tasks to broaden coverage.
-- [ ] **Pareto frontier visualization** — plot quality vs. cost so the
-      tradeoffs the analyzer flags are visible at a glance (`report` command is
-      still a stub).
-- [x] Open knobs in `IMPLEMENTATION_PLAN.md` §7 settled (reps=3, max-turns=60,
-      `custom` in scope, comparison axis per-experiment; work models **deferred** —
-      Copilot out of scope for now, see the deferred Phase R above).
-- [ ] **Sync & recalibration** in progress — golden cross-repo test set, then
-      axis-by-axis shakedown. See `docs/superpowers/recalibration-checklist.md`.
+      hand. Runner axis stays coverable via the `manual` runner. Revive prompts
+      11–13 if a Copilot plan appears.

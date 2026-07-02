@@ -91,12 +91,13 @@ CHECKPOINT.
 
 ## Phase J — The judgment end (where you act)
 
-> **Prerequisite before J1:** real **A2** (`08-A2-methodology-axis.md`, drop
-> `--dry-run`) and **A3** (`09-A3-repo-context-axis.md`, drop `--dry-run`) must
-> have actually run — not just the shakedown dry-runs — and
-> `scripts/check_grading_ready.py --db results.db` must exit 0 (>=1 gradeable
-> cell on some axis) before you paste J1. With only baseline/none trials there
-> is nothing to grade. Diagnosed in `recalibration_prompts/22-J1-prereq-fixes.md`.
+> **Phase J is DONE (2026-07-02).** J1 was unblocked without waiting on the full
+> A2/A3 sweeps: gradeable data came from the synthetic demo DB (`python cli.py
+> demo`) plus four real manual-runner cosmos-B trials (hand-authored solution
+> variants, hidden-gate PASS — the first gradeable cell in the project's
+> history). The UI was driven end-to-end (Playwright, blinding verified), J2's
+> BT+analyzer ran live, and J3's report/Pareto shipped. The A2/A3 measurement
+> sweeps are still worth running for real data — see README "Next up".
 
 | Step | Service | Paste this prompt | Then |
 |---|---|---|---|
