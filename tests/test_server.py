@@ -264,3 +264,35 @@ def test_inert_axis_ids_skips_no_file_specs():
     assert "none" in inert
     assert "no-such-methodology" not in inert
     assert "no-such-ctx" not in inert
+
+
+def test_pairs_excludes_passing_trial_without_run_result(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from core.db import insert_gate_result, insert_trial
+    from core.models import GateResult, Trial
+
+    db_path = tmp_path / "results.db"
+    conn = connect(db_path)
+    _seed_trial(conn, trial_id="ok1", task_id="t", methodology_id="m",
+                repo_context_id="c", model="modelone", runner="r")
+    _seed_trial(conn, trial_id="ok2", task_id="t", methodology_id="m",
+                repo_context_id="c", model="modeltwo", runner="r")
+    # Gate-passing trial with NO run_result row: must be excluded, not 500.
+    broken = Trial(id="broken", task_id="t", methodology_id="m",
+                   repo_context_id="c", model="modelthree", runner="r", rep=0)
+    insert_trial(conn, broken)
+    insert_gate_result(conn, GateResult(trial_id="broken", passed=True, hidden_passed=True))
+    conn.close()
+
+    server.set_db_path(db_path)
+    with TestClient(server.app) as c:
+        resp = c.get("/api/pairs", params={
+            "axis": "model", "task": "t", "methodology": "m",
+            "repo_context": "c", "runner": "r",
+        })
+        assert resp.status_code == 200
+        body = resp.json()
+        ids = {p["left"]["label"] for p in body["pairs"]} | {p["right"]["label"] for p in body["pairs"]}
+        assert ids <= {"A", "B"}
+        assert body["total_pairs"] >= 1

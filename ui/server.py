@@ -296,10 +296,6 @@ async def get_pairs(
 
     trials = list_passing_trials(_conn, task_id=task, **pinned)
 
-    distinct_values = {getattr(t, comparison_col) for t in trials}
-    if len(distinct_values) < 2:
-        raise HTTPException(400, "Not enough passing values for this axis in the selected cell")
-
     run_results: dict[str, object] = {}
     gate_results: dict[str, object] = {}
     for t in trials:
@@ -309,6 +305,17 @@ async def get_pairs(
         gr = get_gate_result(_conn, t.id)
         if gr is not None:
             gate_results[t.id] = gr
+
+    # A passing trial with no run_result has no diff to show — drop it rather
+    # than 500 on a KeyError below.
+    missing = [t.id for t in trials if t.id not in run_results]
+    if missing:
+        logger.warning("Excluding %d gate-passing trial(s) with no run_result: %s", len(missing), missing)
+        trials = [t for t in trials if t.id in run_results]
+
+    distinct_values = {getattr(t, comparison_col) for t in trials}
+    if len(distinct_values) < 2:
+        raise HTTPException(400, "Not enough passing values for this axis in the selected cell")
 
     trial_pairs = generate_pairs(trials, run_results, axis)
 
