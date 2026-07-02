@@ -61,7 +61,7 @@ def test_load_task_bakes_resolved_visible_cmd(tmp_path):
 
 def test_list_tasks():
     tasks = list_tasks()
-    assert set(tasks) == {"pyvrp-A", "pyvrp-B", "pyvrp-C", "cosmos-A", "cosmos-B"}
+    assert set(tasks) == {"pyvrp-A", "pyvrp-B", "pyvrp-C", "cosmos-A", "cosmos-B", "moreiter-A"}
 
 
 def test_load_task():
