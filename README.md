@@ -17,7 +17,7 @@ fixed.
 
 | Axis | What it is | Example values |
 |------|-----------|----------------|
-| **Task** | The coding problem to solve | `pyvrp-A`…`pyvrp-C`, `cosmos-A`, `cosmos-B` |
+| **Task** | The coding problem to solve | `pyvrp-A`…`pyvrp-C`, `cosmos-A`, `cosmos-B`, `moreiter-A` |
 | **Methodology** | General-purpose instruction / skill pack (the framework under test) | `baseline`, `superpowers`, `karpathy`, `ecc` |
 | **Repo-Context** | Repo-specific instructions (held fixed or varied per experiment) | `none`, `pyvrp-instructions` |
 | **Model** | The LLM model | `claude-sonnet-4-6`, `claude-opus-4-8` |
@@ -142,6 +142,9 @@ frontier:
 ![Pareto frontier report](docs/screenshots/report-pareto.png)
 
 Manage the pricing table with `python cli.py pricing list|fetch|add`.
+
+**Per-task toolchains.** `moreiter-A` runs anywhere Python does — start there
+if you have neither WSL nor the dotnet SDK. `cosmos-*` needs the .NET 8 SDK.
 
 **WSL required for PyVRP tasks.** PyVRP's C++ doesn't compile under MSVC, so the
 `pyvrp-*` tasks build under WSL (Ubuntu). `cli.py run` handles this automatically:
@@ -316,13 +319,10 @@ billed trials are counted in the run-summary cost total.
       at reps=3 (bounded, ~$10; see `recalibration_prompts/23`–`26`), then blind
       grading on the real data. The grade→rank path is already proven end-to-end
       on manual-runner data.
-- [ ] **Pure-Python starter task** — one task on a small pip+pytest repo so
-      newcomers need neither WSL nor the dotnet SDK. The reproducible-base
-      recipe is ready (`tasks/_repo_setup/repos.lock.yaml` +
-      `scripts/bootstrap_repos.py:build_base`); an authoring run was cut short
-      by an account spend limit — pick a self-contained feature (a
-      more-itertools-style utility is the ideal shape), reverse-apply it onto a
-      pinned anchor, strengthen its tests, validate oracle/nop.
+- [x] **Pure-Python starter task** — `moreiter-A` (more-itertools
+      running-aggregates family): pip+pytest gate, no WSL, no dotnet.
+      oracle=PASS / nop=FAIL on Windows; base rebuilt deterministically like
+      the others.
 - [~] **Phase R (Copilot) — DEFERRED (2026-07-01)** — no Copilot account/plan on
       hand. Runner axis stays coverable via the `manual` runner. Revive prompts
       11–13 if a Copilot plan appears.
