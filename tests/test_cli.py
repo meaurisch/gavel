@@ -36,6 +36,40 @@ def test_force_utf8_ignores_stream_without_reconfigure():
     _force_utf8([_NoReconfigure()])
 
 
+def test_summarize_includes_errored_but_billed_cost():
+    from cli import _summarize
+
+    # Regression: an errored trial with real billed cost must count toward
+    # total_usd but not toward passed/failed.
+    results = {
+        "t1": {"passed": None, "usd": 0.12, "tokens": 9000, "wall_seconds": 30.0,
+               "error": "agent produced an empty diff (no changes)"},
+    }
+    passed, failed, errors, total_usd = _summarize(results)
+    assert (passed, failed, errors) == (0, 0, 1)
+    assert total_usd == 0.12
+
+
+def test_summarize_excludes_skipped_from_everything():
+    from cli import _summarize
+
+    results = {"t1": {"skipped": True}}
+    passed, failed, errors, total_usd = _summarize(results)
+    assert (passed, failed, errors, total_usd) == (0, 0, 0, 0.0)
+
+
+def test_summarize_normal_pass_fail_unchanged():
+    from cli import _summarize
+
+    results = {
+        "t1": {"passed": True, "usd": 0.10, "tokens": 100, "wall_seconds": 5.0, "error": None},
+        "t2": {"passed": False, "usd": 0.20, "tokens": 200, "wall_seconds": 6.0, "error": None},
+    }
+    passed, failed, errors, total_usd = _summarize(results)
+    assert (passed, failed, errors) == (1, 1, 0)
+    assert abs(total_usd - 0.30) < 1e-9
+
+
 def test_progress_table_trial_column_is_compact():
     from core.models import Trial
     from cli import _progress_table

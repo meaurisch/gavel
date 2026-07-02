@@ -30,6 +30,23 @@ app.add_typer(pricing_app, name="pricing")
 console = Console()
 
 
+def _summarize(results: dict[str, dict]) -> tuple[int, int, int, float]:
+    """Aggregate execution summaries into (passed, failed, errors, total_usd).
+
+    passed/failed only count trials with a meaningful gate verdict (not
+    skipped, not errored). total_usd sums every non-skipped trial — an
+    errored trial can still carry real billed cost (e.g. "agent produced an
+    empty diff") and must not be dropped from the printed total.
+    """
+    ran = [r for r in results.values() if not r.get("skipped")]
+    done = [r for r in ran if not r.get("error")]
+    passed = sum(1 for r in done if r.get("passed"))
+    failed = sum(1 for r in done if r.get("passed") is False)
+    errors = sum(1 for r in ran if r.get("error"))
+    total_usd = sum(r.get("usd") or 0 for r in ran)
+    return passed, failed, errors, total_usd
+
+
 def _grid_table(trials: list[Trial]) -> Table:
     table = Table(title="Trial Grid")
     table.add_column("Trial ID", style="cyan")
@@ -139,11 +156,7 @@ def run(
 
         execute_all(trials, conn, delay=delay, on_progress=on_progress, keep_worktree=keep_worktree)
 
-    done = [r for r in results.values() if not r.get("skipped") and not r.get("error")]
-    passed = sum(1 for r in done if r.get("passed"))
-    failed = sum(1 for r in done if r.get("passed") is False)
-    errors = sum(1 for r in results.values() if r.get("error"))
-    total_usd = sum(r.get("usd", 0) for r in done)
+    passed, failed, errors, total_usd = _summarize(results)
 
     console.print(f"\n[bold]Done.[/] {passed} passed, {failed} failed, {errors} errors. Total cost: ${total_usd:.2f}")
 
