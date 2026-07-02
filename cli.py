@@ -113,9 +113,14 @@ def run(
         format="%(levelname)s %(name)s: %(message)s",
     )
 
-    tasks = list_tasks() if task == "all" else [task]
-    methodologies = list_methodologies() if methodology == "all" else [methodology]
-    repo_contexts = list_repo_contexts() if repo_context == "all" else [repo_context]
+    def _ids(value: str, list_all) -> list[str]:
+        if value == "all":
+            return list_all()
+        return [v.strip() for v in value.split(",") if v.strip()]
+
+    tasks = _ids(task, list_tasks)
+    methodologies = _ids(methodology, list_methodologies)
+    repo_contexts = _ids(repo_context, list_repo_contexts)
     models = [m.strip() for m in model.split(",") if m.strip()]
 
     if not models:

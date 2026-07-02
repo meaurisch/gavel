@@ -89,3 +89,23 @@ def test_progress_table_trial_column_is_compact():
     # Cell text should be compact label, not the full id
     cell_text = table.columns[0]._cells[0]
     assert cell_text == f"{trial.task_id} #{trial.rep}"
+
+
+def test_run_splits_comma_separated_axis_lists(tmp_path):
+    """--task/--methodology/--repo-context accept comma-separated ids, like
+    --model always has (regression: a comma list used to be treated as one
+    nonexistent id and filtered the whole grid away)."""
+    from typer.testing import CliRunner
+
+    from cli import app
+
+    runner = CliRunner()
+    result = runner.invoke(app, [
+        "run", "--task", "cosmos-A,cosmos-B",
+        "--methodology", "baseline,karpathy",
+        "--repo-context", "none",
+        "--model", "m1", "--runner", "nop", "--reps", "1",
+        "--db", str(tmp_path / "t.db"), "--dry-run",
+    ])
+    assert result.exit_code == 0, result.output
+    assert "4 trials = 2 tasks x 2 methodologies" in result.output
