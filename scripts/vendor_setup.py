@@ -29,6 +29,20 @@ VENDOR_SOURCES: dict[str, list[str]] = {
 }
 
 
+def list_vendor_packs() -> list[tuple[str, bool]]:
+    """Every methodology with an external source, with whether its vendor dir
+    is populated. Single source of truth for `cli.py setup` and the doctor."""
+    packs: list[tuple[str, bool]] = []
+    for manifest in sorted(METHODOLOGIES_DIR.glob("*/manifest.yaml")):
+        raw = yaml.safe_load(manifest.read_text(encoding="utf-8"))
+        if not raw.get("source"):
+            continue
+        vendor_dir = manifest.parent / "vendor"
+        present = vendor_dir.exists() and any(vendor_dir.iterdir())
+        packs.append((manifest.parent.name, present))
+    return packs
+
+
 def vendor_methodology(methodology_id: str) -> None:
     manifest_path = METHODOLOGIES_DIR / methodology_id / "manifest.yaml"
     if not manifest_path.exists():

@@ -13,7 +13,8 @@ from __future__ import annotations
 import html as _html
 import math
 
-from grading.aggregate import AxisValueSummary, ReportData
+from grading.aggregate import AxisValueSummary, ReportData, flag_lines
+from grading.bradley_terry import strength_to_elo as _elo
 
 # Chart geometry
 _W, _H = 780, 440
@@ -22,10 +23,6 @@ _ML, _MR, _MT, _MB = 70, 200, 28, 56
 
 def _esc(s: object) -> str:
     return _html.escape(str(s))
-
-
-def _elo(strength: float) -> float:
-    return 1000.0 + 400.0 * strength / math.log(10)
 
 
 def _nice_ticks(lo: float, hi: float, n: int = 5) -> list[float]:
@@ -218,11 +215,7 @@ def render_report_html(report: ReportData, generated_at: str = "") -> str:
         )
 
     flags_html = ""
-    flag_items = (
-        [f"non-discriminating task: {t}" for t in report.flags.non_discriminating_tasks]
-        + [f"flaky task: {t}" for t in report.flags.flaky_tasks]
-        + list(report.flags.cost_quality_notes)
-    )
+    flag_items = flag_lines(report.flags)
     if flag_items:
         lis = "".join(f"<li>{_esc(f)}</li>" for f in flag_items)
         flags_html = f'<h2>Analyzer flags</h2><ul class="flags">{lis}</ul>'

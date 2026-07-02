@@ -57,7 +57,7 @@ def check_claude_cli() -> DoctorRow:
 
 def check_dotnet() -> DoctorRow:
     ok, detail = _probe(["dotnet", "--version"])
-    return DoctorRow("dotnet SDK", ok, False, detail if ok else detail,
+    return DoctorRow("dotnet SDK", ok, False, detail,
                      "Install .NET 8 SDK (needed for cosmos-* tasks)")
 
 
@@ -88,22 +88,17 @@ def check_task_bases() -> list[DoctorRow]:
 
 
 def check_vendor_packs() -> list[DoctorRow]:
-    import yaml
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from vendor_setup import list_vendor_packs
 
-    rows = []
-    for manifest in sorted((ROOT / "methodologies").glob("*/manifest.yaml")):
-        raw = yaml.safe_load(manifest.read_text(encoding="utf-8"))
-        if not raw.get("source"):
-            continue
-        mid = manifest.parent.name
-        vendor = manifest.parent / "vendor"
-        ok = vendor.exists() and any(vendor.iterdir())
-        rows.append(DoctorRow(
-            f"vendor pack {mid}", ok, True,
-            "present" if ok else "missing",
+    return [
+        DoctorRow(
+            f"vendor pack {mid}", present, True,
+            "present" if present else "missing",
             "Run `python cli.py setup` (or scripts/vendor_setup.py --all)",
-        ))
-    return rows
+        )
+        for mid, present in list_vendor_packs()
+    ]
 
 
 def check_pricing() -> DoctorRow:

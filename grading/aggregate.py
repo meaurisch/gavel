@@ -10,9 +10,9 @@ import sqlite3
 from dataclasses import dataclass, field
 
 from core.db import (
-    get_cost_record,
-    get_gate_result,
     get_trial,
+    list_cost_records,
+    list_gate_results,
     list_grading_sessions,
     list_judgments,
     list_trials,
@@ -51,10 +51,21 @@ class ReportData:
     n_sessions: int
 
 
+def flag_lines(flags: AnalyzerFlags) -> list[str]:
+    """Human-readable analyzer flags — one wording, shared by the terminal
+    report and the HTML artifact."""
+    return (
+        [f"non-discriminating task: {t}" for t in flags.non_discriminating_tasks]
+        + [f"flaky task: {t}" for t in flags.flaky_tasks]
+        + list(flags.cost_quality_notes)
+    )
+
+
 def judgments_to_comparisons(
     conn: sqlite3.Connection,
     axis: str,
     trial_ids: set[str] | None = None,
+    trials_by_id: dict | None = None,
 ) -> tuple[list[tuple[str, str, str]], int, int]:
     """Translate persisted judgments into Bradley-Terry comparison tuples on
     the chosen axis: (left_value, right_value, win|loss|tie).
@@ -83,9 +94,10 @@ def judgments_to_comparisons(
             continue
         n_sessions += 1
         n_judgments += len(in_scope)
+        lookup = trials_by_id or {}
         for j in in_scope:
-            left = get_trial(conn, j.left_trial_id)
-            right = get_trial(conn, j.right_trial_id)
+            left = lookup.get(j.left_trial_id) or get_trial(conn, j.left_trial_id)
+            right = lookup.get(j.right_trial_id) or get_trial(conn, j.right_trial_id)
             if left is None or right is None:
                 logger.warning("Judgment %s references missing trial(s); skipped", j.id)
                 continue
@@ -153,23 +165,23 @@ def build_report(
     cell = {k: v for k, v in (cell or {}).items() if v}
     field_name = AXIS_FIELDS[axis]
 
+    all_trials = list_trials(conn)
+    trials_by_id = {t.id: t for t in all_trials}
     trials = [
-        t for t in list_trials(conn)
+        t for t in all_trials
         if all(getattr(t, k) == v for k, v in cell.items())
     ]
 
-    gate_results = {}
-    cost_records = {}
-    for t in trials:
-        gr = get_gate_result(conn, t.id)
-        if gr is not None:
-            gate_results[t.id] = gr
-        cr = get_cost_record(conn, t.id)
-        if cr is not None:
-            cost_records[t.id] = cr
+    scoped = {t.id for t in trials}
+    all_gates = list_gate_results(conn)
+    all_costs = list_cost_records(conn)
+    gate_results = {tid: g for tid, g in all_gates.items() if tid in scoped}
+    cost_records = {tid: c for tid, c in all_costs.items() if tid in scoped}
 
-    trial_ids = {t.id for t in trials} if cell else None
-    comparisons, n_judgments, n_sessions = judgments_to_comparisons(conn, axis, trial_ids)
+    trial_ids = scoped if cell else None
+    comparisons, n_judgments, n_sessions = judgments_to_comparisons(
+        conn, axis, trial_ids, trials_by_id
+    )
 
     strengths = fit_bradley_terry(comparisons) if len(comparisons) >= 3 else {}
     cis = bootstrap_ci(comparisons, n_bootstrap=bootstrap_n, seed=seed) if strengths else {}

@@ -104,10 +104,17 @@ def bootstrap_ci(
     return result
 
 
+def strength_to_elo(strength: float, base: float = 1000.0, scale: float = 400.0) -> float:
+    """Map one BT log-strength onto the Elo-style display scale. The single
+    home of the formula — CLI, HTML report, and UI convert through here so
+    the scales can never drift apart."""
+    return base + scale * strength / math.log(10)
+
+
 def bt_scores_to_elo(
     strengths: dict[str, float],
     base: float = 1000.0,
     scale: float = 400.0,
 ) -> dict[str, float]:
     """Convert BT log-strengths to Elo-style scores centered on ``base``."""
-    return {k: base + scale * v / math.log(10) for k, v in strengths.items()}
+    return {k: strength_to_elo(v, base, scale) for k, v in strengths.items()}
