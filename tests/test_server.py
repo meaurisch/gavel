@@ -246,3 +246,21 @@ def test_stats_returns_per_value(client):
     assert stats["modelA"]["mean_cost_usd"] == 0.10
     assert stats["modelC"]["mean_cost_usd"] == 5.00
     assert stats["modelA"]["mean_wall_seconds"] == 10.0
+
+
+def test_inert_axis_ids_skips_no_file_specs():
+    from types import SimpleNamespace
+
+    from ui.server import _inert_axis_ids
+
+    trials = [
+        SimpleNamespace(runner="claude-code", methodology_id="baseline", repo_context_id="none"),
+        SimpleNamespace(runner="claude-code", methodology_id="no-such-methodology", repo_context_id="no-such-ctx"),
+    ]
+    inert = _inert_axis_ids(trials)
+    # baseline/none lay down zero files -> inert; unknown ids fail to load ->
+    # NOT inert (when in doubt, keep redacting).
+    assert "baseline" in inert
+    assert "none" in inert
+    assert "no-such-methodology" not in inert
+    assert "no-such-ctx" not in inert

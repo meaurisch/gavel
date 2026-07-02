@@ -74,6 +74,42 @@ def test_anonymize_sorts_ids_globally_across_axes():
     assert "agent-v2-experimental" not in result
 
 
+def test_anonymize_matches_whole_tokens_only():
+    # The id "cosmos" must not mangle identifiers that merely contain it.
+    diff = _make_diff(
+        "namespace CleanArchitectureCosmosDB.Infrastructure.CosmosDbData",
+        "// talks to Azure cosmos here",
+    )
+    result = anonymize_diff(diff, {"repo_context": ["cosmos"]})
+    assert "CleanArchitectureCosmosDB" in result
+    assert "CosmosDbData" in result
+    assert "Azure [context] here" in result
+
+
+def test_anonymize_skip_ids_preserves_python_none():
+    # "none" (the no-files ablation context) is causally inert — redacting it
+    # would clobber Python's `None` in every diff line that uses it.
+    diff = _make_diff(
+        "value = None",
+        "if maybe is not None:",
+    )
+    result = anonymize_diff(
+        diff,
+        {"repo_context": ["none", "pyvrp-instructions"], "methodology": ["baseline"]},
+        skip_ids={"none", "baseline"},
+    )
+    assert "value = None" in result
+    assert "if maybe is not None:" in result
+    assert "[context]" not in result
+
+
+def test_anonymize_without_skip_ids_still_redacts_none():
+    diff = _make_diff("value = None")
+    result = anonymize_diff(diff, {"repo_context": ["none"]})
+    assert "None" not in result
+    assert "[context]" in result
+
+
 def test_generate_pairs_groups_by_axis_model():
     trials = [
         make_trial(id="t-m1", model="m1"),

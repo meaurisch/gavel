@@ -25,7 +25,10 @@ from core.db import (
     get_run_result,
     get_trial,
 )
+from core.matrix import HARNESS_MAP
+from core.methodology_loader import load_methodology
 from core.models import Judgment
+from core.repo_context_loader import load_repo_context
 
 from grading.pairwise import generate_pairs, anonymize_diff, compute_proxy, DiffProxy, AXIS_FIELDS
 from grading.bradley_terry import fit_bradley_terry, bootstrap_ci, bt_scores_to_elo
@@ -74,6 +77,29 @@ class SessionState:
 
 
 _sessions: dict[str, SessionState] = {}
+
+
+def _inert_axis_ids(trials) -> set[str]:
+    """Axis ids whose spec lays down zero files (e.g. the ``none`` context,
+    the ``baseline`` methodology). They have no causal path into diff content,
+    so redacting them only mangles incidental code (``none`` would clobber
+    Python's ``None``). An id whose spec can't be loaded is NOT treated as
+    inert — when in doubt, keep redacting."""
+    harnesses = {HARNESS_MAP.get(t.runner, "claude-code") for t in trials}
+    inert: set[str] = set()
+    for mid in {t.methodology_id for t in trials}:
+        try:
+            if all(not load_methodology(mid, h).files for h in harnesses):
+                inert.add(mid)
+        except Exception:
+            pass
+    for cid in {t.repo_context_id for t in trials}:
+        try:
+            if all(not load_repo_context(cid, h).files for h in harnesses):
+                inert.add(cid)
+        except Exception:
+            pass
+    return inert
 
 # ---------------------------------------------------------------------------
 # App
@@ -304,11 +330,14 @@ async def get_pairs(
     )
     _sessions[session_id] = session
 
-    # Blind all axis ids across all four axes
+    # Blind all axis ids across all four axes (minus causally-inert ones —
+    # ids that lay down no files can't leak into a diff, and redacting them
+    # mangles incidental code like Python's `None`).
     axis_ids_by_axis: dict[str, list[str]] = {
         k: sorted({getattr(t, AXIS_FIELDS[k]) for t in trials})
         for k in AXIS_FIELDS
     }
+    skip_ids = _inert_axis_ids(trials)
 
     _default_gate = GateScorecard(compile_passed=None, visible_passed=None, hidden_passed=None)
 
@@ -317,8 +346,8 @@ async def get_pairs(
         left_rr = run_results[left.id]
         right_rr = run_results[right.id]
 
-        left_diff = anonymize_diff(left_rr.diff, axis_ids_by_axis)
-        right_diff = anonymize_diff(right_rr.diff, axis_ids_by_axis)
+        left_diff = anonymize_diff(left_rr.diff, axis_ids_by_axis, skip_ids)
+        right_diff = anonymize_diff(right_rr.diff, axis_ids_by_axis, skip_ids)
 
         left_gr = gate_results.get(left.id)
         right_gr = gate_results.get(right.id)

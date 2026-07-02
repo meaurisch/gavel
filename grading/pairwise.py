@@ -138,7 +138,21 @@ def _split_file_hunks(diff: str) -> list[tuple[str, str]]:
     return result
 
 
-def anonymize_diff(diff: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
+def anonymize_diff(
+    diff: str,
+    axis_ids_by_axis: dict[str, list[str]],
+    skip_ids: frozenset[str] | set[str] = frozenset(),
+) -> str:
+    """Strip instruction files and redact axis ids from a diff.
+
+    Ids are matched as whole tokens (case-insensitive), never inside larger
+    identifiers — the repo-context id ``cosmos`` must not mangle a
+    ``CosmosDbData`` namespace. ``skip_ids`` names causally-inert ids to leave
+    alone: a value that lays down zero files (the ``none`` context, the
+    ``baseline`` methodology) has no path into diff content, so any occurrence
+    is incidental code — redacting it (e.g. Python's ``None``) would wreck
+    readability without adding blinding.
+    """
     hunks = _split_file_hunks(diff)
 
     # Preserve any text before the first "diff --git" (unlikely but safe)
@@ -156,10 +170,12 @@ def anonymize_diff(diff: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
     for axis, ids in axis_ids_by_axis.items():
         token = AXIS_TOKENS[axis]
         for sid in ids:
+            if sid in skip_ids:
+                continue
             sid_tokens.append((sid, token))
 
     for sid, token in sorted(sid_tokens, key=lambda pair: len(pair[0]), reverse=True):
-        pattern = re.compile(re.escape(sid), re.IGNORECASE)
+        pattern = re.compile(rf"(?<!\w){re.escape(sid)}(?!\w)", re.IGNORECASE)
         cleaned = pattern.sub(token, cleaned)
 
     return cleaned
