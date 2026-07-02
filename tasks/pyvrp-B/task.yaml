@@ -1,6 +1,9 @@
 id: pyvrp-B
 repo_url: https://github.com/PyVRP/PyVRP
-base_commit: de48e2eca5b6bb56a61517848d17d4428fcbd220
+# base_commit is a LOCAL commit rebuilt deterministically by `python cli.py setup`:
+# upstream 609bf08a41771810b046cc34968e581763059c3a with reference.diff
+# reverse-applied (fixed author/date => same sha on every machine).
+base_commit: d9a1b2cd257ab04e4ec234a970680260c4f528ee
 instruction: |
   The local-search framework only has binary operators today — every operator
   exchanges segments between two routes. That leaves a whole class of

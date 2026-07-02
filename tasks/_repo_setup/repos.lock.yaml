@@ -1,0 +1,37 @@
+# Reproducible task-repo bootstrap — consumed by scripts/bootstrap_repos.py
+# (run via `python cli.py setup`).
+#
+# Task base commits are LOCAL synthesized commits (a task's feature reverse-
+# applied onto a pinned upstream anchor, or a migration patch applied). They
+# are rebuilt with pure git plumbing (read-tree + apply --cached + commit-tree)
+# under a FIXED author/committer/date, so the resulting sha is identical on
+# every machine and matches the `expect` value here and `base_commit` in each
+# task.yaml.
+
+pyvrp:
+  url: https://github.com/PyVRP/PyVRP
+  bases:
+    pyvrp-A:
+      anchor: cbce3c5142d5a22b39018cc21725aa15a32279cc  # Add ReplaceGroup operator (#1037)
+      reverse_diff: tasks/pyvrp-A/reference.diff
+      expect: 385feab75c4ace0a3e63892bb20ccfe8f4398ea4
+    pyvrp-B:
+      anchor: 609bf08a41771810b046cc34968e581763059c3a  # Do not allow multiple group visits (#1035)
+      reverse_diff: tasks/pyvrp-B/reference.diff
+      expect: d9a1b2cd257ab04e4ec234a970680260c4f528ee
+    pyvrp-C:
+      anchor: 2c3e166a5922bd79d8b5c2bf7b1980b655872cea
+      reverse_diff: tasks/pyvrp-C/reference.diff
+      expect: 25fd8c0451d5db127913d9bf8f98a4f729aac32a
+
+cosmos:
+  url: https://github.com/ShawnShiSS/clean-architecture-azure-cosmos-db
+  bases:
+    # One synthesized base serves both cosmos tasks: upstream f8a0105 migrated
+    # to net8.0 (csproj/sln only; AutoMapper bumped to the task-pinned 12.0.1;
+    # AzureFunctions project dropped from the sln). Zero .cs files touched, so
+    # every file the reference diffs context-pin stays byte-identical upstream.
+    cosmos-base:
+      anchor: f8a0105c9ce46c25a980b09ad6eb3649f1f44416
+      apply_patch: tasks/_repo_setup/cosmos-net8.patch
+      expect: 456ec3958e9d23ab9ae83e5f80aa82da88bc80b7

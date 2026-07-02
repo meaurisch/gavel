@@ -1,6 +1,9 @@
 id: pyvrp-A
 repo_url: https://github.com/PyVRP/PyVRP
-base_commit: 5871a0c1a8827bd84067bd4edf27fa6fa1cbfbdd
+# base_commit is a LOCAL commit rebuilt deterministically by `python cli.py setup`:
+# upstream cbce3c5142d5a22b39018cc21725aa15a32279cc with reference.diff
+# reverse-applied (fixed author/date => same sha on every machine).
+base_commit: 385feab75c4ace0a3e63892bb20ccfe8f4398ea4
 instruction: |
   Our solver handles VRP variants with mutually-exclusive client groups, where
   exactly one member of each group should be visited. Today, once an initial

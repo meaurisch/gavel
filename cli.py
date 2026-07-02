@@ -186,9 +186,82 @@ def grade(
 
 
 @app.command()
-def report():
-    typer.echo("Not implemented yet (P3)", err=True)
-    raise typer.Exit(code=1)
+def setup(
+    check: bool = typer.Option(False, "--check", help="Report state without changing anything"),
+    skip_vendor: bool = typer.Option(False, "--skip-vendor", help="Skip vendoring methodology packs"),
+):
+    """One-shot bootstrap: clone task repos, rebuild the deterministic
+    task-base commits, and vendor the methodology packs."""
+    sys.path.insert(0, str(Path(__file__).parent / "scripts"))
+    from bootstrap_repos import bootstrap
+
+    failed = False
+
+    results = bootstrap(check_only=check)
+    table = Table(title="Task repos / base commits")
+    table.add_column("Base")
+    table.add_column("Status")
+    table.add_column("Detail")
+    for base_id, status, detail in results:
+        style = {"ok": "green", "missing": "yellow", "error": "red"}[status]
+        table.add_row(base_id, f"[{style}]{status}[/]", detail)
+        failed = failed or status != "ok"
+    console.print(table)
+
+    if not check and not skip_vendor:
+        import yaml as _yaml
+        from vendor_setup import vendor_methodology
+
+        for manifest in sorted(Path("methodologies").glob("*/manifest.yaml")):
+            raw = _yaml.safe_load(manifest.read_text(encoding="utf-8"))
+            if not raw.get("source"):
+                continue
+            mid = manifest.parent.name
+            vendor_dir = manifest.parent / "vendor"
+            if vendor_dir.exists() and any(vendor_dir.iterdir()):
+                console.print(f"[dim]vendor pack {mid}: already present[/]")
+                continue
+            try:
+                vendor_methodology(mid)
+                console.print(f"[green]vendor pack {mid}: vendored[/]")
+            except Exception as e:
+                console.print(f"[red]vendor pack {mid}: {e}[/]")
+                failed = True
+
+    if failed:
+        raise typer.Exit(code=1)
+    console.print("[bold green]Setup complete.[/] Run [bold]python cli.py doctor[/] to verify toolchains.")
+
+
+@app.command()
+def doctor():
+    """Check toolchains, task repos, vendor packs, and pricing readiness."""
+    sys.path.insert(0, str(Path(__file__).parent / "scripts"))
+    from doctor import run_all_checks
+
+    rows = run_all_checks()
+    table = Table(title="setup-bench doctor")
+    table.add_column("Check")
+    table.add_column("Status")
+    table.add_column("Detail")
+    table.add_column("Hint", style="dim")
+
+    hard_fail = False
+    for r in rows:
+        if r.ok:
+            status = "[green]OK[/]"
+        elif r.required:
+            status = "[red]FAIL[/]"
+            hard_fail = True
+        else:
+            status = "[yellow]WARN[/]"
+        table.add_row(r.name, status, r.detail, "" if r.ok else r.hint)
+    console.print(table)
+
+    if hard_fail:
+        console.print("[red]Some required checks failed.[/]")
+        raise typer.Exit(code=1)
+    console.print("[green]Environment ready[/] (warnings only affect the task families noted).")
 
 
 @pricing_app.command("list")

@@ -1,11 +1,12 @@
 id: cosmos-A
 repo: cosmos
 repo_url: https://github.com/ShawnShiSS/clean-architecture-azure-cosmos-db
-# base_commit is a LOCAL synthesized commit: upstream f8a0105 migrated to net8
-# (so it builds/tests on a modern SDK) with AutoMapper still wired. It lives in
-# repos/cosmos on branch `cosmos-base`. The feature reverted from this base is the
+# base_commit is a LOCAL synthesized commit rebuilt deterministically by
+# `python cli.py setup`: upstream f8a0105 migrated to net8 (csproj/sln only,
+# AutoMapper still wired at the task-pinned 12.0.1). See
+# tasks/_repo_setup/repos.lock.yaml. The feature reverted from this base is the
 # AutoMapper -> hand-written-mapper refactor.
-base_commit: 3b033a8f46c365d284d069524a52d34c3d5c3298
+base_commit: 456ec3958e9d23ab9ae83e5f80aa82da88bc80b7
 instruction: |
   We want to drop our dependency on AutoMapper and map objects explicitly. The
   reflection-based profile hides mapping bugs until runtime, and the version we

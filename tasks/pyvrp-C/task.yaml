@@ -1,6 +1,9 @@
 id: pyvrp-C
 repo_url: https://github.com/PyVRP/PyVRP
-base_commit: e37b47c0332dbf9df622e4972a52d3faee5c0c09
+# base_commit is a LOCAL commit rebuilt deterministically by `python cli.py setup`:
+# upstream 2c3e166a5922bd79d8b5c2bf7b1980b655872cea with reference.diff
+# reverse-applied (fixed author/date => same sha on every machine).
+base_commit: 25fd8c0451d5db127913d9bf8f98a4f729aac32a
 instruction: |
   We need a reusable building block for modelling non-linear duration costs: a
   piecewise linear function. The same shape keeps coming up — a cost that grows

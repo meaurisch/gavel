@@ -2,3 +2,7 @@
 # working tree on every platform so the patch applies cleanly (autocrlf would
 # otherwise flip them to CRLF on Windows checkouts).
 tasks/**/reference.diff text eol=lf
+
+# The cosmos net8 migration patch contains CRLF content lines (.sln); any
+# eol conversion would corrupt it. Treat repo-setup patches as binary.
+tasks/_repo_setup/*.patch -text

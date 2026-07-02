@@ -1,12 +1,13 @@
 id: cosmos-B
 repo: cosmos
 repo_url: https://github.com/ShawnShiSS/clean-architecture-azure-cosmos-db
-# base_commit is the same LOCAL synthesized net8 base as cosmos-A (branch
-# `cosmos-base`). cosmos-B is an *additive* feature task: the reference.diff is
+# base_commit is the same LOCAL synthesized net8 base as cosmos-A, rebuilt
+# deterministically by `python cli.py setup` (see tasks/_repo_setup/
+# repos.lock.yaml). cosmos-B is an *additive* feature task: the reference.diff is
 # applied forward to introduce the complete/reopen lifecycle, so the base already
 # lacks the feature. The broken GetItemsAsyncByCategory/ByTitle stubs are left
 # as-is on purpose (unrelated dead demo code).
-base_commit: 3b033a8f46c365d284d069524a52d34c3d5c3298
+base_commit: 456ec3958e9d23ab9ae83e5f80aa82da88bc80b7
 instruction: |
   Our ToDo API can create, update, and delete items, but a user still has no way to
   mark one as done — and once it is done, no way to find it again. The domain even
