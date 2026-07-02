@@ -344,3 +344,27 @@ def test_grading_session_round_trip(tmp_path):
     assert loaded == s
     assert get_grading_session(conn, "missing") is None
     assert list_grading_sessions(conn) == [s]
+
+
+def test_persist_trial_result_is_atomic(tmp_path):
+    import pytest as _pytest
+
+    from core.db import connect, insert_run_result, persist_trial_result, trial_exists
+    from core.models import GateResult, RunResult, Trial
+
+    conn = connect(tmp_path / "t.db")
+    # Pre-existing run_result for the same trial id forces the second insert
+    # inside persist_trial_result to fail with an IntegrityError.
+    insert_run_result(conn, RunResult(trial_id="tx", diff="d", exit_status=0, wall_seconds=1.0))
+
+    trial = Trial(id="tx", task_id="t", methodology_id="m", repo_context_id="c",
+                  model="mod", runner="r", rep=0)
+    rr = RunResult(trial_id="tx", diff="d2", exit_status=0, wall_seconds=2.0)
+    gr = GateResult(trial_id="tx", passed=True)
+
+    with _pytest.raises(Exception):
+        persist_trial_result(conn, trial, rr, None, gr)
+
+    # The whole write must have rolled back: no orphan trial row that
+    # resume-dedup would skip forever.
+    assert not trial_exists(conn, "tx")

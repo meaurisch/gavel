@@ -5,13 +5,7 @@ import sqlite3
 import time
 from pathlib import Path
 
-from core.db import (
-    insert_cost_record,
-    insert_gate_result,
-    insert_run_result,
-    insert_trial,
-    trial_exists,
-)
+from core.db import persist_trial_result, trial_exists
 from core.matrix import HARNESS_MAP
 from core.models import CostRecord, GateResult, Trial
 from core.methodology_loader import load_methodology
@@ -86,11 +80,7 @@ def execute_trial(trial: Trial, conn: sqlite3.Connection, keep_worktree: bool = 
             summary["error"] = summary["error"] or f"gate error: {e}"
         summary["passed"] = gate_result.passed
 
-        insert_trial(conn, trial)
-        insert_run_result(conn, run_result)
-        if cost is not None:
-            insert_cost_record(conn, cost)
-        insert_gate_result(conn, gate_result)
+        persist_trial_result(conn, trial, run_result, cost, gate_result)
 
     except Exception as e:
         summary["error"] = str(e)

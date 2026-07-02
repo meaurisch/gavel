@@ -78,9 +78,7 @@ def test_execute_trial_propagates_run_result_error(tmp_path):
          patch("core.executor.destroy_worktree"), \
          patch("core.executor.make_runner", return_value=StubRunner()), \
          patch("core.executor.gate_apply", return_value=stub_gate), \
-         patch("core.executor.insert_trial"), \
-         patch("core.executor.insert_run_result"), \
-         patch("core.executor.insert_gate_result"):
+         patch("core.executor.persist_trial_result"):
         summary = execute_trial(trial, conn)
 
     assert summary["error"] == "parse failed"
@@ -114,9 +112,7 @@ def test_execute_trial_keeps_worktree_when_requested(tmp_path):
          patch("core.executor.destroy_worktree") as mock_destroy, \
          patch("core.executor.make_runner", return_value=StubRunner()), \
          patch("core.executor.gate_apply", return_value=GateResult(trial_id="t-keep", passed=True)), \
-         patch("core.executor.insert_trial"), \
-         patch("core.executor.insert_run_result"), \
-         patch("core.executor.insert_gate_result"):
+         patch("core.executor.persist_trial_result"):
         summary = execute_trial(trial, conn, keep_worktree=True)
 
     mock_destroy.assert_not_called()
@@ -213,9 +209,7 @@ def test_execute_trial_wall_covers_whole_trial(tmp_path):
          patch("core.executor.destroy_worktree"), \
          patch("core.executor.make_runner", return_value=StubRunner()), \
          patch("core.executor.gate_apply", return_value=stub_gate), \
-         patch("core.executor.insert_trial"), \
-         patch("core.executor.insert_run_result"), \
-         patch("core.executor.insert_gate_result"), \
+         patch("core.executor.persist_trial_result"), \
          patch("core.executor.time") as mock_time:
         mock_time.monotonic.side_effect = lambda: next(monotonic_values)
         summary = execute_trial(trial, conn)

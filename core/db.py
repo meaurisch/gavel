@@ -156,28 +156,40 @@ def insert_repo_context_spec(conn: sqlite3.Connection, s: RepoContextSpec) -> No
     conn.commit()
 
 
-def insert_trial(conn: sqlite3.Connection, t: Trial) -> None:
+def _execute_trial_insert(conn: sqlite3.Connection, t: Trial) -> None:
     conn.execute(
         "INSERT INTO trial VALUES (?, ?, ?, ?, ?, ?, ?)",
         (t.id, t.task_id, t.methodology_id, t.repo_context_id, t.model, t.runner, t.rep),
     )
+
+
+def insert_trial(conn: sqlite3.Connection, t: Trial) -> None:
+    _execute_trial_insert(conn, t)
     conn.commit()
 
 
-def insert_run_result(conn: sqlite3.Connection, r: RunResult) -> None:
+def _execute_run_result_insert(conn: sqlite3.Connection, r: RunResult) -> None:
     conn.execute(
         "INSERT INTO run_result VALUES (?, ?, ?, ?, ?)",
         (r.trial_id, r.diff, r.exit_status, r.wall_seconds, r.error),
     )
+
+
+def insert_run_result(conn: sqlite3.Connection, r: RunResult) -> None:
+    _execute_run_result_insert(conn, r)
     conn.commit()
 
 
-def insert_cost_record(conn: sqlite3.Connection, c: CostRecord) -> None:
+def _execute_cost_record_insert(conn: sqlite3.Connection, c: CostRecord) -> None:
     conn.execute(
         "INSERT INTO cost_record VALUES (?, ?, ?, ?, ?, ?, ?)",
         (c.trial_id, c.native_unit, c.native_amount, c.usd_equiv,
          c.input_tokens, c.output_tokens, c.cache_read_tokens),
     )
+
+
+def insert_cost_record(conn: sqlite3.Connection, c: CostRecord) -> None:
+    _execute_cost_record_insert(conn, c)
     conn.commit()
 
 
@@ -185,7 +197,7 @@ def _bool_to_int(v: bool | None) -> int | None:
     return int(v) if v is not None else None
 
 
-def insert_gate_result(conn: sqlite3.Connection, g: GateResult) -> None:
+def _execute_gate_result_insert(conn: sqlite3.Connection, g: GateResult) -> None:
     conn.execute(
         "INSERT INTO gate_result VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (g.trial_id, int(g.passed),
@@ -193,7 +205,35 @@ def insert_gate_result(conn: sqlite3.Connection, g: GateResult) -> None:
          _bool_to_int(g.visible_passed), g.visible_output,
          _bool_to_int(g.hidden_passed), g.hidden_output),
     )
+
+
+def insert_gate_result(conn: sqlite3.Connection, g: GateResult) -> None:
+    _execute_gate_result_insert(conn, g)
     conn.commit()
+
+
+def persist_trial_result(
+    conn: sqlite3.Connection,
+    trial: Trial,
+    run_result: RunResult,
+    cost_record: CostRecord | None,
+    gate_result: GateResult,
+) -> None:
+    """All-or-nothing persistence of one completed trial.
+
+    A partial write (trial row committed, later insert failed) would leave an
+    orphan trial that resume-dedup skips forever, with no result/gate/cost.
+    """
+    try:
+        _execute_trial_insert(conn, trial)
+        _execute_run_result_insert(conn, run_result)
+        if cost_record is not None:
+            _execute_cost_record_insert(conn, cost_record)
+        _execute_gate_result_insert(conn, gate_result)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
 
 # -- reads --
