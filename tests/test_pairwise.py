@@ -86,21 +86,19 @@ def test_anonymize_matches_whole_tokens_only():
     assert "Azure [context] here" in result
 
 
-def test_anonymize_skip_ids_preserves_python_none():
-    # "none" (the no-files ablation context) is causally inert — redacting it
-    # would clobber Python's `None` in every diff line that uses it.
+def test_anonymize_snake_case_glued_ids_still_redact():
+    # Underscore gluing is exactly how an agent leaks an axis id into
+    # identifiers — `cosmos_client`, `tdd_utils.py` must still redact.
     diff = _make_diff(
-        "value = None",
-        "if maybe is not None:",
+        "cosmos_client = CosmosClient()",
+        "import tdd_utils",
     )
-    result = anonymize_diff(
-        diff,
-        {"repo_context": ["none", "pyvrp-instructions"], "methodology": ["baseline"]},
-        skip_ids={"none", "baseline"},
-    )
-    assert "value = None" in result
-    assert "if maybe is not None:" in result
-    assert "[context]" not in result
+    result = anonymize_diff(diff, {"repo_context": ["cosmos"], "methodology": ["tdd"]})
+    assert "cosmos" not in result.lower().replace("cosmosclient", "")
+    assert "[context]_client" in result
+    assert "[methodology]_utils" in result
+    # ...while letter-adjacent occurrences stay protected:
+    assert "CosmosClient" in result
 
 
 def test_anonymize_without_skip_ids_still_redacts_none():

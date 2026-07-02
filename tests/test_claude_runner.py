@@ -602,3 +602,62 @@ def test_smoke_real_claude(tiny_repo):
         assert result.wall_seconds > 0
     finally:
         destroy_worktree(wt)
+
+
+def test_execute_timeout_with_no_output_raises_retryable(tiny_repo):
+    """A hang until timeout with no diff and no salvageable cost is a
+    transient failure: raise (trial stays retryable) instead of burning the
+    trial id with an empty persisted result."""
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        def fake_run(cmd, *a, **k):
+            if cmd[0] not in ("git",):
+                raise subprocess.TimeoutExpired(cmd, 7200)
+            m = MagicMock()
+            m.returncode = 0
+            m.stderr = ""
+            m.stdout = "BASELINE" if cmd[:2] == ["git", "rev-parse"] else ""
+            return m
+
+        with patch("runners.claude_code.subprocess.run", side_effect=fake_run):
+            with pytest.raises(RuntimeError, match="retryable"):
+                runner.execute(trial, wt)
+    finally:
+        destroy_worktree(wt)
+
+
+def test_execute_timeout_salvage_survives_garbage_stdout(tiny_repo):
+    """Partial stdout can be valid JSON but not an object; the salvage must
+    swallow ANY parse surprise, keep the diff, and persist the trial."""
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        def fake_run(cmd, *a, **k):
+            if cmd[0] not in ("git",):
+                raise subprocess.TimeoutExpired(cmd, 7200, output="42")  # bare number
+            m = MagicMock()
+            m.returncode = 0
+            m.stderr = ""
+            m.stdout = "BASELINE" if cmd[:2] == ["git", "rev-parse"] else "some diff"
+            return m
+
+        with patch("runners.claude_code.subprocess.run", side_effect=fake_run):
+            result = runner.execute(trial, wt)
+
+        assert result.error is not None and "timed out" in result.error
+        assert result.diff == "some diff"
+    finally:
+        destroy_worktree(wt)

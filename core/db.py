@@ -300,6 +300,28 @@ def get_gate_result(conn: sqlite3.Connection, trial_id: str) -> GateResult | Non
     return TypeAdapter(GateResult).validate_python(d)
 
 
+def list_gate_results(conn: sqlite3.Connection) -> dict[str, GateResult]:
+    """All gate results keyed by trial_id (bulk read for reports)."""
+    out: dict[str, GateResult] = {}
+    for row in conn.execute("SELECT * FROM gate_result").fetchall():
+        d = dict(row)
+        d["passed"] = bool(d["passed"])
+        for col in ("compile_passed", "visible_passed", "hidden_passed"):
+            if d.get(col) is not None:
+                d[col] = bool(d[col])
+        out[d["trial_id"]] = TypeAdapter(GateResult).validate_python(d)
+    return out
+
+
+def list_cost_records(conn: sqlite3.Connection) -> dict[str, CostRecord]:
+    """All cost records keyed by trial_id (bulk read for reports)."""
+    ta = TypeAdapter(CostRecord)
+    return {
+        row["trial_id"]: ta.validate_python(dict(row))
+        for row in conn.execute("SELECT * FROM cost_record").fetchall()
+    }
+
+
 def trial_exists(conn: sqlite3.Connection, id: str) -> bool:
     row = conn.execute("SELECT 1 FROM trial WHERE id = ?", (id,)).fetchone()
     return row is not None
@@ -322,6 +344,29 @@ def insert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
          j.rubric_overengineering, j.created_at),
     )
     conn.commit()
+
+
+def upsert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
+    """Latest-wins persistence for one (session, pair): re-judging a pair (the
+    UI's go-back flow, or a client retry after a lost response) must REPLACE
+    the earlier row, not add a second one — Bradley-Terry in the report counts
+    every row, so duplicates would double-weight the pair."""
+    try:
+        conn.execute(
+            "DELETE FROM judgment WHERE session_id = ? AND left_trial_id = ? AND right_trial_id = ?",
+            (j.session_id, j.left_trial_id, j.right_trial_id),
+        )
+        conn.execute(
+            "INSERT INTO judgment VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (j.id, j.session_id, j.task_id, j.model, j.left_trial_id,
+             j.right_trial_id, j.choice, j.rubric_correctness,
+             j.rubric_minimality, j.rubric_readability,
+             j.rubric_overengineering, j.created_at),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
 
 def list_judgments(conn: sqlite3.Connection, session_id: str) -> list[Judgment]:

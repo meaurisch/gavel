@@ -5,6 +5,7 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -17,8 +18,8 @@ from core.db import (
     grading_readiness,
     get_grading_session,
     insert_grading_session,
-    insert_judgment,
     list_judgments,
+    upsert_judgment,
     list_passing_trials,
     list_cell_trials,
     list_grading_cells,
@@ -110,26 +111,34 @@ def _get_session(session_id: str) -> SessionState | None:
     return session
 
 
+@lru_cache(maxsize=256)
+def _spec_is_inert(kind: str, spec_id: str, harness: str) -> bool:
+    """True when the spec lays down zero files for this harness. Inertness is
+    a static property of (spec, harness), so cache it — /api/pairs shouldn't
+    re-parse YAML on every session. A spec that fails to load is NOT inert:
+    when in doubt, keep redacting."""
+    loader = load_methodology if kind == "methodology" else load_repo_context
+    try:
+        return not loader(spec_id, harness).files
+    except Exception as e:
+        logger.warning("Could not load %s %r (harness %s) for inertness check: %s",
+                       kind, spec_id, harness, e)
+        return False
+
+
 def _inert_axis_ids(trials) -> set[str]:
     """Axis ids whose spec lays down zero files (e.g. the ``none`` context,
     the ``baseline`` methodology). They have no causal path into diff content,
     so redacting them only mangles incidental code (``none`` would clobber
-    Python's ``None``). An id whose spec can't be loaded is NOT treated as
-    inert — when in doubt, keep redacting."""
+    Python's ``None``)."""
     harnesses = {HARNESS_MAP.get(t.runner, "claude-code") for t in trials}
     inert: set[str] = set()
     for mid in {t.methodology_id for t in trials}:
-        try:
-            if all(not load_methodology(mid, h).files for h in harnesses):
-                inert.add(mid)
-        except Exception:
-            pass
+        if all(_spec_is_inert("methodology", mid, h) for h in harnesses):
+            inert.add(mid)
     for cid in {t.repo_context_id for t in trials}:
-        try:
-            if all(not load_repo_context(cid, h).files for h in harnesses):
-                inert.add(cid)
-        except Exception:
-            pass
+        if all(_spec_is_inert("repo_context", cid, h) for h in harnesses):
+            inert.add(cid)
     return inert
 
 # ---------------------------------------------------------------------------
@@ -375,14 +384,14 @@ async def get_pairs(
         created_at=datetime.now(timezone.utc).isoformat(),
     ))
 
-    # Blind all axis ids across all four axes (minus causally-inert ones —
+    # Blind all axis ids across all four axes, minus causally-inert ones —
     # ids that lay down no files can't leak into a diff, and redacting them
-    # mangles incidental code like Python's `None`).
+    # mangles incidental code like Python's `None`.
+    skip_ids = _inert_axis_ids(trials)
     axis_ids_by_axis: dict[str, list[str]] = {
-        k: sorted({getattr(t, AXIS_FIELDS[k]) for t in trials})
+        k: sorted({getattr(t, AXIS_FIELDS[k]) for t in trials} - skip_ids)
         for k in AXIS_FIELDS
     }
-    skip_ids = _inert_axis_ids(trials)
 
     _default_gate = GateScorecard(compile_passed=None, visible_passed=None, hidden_passed=None)
 
@@ -391,8 +400,8 @@ async def get_pairs(
         left_rr = run_results[left.id]
         right_rr = run_results[right.id]
 
-        left_diff = anonymize_diff(left_rr.diff, axis_ids_by_axis, skip_ids)
-        right_diff = anonymize_diff(right_rr.diff, axis_ids_by_axis, skip_ids)
+        left_diff = anonymize_diff(left_rr.diff, axis_ids_by_axis)
+        right_diff = anonymize_diff(right_rr.diff, axis_ids_by_axis)
 
         left_gr = gate_results.get(left.id)
         right_gr = gate_results.get(right.id)
@@ -462,7 +471,7 @@ async def judge(req: JudgeRequest) -> JudgeResponse:
         created_at=datetime.now(timezone.utc).isoformat(),
     )
 
-    insert_judgment(_conn, judgment)
+    upsert_judgment(_conn, judgment)
     session.judgments_made.add(req.pair_index)
 
     remaining = len(session.pairs) - len(session.judgments_made)

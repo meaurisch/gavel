@@ -225,11 +225,29 @@ def report(
         "model": model,
         "runner": runner,
     }
-    # Pinning the comparison axis itself would make every pair same-value.
-    cell.pop(AXIS_FIELDS[axis], None)
+    # Pinning the comparison axis itself would make every pair same-value —
+    # but silently ignoring the user's flag would misrepresent the scope.
+    dropped = cell.pop(AXIS_FIELDS[axis], None)
+    if dropped:
+        console.print(
+            f"[yellow]Ignoring --{axis.replace('_', '-')} {dropped!r}: it pins the comparison "
+            f"axis itself. The report ranks ALL {axis} values against each other.[/]"
+        )
 
     conn = connect(db)
     data = build_report(conn, axis, cell)
+
+    # Judgments persisted before sessions were stored (pre-grading_session
+    # DBs) can't be attributed to an axis — surface that instead of silently
+    # under-reporting.
+    orphans = conn.execute(
+        "SELECT COUNT(*) FROM judgment WHERE session_id NOT IN (SELECT id FROM grading_session)"
+    ).fetchone()[0]
+    if orphans:
+        console.print(
+            f"[yellow]{orphans} judgment(s) belong to sessions recorded before session "
+            "persistence existed and can't be used — re-grade those cells to include them.[/]"
+        )
 
     scope = ", ".join(f"{k}={v}" for k, v in data.cell.items()) or "all cells"
     console.print(f"\n[bold]Comparison axis:[/] {axis}   [bold]Scope:[/] {scope}")
@@ -248,9 +266,10 @@ def report(
     table.add_column("Total $", justify="right")
     table.add_column("Frontier", justify="center")
 
+    from grading.bradley_terry import strength_to_elo
+
     def _elo(x: float) -> str:
-        import math
-        return f"{1000 + 400 * x / math.log(10):.0f}"
+        return f"{strength_to_elo(x):.0f}"
 
     ranked = sorted(
         data.summaries,
@@ -277,11 +296,9 @@ def report(
         )
     console.print(table)
 
-    flag_items = (
-        [f"non-discriminating task: {t}" for t in data.flags.non_discriminating_tasks]
-        + [f"flaky task: {t}" for t in data.flags.flaky_tasks]
-        + list(data.flags.cost_quality_notes)
-    )
+    from grading.aggregate import flag_lines
+
+    flag_items = flag_lines(data.flags)
     if flag_items:
         console.print("\n[bold]Analyzer flags[/]")
         for f in flag_items:
@@ -333,16 +350,10 @@ def setup(
     console.print(table)
 
     if not check and not skip_vendor:
-        import yaml as _yaml
-        from vendor_setup import vendor_methodology
+        from vendor_setup import list_vendor_packs, vendor_methodology
 
-        for manifest in sorted(Path("methodologies").glob("*/manifest.yaml")):
-            raw = _yaml.safe_load(manifest.read_text(encoding="utf-8"))
-            if not raw.get("source"):
-                continue
-            mid = manifest.parent.name
-            vendor_dir = manifest.parent / "vendor"
-            if vendor_dir.exists() and any(vendor_dir.iterdir()):
+        for mid, present in list_vendor_packs():
+            if present:
                 console.print(f"[dim]vendor pack {mid}: already present[/]")
                 continue
             try:

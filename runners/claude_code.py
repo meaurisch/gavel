@@ -126,15 +126,27 @@ class ClaudeCodeRunner:
             # The usage JSON is normally printed only at exit, so a killed
             # process rarely leaves one — but if any parseable stdout was
             # captured, salvage the billed cost instead of dropping it.
+            # Best-effort: partial stdout can be arbitrary garbage, so catch
+            # everything — a salvage failure must never discard the trial.
             partial = exc.stdout
             if isinstance(partial, bytes):
                 partial = partial.decode("utf-8", errors="ignore")
             if partial:
                 try:
                     self._record_cost(trial, parse_claude_output(partial))
-                except ClaudeUsageParseError:
+                except Exception:
                     pass
             diff = collect(worktree_path, baseline)
+            if not diff.strip() and self.last_cost is None:
+                # Nothing produced and nothing salvaged — most likely a hang
+                # before any work (auth/rate-limit stall). Raise like the
+                # zero-token fast-failure path does, so the trial ID is not
+                # burned and the next `cli.py run` retries it.
+                raise RuntimeError(
+                    f"claude CLI hung until the {timeout_s}s timeout for trial {trial.id} "
+                    "with no output and no diff — treating as transient and leaving the "
+                    "trial retryable"
+                ) from exc
             return RunResult(
                 trial_id=trial.id,
                 diff=diff,

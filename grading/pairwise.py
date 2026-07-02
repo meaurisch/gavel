@@ -138,20 +138,16 @@ def _split_file_hunks(diff: str) -> list[tuple[str, str]]:
     return result
 
 
-def anonymize_diff(
-    diff: str,
-    axis_ids_by_axis: dict[str, list[str]],
-    skip_ids: frozenset[str] | set[str] = frozenset(),
-) -> str:
-    """Strip instruction files and redact axis ids from a diff.
+def anonymize_diff(diff: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
+    """Strip instruction files and redact every given axis id from a diff.
 
-    Ids are matched as whole tokens (case-insensitive), never inside larger
-    identifiers — the repo-context id ``cosmos`` must not mangle a
-    ``CosmosDbData`` namespace. ``skip_ids`` names causally-inert ids to leave
-    alone: a value that lays down zero files (the ``none`` context, the
-    ``baseline`` methodology) has no path into diff content, so any occurrence
-    is incidental code — redacting it (e.g. Python's ``None``) would wreck
-    readability without adding blinding.
+    Ids match as whole tokens (case-insensitive) with letters/digits as the
+    boundary alphabet: the repo-context id ``cosmos`` must not mangle a
+    ``CosmosDbData`` namespace, but ``cosmos_client`` / ``tdd_utils.py``
+    (underscore-glued) MUST still redact — snake_case gluing is exactly how an
+    agent leaks an axis id into identifiers. Callers decide which ids to
+    redact; causally-inert ids (specs that lay down zero files) should be
+    filtered out before calling (see ui.server._inert_axis_ids).
     """
     hunks = _split_file_hunks(diff)
 
@@ -170,12 +166,10 @@ def anonymize_diff(
     for axis, ids in axis_ids_by_axis.items():
         token = AXIS_TOKENS[axis]
         for sid in ids:
-            if sid in skip_ids:
-                continue
             sid_tokens.append((sid, token))
 
     for sid, token in sorted(sid_tokens, key=lambda pair: len(pair[0]), reverse=True):
-        pattern = re.compile(rf"(?<!\w){re.escape(sid)}(?!\w)", re.IGNORECASE)
+        pattern = re.compile(rf"(?<![A-Za-z0-9]){re.escape(sid)}(?![A-Za-z0-9])", re.IGNORECASE)
         cleaned = pattern.sub(token, cleaned)
 
     return cleaned

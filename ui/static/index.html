@@ -844,7 +844,7 @@
         el.id = 'save-error';
         document.body.appendChild(el);
       }
-      el.textContent = `Saving your judgment for pair ${pairIndex + 1} failed — it will be re-asked; check the server and grade it again.`;
+      el.textContent = `Saving your judgment for pair ${pairIndex + 1} failed — go back with ← and grade it again (re-judging safely replaces the old answer).`;
       el.classList.add('visible');
       if (saveErrorTimer) clearTimeout(saveErrorTimer);
       saveErrorTimer = setTimeout(() => el.classList.remove('visible'), 6000);
@@ -870,6 +870,7 @@
       // Async POST; a failed save must be visible — the reveal tallies what
       // the DB holds, so a silently dropped judgment would skew the ranking.
       const judgedIndex = state.currentIndex;
+      const judgedEntry = state.choices[judgedIndex];
       fetch('/api/judge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -886,8 +887,12 @@
         if (!resp.ok) throw new Error(`judge POST ${resp.status}`);
       }).catch((err) => {
         console.error(err);
-        delete state.choices[judgedIndex];
-        showSaveError(judgedIndex);
+        // Only invalidate if a newer re-judgment hasn't replaced this entry
+        // (a stale failure must not clobber a later successful save).
+        if (state.choices[judgedIndex] === judgedEntry) {
+          delete state.choices[judgedIndex];
+          showSaveError(judgedIndex);
+        }
       });
 
       // Auto-advance after 200ms

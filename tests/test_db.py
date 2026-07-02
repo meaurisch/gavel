@@ -368,3 +368,26 @@ def test_persist_trial_result_is_atomic(tmp_path):
     # The whole write must have rolled back: no orphan trial row that
     # resume-dedup would skip forever.
     assert not trial_exists(conn, "tx")
+
+
+def test_upsert_judgment_replaces_same_pair(tmp_path):
+    from core.db import connect, list_judgments, upsert_judgment
+    from core.models import Judgment
+
+    conn = connect(tmp_path / "t.db")
+
+    def j(jid, choice):
+        return Judgment(
+            id=jid, session_id="s1", task_id="t", model="m",
+            left_trial_id="ta", right_trial_id="tb", choice=choice,
+            rubric_correctness=None, rubric_minimality=None,
+            rubric_readability=None, rubric_overengineering=None,
+            created_at="2026-07-02T00:00:00+00:00",
+        )
+
+    upsert_judgment(conn, j("j1", "A"))
+    upsert_judgment(conn, j("j2", "B"))  # re-judge same pair: latest wins
+
+    rows = list_judgments(conn, "s1")
+    assert len(rows) == 1
+    assert rows[0].choice == "B"
