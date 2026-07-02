@@ -186,6 +186,125 @@ def grade(
 
 
 @app.command()
+def report(
+    axis: str = typer.Option("methodology", help="Comparison axis: methodology, model, repo_context, runner"),
+    task: str = typer.Option("", help="Pin to one task"),
+    methodology: str = typer.Option("", help="Pin to one methodology"),
+    repo_context: str = typer.Option("", help="Pin to one repo context"),
+    model: str = typer.Option("", help="Pin to one model"),
+    runner: str = typer.Option("", help="Pin to one runner"),
+    db: Path = typer.Option(Path("results.db"), help="Database path"),
+    out_dir: Path = typer.Option(Path("reports"), help="Directory for the HTML artifact"),
+    no_html: bool = typer.Option(False, "--no-html", help="Terminal summary only"),
+):
+    """Rank the chosen axis: Bradley-Terry scores with CIs, gate pass rates,
+    cost rollup, analyzer flags, the quality/cost Pareto frontier, and the
+    stakes-based picks — in the terminal and as a self-contained HTML file."""
+    from datetime import datetime, timezone
+
+    from grading.aggregate import build_report
+    from grading.pairwise import AXIS_FIELDS
+    from grading.report_html import render_report_html
+
+    if axis not in AXIS_FIELDS:
+        console.print(f"[red]Unknown axis {axis!r}; valid: {', '.join(sorted(AXIS_FIELDS))}[/]")
+        raise typer.Exit(code=2)
+    if not db.exists():
+        console.print(f"[red]No database at {db} — run some trials first.[/]")
+        raise typer.Exit(code=2)
+
+    cell = {
+        "task_id": task,
+        "methodology_id": methodology,
+        "repo_context_id": repo_context,
+        "model": model,
+        "runner": runner,
+    }
+    # Pinning the comparison axis itself would make every pair same-value.
+    cell.pop(AXIS_FIELDS[axis], None)
+
+    conn = connect(db)
+    data = build_report(conn, axis, cell)
+
+    scope = ", ".join(f"{k}={v}" for k, v in data.cell.items()) or "all cells"
+    console.print(f"\n[bold]Comparison axis:[/] {axis}   [bold]Scope:[/] {scope}")
+    console.print(
+        f"[dim]{data.n_judgments} blind judgment(s) across {data.n_sessions} grading session(s)[/]\n"
+    )
+
+    table = Table(title=f"{axis} ranking (Bradley-Terry)")
+    table.add_column(axis, style="cyan")
+    table.add_column("Elo", justify="right")
+    table.add_column("95% CI (Elo)", justify="right")
+    table.add_column("Comps", justify="right")
+    table.add_column("Hidden gate", justify="right")
+    table.add_column("Trials", justify="right")
+    table.add_column("Mean $", justify="right")
+    table.add_column("Total $", justify="right")
+    table.add_column("Frontier", justify="center")
+
+    def _elo(x: float) -> str:
+        import math
+        return f"{1000 + 400 * x / math.log(10):.0f}"
+
+    ranked = sorted(
+        data.summaries,
+        key=lambda s: -(s.bt_strength if s.bt_strength is not None else float("-inf")),
+    )
+    for s in ranked:
+        ci = f"{_elo(s.bt_ci[0])}–{_elo(s.bt_ci[1])}" if s.bt_ci else "—"
+        marks = []
+        if s.value == data.picks.get("high_stakes"):
+            marks.append("[bold blue]quality pick[/]")
+        if s.value == data.picks.get("routine"):
+            marks.append("[bold green]budget pick[/]")
+        hidden = s.tier_pass_rates.get("hidden")
+        table.add_row(
+            s.value + (" " + " ".join(marks) if marks else ""),
+            f"{s.elo:.0f}" if s.elo is not None else "—",
+            ci,
+            str(s.n_comparisons),
+            f"{hidden * 100:.0f}%" if hidden is not None else "—",
+            str(s.n_trials),
+            f"${s.mean_usd:.3f}" if s.mean_usd is not None else "—",
+            f"${s.total_usd:.2f}",
+            "[green]yes[/]" if s.on_frontier else ("—" if s.bt_strength is None else "no"),
+        )
+    console.print(table)
+
+    flag_items = (
+        [f"non-discriminating task: {t}" for t in data.flags.non_discriminating_tasks]
+        + [f"flaky task: {t}" for t in data.flags.flaky_tasks]
+        + list(data.flags.cost_quality_notes)
+    )
+    if flag_items:
+        console.print("\n[bold]Analyzer flags[/]")
+        for f in flag_items:
+            console.print(f"  [yellow]•[/] {f}")
+
+    if data.picks.get("high_stakes"):
+        console.print(
+            f"\n[bold]High-stakes pick:[/] {data.picks['high_stakes']}   "
+            f"[bold]Routine pick:[/] {data.picks['routine']}"
+        )
+    elif data.n_judgments == 0:
+        console.print(
+            "\n[yellow]No blind judgments for this axis yet — the ranking columns stay "
+            "empty until you grade ([bold]python cli.py grade[/]).[/]"
+        )
+
+    if not no_html:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        out_path = out_dir / f"report-{axis}-{stamp}.html"
+        out_path.write_text(
+            render_report_html(data, generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")),
+            encoding="utf-8",
+        )
+        console.print(f"\n[bold]HTML artifact:[/] {out_path}")
+
+
+@app.command()
 def setup(
     check: bool = typer.Option(False, "--check", help="Report state without changing anything"),
     skip_vendor: bool = typer.Option(False, "--skip-vendor", help="Skip vendoring methodology packs"),
