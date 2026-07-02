@@ -44,6 +44,28 @@ class ClaudeCodeRunner:
         lay_down_files(worktree_path, repo_context.files, "setup-bench: lay down repo context files")
         lay_down_files(worktree_path, methodology.files, "setup-bench: lay down methodology files")
 
+    def _record_cost(self, trial: Trial, usage) -> None:
+        api_usd = compute_api_rate_usd(
+            trial.model,
+            usage.input_tokens,
+            usage.output_tokens,
+            usage.cache_read_tokens,
+        )
+        # api_usd can be 0.0 (priced model, but 0 tokens parsed) — that must
+        # NOT clobber a real self-reported cost. Use the token-based rate only
+        # when it actually computed something; otherwise fall back to the
+        # self-reported total.
+        usd_equiv = api_usd if api_usd else usage.total_cost_usd
+        self.last_cost = CostRecord(
+            trial_id=trial.id,
+            native_unit="usd_self_reported",
+            native_amount=usage.total_cost_usd,
+            usd_equiv=usd_equiv,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            cache_read_tokens=usage.cache_read_tokens,
+        )
+
     def execute(self, trial: Trial, worktree_path: Path) -> RunResult:
         self.last_cost = None
         start = time.monotonic()
@@ -97,11 +119,29 @@ class ClaudeCodeRunner:
             exit_status = proc.returncode
             stdout = proc.stdout
             stderr = proc.stderr
-        except subprocess.TimeoutExpired:
-            logger.error("Trial %s: claude timed out after %d seconds", trial.id, self._max_turns * 120)
+        except subprocess.TimeoutExpired as exc:
+            timeout_s = self._max_turns * 120
+            logger.error("Trial %s: claude timed out after %d seconds", trial.id, timeout_s)
             wall_seconds = time.monotonic() - start
+            # The usage JSON is normally printed only at exit, so a killed
+            # process rarely leaves one — but if any parseable stdout was
+            # captured, salvage the billed cost instead of dropping it.
+            partial = exc.stdout
+            if isinstance(partial, bytes):
+                partial = partial.decode("utf-8", errors="ignore")
+            if partial:
+                try:
+                    self._record_cost(trial, parse_claude_output(partial))
+                except ClaudeUsageParseError:
+                    pass
             diff = collect(worktree_path, baseline)
-            return RunResult(trial_id=trial.id, diff=diff, exit_status=1, wall_seconds=wall_seconds)
+            return RunResult(
+                trial_id=trial.id,
+                diff=diff,
+                exit_status=1,
+                wall_seconds=wall_seconds,
+                error=f"claude timed out after {timeout_s} seconds (partial diff kept; billed cost unknown unless salvaged)",
+            )
 
         wall_seconds = time.monotonic() - start
 
@@ -114,29 +154,7 @@ class ClaudeCodeRunner:
             logger.error("Trial %s: failed to parse Claude output: %s", trial.id, e)
 
         if usage is not None:
-            api_usd = compute_api_rate_usd(
-                trial.model,
-                usage.input_tokens,
-                usage.output_tokens,
-                usage.cache_read_tokens,
-            )
-            # api_usd can be 0.0 (priced model, but 0 tokens parsed) — that must
-            # NOT clobber a real self-reported cost. Use the token-based rate only
-            # when it actually computed something; otherwise fall back to the
-            # self-reported total.
-            if api_usd:
-                usd_equiv = api_usd
-            else:
-                usd_equiv = usage.total_cost_usd
-            self.last_cost = CostRecord(
-                trial_id=trial.id,
-                native_unit="usd_self_reported",
-                native_amount=usage.total_cost_usd,
-                usd_equiv=usd_equiv,
-                input_tokens=usage.input_tokens,
-                output_tokens=usage.output_tokens,
-                cache_read_tokens=usage.cache_read_tokens,
-            )
+            self._record_cost(trial, usage)
 
         zero_tokens = usage is not None and usage.input_tokens == 0 and usage.output_tokens == 0
         if exit_status != 0 and (usage is None or zero_tokens):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -381,6 +382,68 @@ def test_execute_empty_diff_sets_error(tiny_repo):
         assert "empty diff" in result.error.lower()
         # a clean, billed run still records its cost
         assert runner.last_cost is not None
+    finally:
+        destroy_worktree(wt)
+
+
+def test_execute_timeout_sets_error(tiny_repo):
+    """A timed-out trial must never look like a clean $0 run: the RunResult
+    carries an explicit error so the DB row is flagged."""
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        def fake_run(cmd, *a, **k):
+            if cmd[0] not in ("git",):
+                raise subprocess.TimeoutExpired(cmd, 7200)
+            m = MagicMock()
+            m.returncode = 0
+            m.stderr = ""
+            m.stdout = "BASELINE" if cmd[:2] == ["git", "rev-parse"] else "some diff"
+            return m
+
+        with patch("runners.claude_code.subprocess.run", side_effect=fake_run):
+            result = runner.execute(trial, wt)
+
+        assert result.exit_status == 1
+        assert result.error is not None
+        assert "timed out" in result.error
+    finally:
+        destroy_worktree(wt)
+
+
+def test_execute_timeout_salvages_cost_from_partial_stdout(tiny_repo):
+    """If the killed process left parseable usage JSON on stdout, the billed
+    cost is still recorded rather than silently dropped."""
+    commit = head_commit(tiny_repo)
+    wt = create_worktree(tiny_repo, commit)
+    try:
+        task = _make_task()
+        trial = _make_trial()
+        runner = ClaudeCodeRunner(task)
+        methodology = MethodologySpec(id="off", files={})
+        runner.prepare(trial, wt, methodology, RepoContextSpec(id="none", files={}))
+
+        def fake_run(cmd, *a, **k):
+            if cmd[0] not in ("git",):
+                raise subprocess.TimeoutExpired(cmd, 7200, output=_valid_claude_json())
+            m = MagicMock()
+            m.returncode = 0
+            m.stderr = ""
+            m.stdout = "BASELINE" if cmd[:2] == ["git", "rev-parse"] else "some diff"
+            return m
+
+        with patch("runners.claude_code.subprocess.run", side_effect=fake_run):
+            result = runner.execute(trial, wt)
+
+        assert result.error is not None and "timed out" in result.error
+        assert runner.last_cost is not None
+        assert runner.last_cost.input_tokens == 1000
     finally:
         destroy_worktree(wt)
 
