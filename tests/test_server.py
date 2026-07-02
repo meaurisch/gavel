@@ -318,3 +318,36 @@ def test_session_survives_server_restart(client):
     assert reveal.status_code == 200
     judged = [p for p in reveal.json()["pairs"] if p["choice"] == "A"]
     assert len(judged) == 1
+
+
+def test_stats_pass_rate_denominator_matches_reveal(tmp_path):
+    """A trial with no gate verdict must not deflate pass_rate (the /api/reveal
+    denominator) — but still counts in n_trials."""
+    from fastapi.testclient import TestClient
+
+    from core.db import insert_run_result, insert_trial
+    from core.models import RunResult, Trial
+
+    db_path = tmp_path / "results.db"
+    conn = connect(db_path)
+    _seed_trial(conn, trial_id="g1", task_id="t", methodology_id="m",
+                repo_context_id="c", model="modelone", runner="r")
+    _seed_trial(conn, trial_id="g2", task_id="t", methodology_id="m",
+                repo_context_id="c", model="modeltwo", runner="r")
+    # modelone also has a trial with run_result but NO gate row (legacy orphan).
+    ungated = Trial(id="g3", task_id="t", methodology_id="m",
+                    repo_context_id="c", model="modelone", runner="r", rep=1)
+    insert_trial(conn, ungated)
+    insert_run_result(conn, RunResult(trial_id="g3", diff="d", exit_status=0, wall_seconds=1.0))
+    conn.close()
+
+    server.set_db_path(db_path)
+    with TestClient(server.app) as c:
+        resp = c.get("/api/stats", params={
+            "axis": "model", "task": "t", "methodology": "m",
+            "repo_context": "c", "runner": "r",
+        })
+        assert resp.status_code == 200
+        stats = {s["axis_value"]: s for s in resp.json()["stats"]}
+        assert stats["modelone"]["pass_rate"] == 1.0   # 1/1 gated, not 1/2
+        assert stats["modelone"]["n_trials"] == 2

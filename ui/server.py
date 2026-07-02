@@ -244,7 +244,7 @@ class RevealResponse(BaseModel):
 
 class AxisValueStats(BaseModel):
     axis_value: str
-    pass_rate: float
+    pass_rate: float | None      # passers / trials with a gate verdict (None if no verdicts)
     mean_cost_usd: float | None
     mean_wall_seconds: float | None
     n_trials: int
@@ -622,6 +622,7 @@ async def get_stats(
 
     passed: dict[str, int] = defaultdict(int)
     total: dict[str, int] = defaultdict(int)
+    gated: dict[str, int] = defaultdict(int)
     cost_sum: dict[str, float] = defaultdict(float)
     cost_n: dict[str, int] = defaultdict(int)
     wall_sum: dict[str, float] = defaultdict(float)
@@ -630,8 +631,13 @@ async def get_stats(
         value = getattr(t, comparison_col)
         total[value] += 1
         gr = get_gate_result(_conn, t.id)
-        if gr is not None and gr.passed:
-            passed[value] += 1
+        # Pass rate is passers over trials WITH a gate verdict — the same
+        # denominator /api/reveal and the analyzer use, so the two endpoints
+        # can't disagree about the same cell.
+        if gr is not None:
+            gated[value] += 1
+            if gr.passed:
+                passed[value] += 1
         cr = get_cost_record(_conn, t.id)
         if cr is not None:
             cost_sum[value] += cr.usd_equiv
@@ -644,7 +650,7 @@ async def get_stats(
     stats = [
         AxisValueStats(
             axis_value=value,
-            pass_rate=passed[value] / total[value],
+            pass_rate=(passed[value] / gated[value]) if gated[value] else None,
             mean_cost_usd=(cost_sum[value] / cost_n[value]) if cost_n[value] else None,
             mean_wall_seconds=(wall_sum[value] / wall_n[value]) if wall_n[value] else None,
             n_trials=total[value],
