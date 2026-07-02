@@ -1,0 +1,58 @@
+id: moreiter-A
+repo: more-itertools
+repo_url: https://github.com/more-itertools/more-itertools
+# base_commit is a LOCAL commit rebuilt deterministically by `python cli.py setup`:
+# upstream 18c57c720fc5a7672439ea45a5393a8c1ff40d1e with reference.diff
+# reverse-applied (fixed author/date => same sha on every machine). See
+# tasks/_repo_setup/repos.lock.yaml.
+base_commit: 858ec0ac075cb6bbb9eef75a36e957f062a54573
+instruction: |
+  Users processing event streams keep asking for running aggregates: "what's
+  the min/max/average of everything seen so far — or of just the last N
+  values?" We already ship `running_median` with an optional sliding window
+  (its keyword-only `maxlen` argument), but the rest of the family is missing
+  and `running_mean` still only supports the unbounded form. Complete the
+  family, following the conventions the library already uses (docstrings with
+  doctest examples, type stubs, docs listing).
+
+  What we need:
+
+  - `running_min(iterable, *, maxlen=None)` and
+    `running_max(iterable, *, maxlen=None)` generators that yield, for each
+    input element, the smallest/largest value seen so far. `maxlen=None`
+    means an unbounded window; a positive integer restricts the aggregate to
+    the last `maxlen` values (a sliding window). A non-positive `maxlen`
+    raises `ValueError` at call time. Inputs may be single-pass, unsized
+    iterators; comparisons must work for any orderable numeric type (int,
+    float, Decimal, Fraction) without converting values. The windowed form
+    must stay efficient on large windows — amortized O(1) per element, not
+    O(maxlen).
+
+  - Extend `running_mean` with the same keyword-only `maxlen` parameter and
+    identical semantics (unbounded by default, positive-window validation at
+    call time). The existing unbounded behaviour must not change.
+
+  - `running_statistics(iterable, *, maxlen=None)` yielding one `Stats` per
+    input element, where `Stats` is a frozen, slotted dataclass with fields
+    `size`, `minimum`, `median`, `maximum`, `mean` — the number of values in
+    the current window and its aggregates, computed with the same windowing
+    semantics as the functions above (reuse them; `running_median` already
+    exists).
+
+  - Export the new names (including `Stats`) from the package like their
+    siblings, add stub entries in `more_itertools/more.pyi` /
+    `more_itertools/recipes.pyi` matching the existing style, and list the
+    new functions in `docs/api.rst` and the README's API grid.
+
+  Behaviour of everything else must be unchanged.
+run_cmd: "python -m pytest tests/test_running_stats_hidden.py -q"
+build_cmd: 'python -c "import more_itertools.more, more_itertools.recipes"'
+visible_test_cmd: "python -m pytest tests -q"
+held_out_tests_path: tasks/moreiter-A/held_out_tests
+reference_diff_path: tasks/moreiter-A/reference.diff
+# Pre-calibration estimate (label by hand after a calibration sweep). medium:
+# a multi-function feature with a monotonic-deque algorithm and cross-file
+# wiring (exports, stubs, docs), but pure Python with fast local feedback.
+# stakes: routine — library utility work, no persistence or API-security
+# surface.
+difficulty: medium

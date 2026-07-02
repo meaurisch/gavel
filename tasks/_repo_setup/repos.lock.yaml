@@ -24,6 +24,14 @@ pyvrp:
       reverse_diff: tasks/pyvrp-C/reference.diff
       expect: 25fd8c0451d5db127913d9bf8f98a4f729aac32a
 
+more-itertools:
+  url: https://github.com/more-itertools/more-itertools
+  bases:
+    moreiter-A:
+      anchor: 18c57c720fc5a7672439ea45a5393a8c1ff40d1e  # Issue #1134: Add running_statistics (#1135)
+      reverse_diff: tasks/moreiter-A/reference.diff
+      expect: 858ec0ac075cb6bbb9eef75a36e957f062a54573
+
 cosmos:
   url: https://github.com/ShawnShiSS/clean-architecture-azure-cosmos-db
   bases:
