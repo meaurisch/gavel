@@ -309,16 +309,22 @@ billed trials are counted in the run-summary cost total.
 
 ## Next up
 
-- [ ] **First calibration sweep** — land each task's real pass rate in the
-      30–70% discrimination window. cosmos-A is the known outlier: 0 hidden-gate
-      passes across 9 real haiku trials so far (its gate is too strict for the
-      cheap model). Use `scripts/calibrate_tasks.py` + human judgment per
-      `recalibration_prompts/19-M-calibration-sweep.md` — a frozen golden task
-      only changes with a human OK.
-- [ ] **A2/A3 measurement runs** — the full methodology and repo-context sweeps
-      at reps=3 (bounded, ~$10; see `recalibration_prompts/23`–`26`), then blind
-      grading on the real data. The grade→rank path is already proven end-to-end
-      on manual-runner data.
+- [x] **A2/A3 measurement runs** — done 2026-07-03 ($11.71 total, 26 billed
+      trials): all five methodologies and both repo-contexts ran for real on
+      cosmos-A (haiku), plus a calibration slice on cosmos-B and moreiter-A.
+      First real gradeable cell (cosmos-B: baseline + karpathy hidden-gate
+      passers) produced and blind-graded.
+- [ ] **Calibration decisions** — measured pass rates: cosmos-B 33% (in the
+      30–70% band, discriminative), cosmos-A 0/17 and moreiter-A 0/3 (floor
+      effect for claude-haiku-4-5). Decide per task: ease the hidden gate, or
+      scope the task to stronger models. Frozen golden tasks change only with a
+      human OK (`recalibration_prompts/19-M-calibration-sweep.md`).
+- [ ] **Grow the real ranking** — one blind judgment exists on the real cell;
+      Bradley-Terry needs ≥3 comparisons. More reps on cosmos-B (cheap:
+      ~$0.11/trial) and/or your own grading session gets there. The pre-existing
+      judgment lives in session `c38ed5475724451ab3bb8caedf5d2e2b` (graded by
+      Claude, not you — delete that session's judgment rows if you want a pure
+      human gold standard).
 - [x] **Pure-Python starter task** — `moreiter-A` (more-itertools
       running-aggregates family): pip+pytest gate, no WSL, no dotnet.
       oracle=PASS / nop=FAIL on Windows; base rebuilt deterministically like

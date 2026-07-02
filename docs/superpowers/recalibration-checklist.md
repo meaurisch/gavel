@@ -26,11 +26,12 @@ Living tracker for the sync & recalibration effort. Check items as checkpoints c
 
 ## Phase A — Axis shakedown -> measurement
 - [x] A1 execution spine (Task / gate / cost) — verified via results.db (cosmos-A oracle+nop+claude-code; pyvrp-A/B/C oracle+nop trials) — **CHECKPOINT**
-- [ ] A2 methodology axis — partial: baseline vs karpathy ran for real on cosmos-A
-      (claude-haiku-4-5, reps=2, $1.23, 2026-07-02) proving cross-methodology
-      lay-down + gate + cost on the live CLI; the full 5-methodology reps=3 sweep
-      remains — **CHECKPOINT**
-- [ ] A3 repo-context axis — **CHECKPOINT**
+- [x] A2 methodology axis — done 2026-07-03: baseline/karpathy/ecc/superpowers at
+      3 real reps each + custom at 1 real rep (its 2-attempt budget; 1 attempt
+      errored-but-billed) on cosmos-A/none/claude-haiku-4-5. 0/17 hidden-gate
+      passes on cosmos-A -> calibration finding, not plumbing — **CHECKPOINT**
+- [x] A3 repo-context axis — done 2026-07-03: baseline x {none, cosmos} x 3 reps;
+      task_affinity verified both directions (+ --full-matrix override) — **CHECKPOINT**
 - [x] A4 model axis — verified via results.db (cosmos-A/baseline/none/claude-code across haiku+sonnet+opus) + follow-up fixes 5c9fea7, df1bfd5, 7a5121d, 686cf00 — **CHECKPOINT**
 
 ## Phase R — Copilot (spike-gated) — DEFERRED (2026-07-01)
@@ -60,4 +61,13 @@ becomes available. Work-models row in IMPLEMENTATION_PLAN.md §7 marked deferred
       CHECKPOINT** done via an 8-angle adversarial review (8 findings, all fixed).
 
 ## Phase M — First calibration sweep
-- [ ] tasks landed in 30-70% band; first real ranking produced
+- [~] calibration data measured 2026-07-03 (scripts/calibrate_tasks.py): cosmos-B
+      33% (2/6) — in band, discriminative; cosmos-A 0% (0/17) and moreiter-A 0%
+      (0/3) — floor effect for claude-haiku-4-5. First REAL gradeable cell
+      produced (cosmos-B/none/haiku/claude-code: baseline + karpathy passers) and
+      blind-graded (1 pair; session c38ed5475724451ab3bb8caedf5d2e2b — Claude's
+      judgment, not the human gold standard; purge that session's rows to
+      re-grade yourself). A Bradley-Terry ranking needs >=3 comparisons — more
+      passers/reps or a human grading pass are the remaining step. Task
+      adjustments (easing cosmos-A / moreiter-A for cheap models, or scoping them
+      to stronger models) are proposals only — frozen tasks change with human OK.
