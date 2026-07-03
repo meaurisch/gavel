@@ -48,3 +48,6 @@ repo_contexts/**/vendor/
 reports/
 results-demo.db
 results-*.db
+
+# Playwright MCP session artifacts
+.playwright-mcp/
