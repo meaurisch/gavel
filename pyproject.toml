@@ -1,10 +1,12 @@
 [project]
-name = "setup-bench"
-version = "0.1.0"
+name = "gavel"
+version = "0.2.0"
+description = "gavel — blind pairwise benchmarking for agentic coding setups (formerly setup-bench)"
 requires-python = ">=3.12"
 
 [project.scripts]
-setup-bench = "cli:app"
+gavel = "cli:app"
+setup-bench = "cli:app"   # legacy alias
 
 [tool.setuptools]
 py-modules = ["cli"]

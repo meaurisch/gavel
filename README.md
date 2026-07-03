@@ -1,11 +1,13 @@
-# setup-bench
+# gavel
 
-Created: 2026-06-20
+*the strike of judgment* — formerly `setup-bench`. Created: 2026-06-20.
 
 A local-first **decision-support tool** for comparing agentic coding setups. It
 tells you which combination of methodology, repo-context, model, and runner
-produces the best results for *your* tasks — and at what cost. It helps you make
-an informed choice; it does not try to prove one setup is statistically superior.
+produces the best results for *your* tasks — and at what cost. You judge blind
+A/B contests between anonymized solutions; gavel tallies the verdicts into a
+Bradley-Terry ranking. It helps you make an informed choice; it does not try
+to prove one setup is statistically superior.
 
 > This is a decision-support tool with a handful of tasks and limited statistical
 > power. Treat its rankings as evidence for a decision, not as theorems.
@@ -73,8 +75,8 @@ or Tie. Judgments feed a Bradley-Terry model that produces Elo-style scores with
 sampling draws balanced cross-value pairs from *all* repetitions, not just one.
 
 **API-rate cost.** Cost is computed from token counts × published API rates (a
-data-driven table in `cost/pricing.toml`, refreshable via `setup-bench pricing
-fetch`), not from self-reported numbers — so it's reproducible and comparable
+data-driven table in `cost/pricing.toml`, refreshable via `python cli.py
+pricing fetch`), not from self-reported numbers — so it's reproducible and comparable
 across models. Wall-clock time is captured as a secondary metric.
 
 **Analyzer flags.** The analyzer automatically surfaces non-discriminating tasks
@@ -91,7 +93,7 @@ Prerequisites: Python 3.12+, git, and Node.js 18+ (the web UI is built once
 during setup; `doctor` checks all three).
 
 ```powershell
-git clone <this-repo> setup-bench && cd setup-bench
+git clone <this-repo> gavel && cd gavel
 .\tasks.ps1 Setup     # venv + deps + clone task repos + rebuild task bases + build web UI + doctor
 .\tasks.ps1 Ui        # open the web UI → http://localhost:8247
 ```

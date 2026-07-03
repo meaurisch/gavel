@@ -3,9 +3,12 @@
 No external assets, no JS frameworks: inline CSS (light + dark via
 prefers-color-scheme), static SVG with native <title> tooltips, direct labels
 on every point, a legend, and a full data table below the chart (the
-accessibility/table view). Colors follow the validated reference palette:
-frontier points wear the accent blue, dominated points the muted ink; the two
-stakes picks are marked with a ring + text badge, not extra hues.
+accessibility/table view). Colors are the Gavel design-system palette
+(docs/design/exports/tokens.css) so the artifact reads as the same product
+as the web UI: frontier points wear the indigo accent, dominated points the
+muted ink; the two stakes picks are marked with a ring + text badge, not
+extra hues. Fonts fall back to system stacks — the artifact must stay a
+single self-contained file.
 """
 
 from __future__ import annotations
@@ -244,34 +247,42 @@ def render_report_html(report: ReportData, generated_at: str = "") -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>setup-bench report — {_esc(report.axis)} axis</title>
+<title>gavel report — {_esc(report.axis)} axis</title>
 <style>
+  /* Gavel design-system palette (docs/design/exports/tokens.css) */
   :root {{
-    --surface: #fcfcfb; --page: #f9f9f7;
-    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
-    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
-    --accent: #2a78d6; --badge-q: #2a78d6; --badge-b: #006300;
+    --surface: #ffffff; --page: #f4f5f7;
+    --ink: #20242e; --ink-2: #4a5160; --muted: #7c8494;
+    --grid: #eef0f3; --axis: #c9cedb; --border: #e0e3e9;
+    --accent: #4e59c8;
+    --badge-q-bg: #eceef9; --badge-q-fg: #4e59c8; --badge-q-bd: #c9cdf0;
+    --badge-b-bg: #e4f1e8; --badge-b-fg: #27714a; --badge-b-bd: #c2ddcc;
   }}
   @media (prefers-color-scheme: dark) {{
     :root {{
-      --surface: #1a1a19; --page: #0d0d0d;
-      --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
-      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-      --accent: #3987e5; --badge-q: #3987e5; --badge-b: #0ca30c;
+      --surface: #1b1e25; --page: #14161b;
+      --ink: #dfe2e8; --ink-2: #9aa1b0; --muted: #6d7482;
+      --grid: #22262f; --axis: #3a4150; --border: #2c313c;
+      --accent: #9aa4f0;
+      --badge-q-bg: #242849; --badge-q-fg: #9aa4f0; --badge-q-bd: #3d4487;
+      --badge-b-bg: #17281d; --badge-b-fg: #6fbf8f; --badge-b-bd: #24422f;
     }}
   }}
   * {{ box-sizing: border-box; }}
   body {{
     margin: 0; padding: 32px 16px; background: var(--page); color: var(--ink);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 14px/1.5 'IBM Plex Sans', system-ui, -apple-system, "Segoe UI", sans-serif;
   }}
   main {{ max-width: 900px; margin: 0 auto; }}
-  h1 {{ font-size: 22px; margin: 0 0 4px; }}
-  h2 {{ font-size: 16px; margin: 28px 0 8px; }}
+  h1 {{ font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 4px;
+       display: flex; align-items: center; gap: 9px; }}
+  h1 svg {{ flex: none; }}
+  h2 {{ font-size: 16px; font-weight: 600; margin: 28px 0 8px; }}
   .sub {{ color: var(--ink-2); margin: 0 0 20px; }}
   .card {{
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 20px; margin: 16px 0;
+    border-radius: 10px; padding: 20px; margin: 16px 0;
+    box-shadow: 0 1px 2px rgba(15,18,26,.05);
   }}
   svg {{ width: 100%; height: auto; display: block; }}
   .grid {{ stroke: var(--grid); stroke-width: 1; }}
@@ -286,18 +297,20 @@ def render_report_html(report: ReportData, generated_at: str = "") -> str:
   line.ci.pt-dominated {{ stroke: var(--muted); }}
   .frontier-line {{ fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.6; }}
   .pick-ring {{ fill: none; stroke: var(--ink); stroke-width: 1.5; }}
+  td .badge {{ margin-left: 4px; }}
   .pt-label {{ font-size: 12px; fill: var(--ink); }}
   text.pt-label.pt-dominated {{ fill: var(--ink-2); }}
   .picks {{ display: grid; gap: 8px; margin: 12px 0; }}
   .badge {{
-    display: inline-block; padding: 1px 8px; border-radius: 999px;
-    font-size: 11px; font-weight: 600; color: #fff;
+    display: inline-block; padding: 1px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; border: 1px solid transparent;
   }}
-  .badge-q {{ background: var(--badge-q); }}
-  .badge-b {{ background: var(--badge-b); }}
-  table {{ width: 100%; border-collapse: collapse; font-size: 13.5px; }}
+  .badge-q {{ background: var(--badge-q-bg); color: var(--badge-q-fg); border-color: var(--badge-q-bd); }}
+  .badge-b {{ background: var(--badge-b-bg); color: var(--badge-b-fg); border-color: var(--badge-b-bd); }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
   th, td {{ text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); }}
-  th {{ color: var(--ink-2); font-weight: 600; white-space: nowrap; }}
+  th {{ color: var(--muted); font-weight: 600; white-space: nowrap;
+       font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }}
   td.num, th.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
   .flags li {{ color: var(--ink-2); }}
   .note {{ color: var(--muted); font-size: 13px; }}
@@ -307,7 +320,7 @@ def render_report_html(report: ReportData, generated_at: str = "") -> str:
 </head>
 <body>
 <main>
-  <h1>setup-bench report — comparison axis: {_esc(report.axis)}</h1>
+  <h1><svg width="22" height="22" viewBox="0 0 28 28" aria-hidden="true"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"/><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"/><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"/></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"/></svg>gavel report — comparison axis: {_esc(report.axis)}</h1>
   <p class="sub">Scope: {_esc(cell_txt)}{f" · generated {_esc(generated_at)}" if generated_at else ""}</p>
 
   {picks_html}

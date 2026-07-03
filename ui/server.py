@@ -1,4 +1,4 @@
-"""FastAPI backend for the Tiltyard web UI (dashboard, grading, runs, reports).
+"""FastAPI backend for the gavel web UI (dashboard, grading, runs, reports).
 
 DB access is per-request: every endpoint takes an optional ``db`` query param
 (a plain ``*.db`` filename resolved against the project root); empty means the
@@ -205,7 +205,7 @@ def _axis_ids_for_blinding(trials) -> dict[str, list[str]]:
 # App
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="tiltyard (setup-bench ui)")
+app = FastAPI(title="gavel (formerly setup-bench)")
 app.mount("/reports", StaticFiles(directory=str(REPORTS_DIR), check_dir=False), name="reports")
 if (FRONTEND_DIST / "assets").is_dir():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
@@ -1330,7 +1330,7 @@ async def runs_events(run_id: str) -> StreamingResponse:
 # ---------------------------------------------------------------------------
 
 _NOT_BUILT_PAGE = """<!doctype html>
-<html><head><title>tiltyard — frontend not built</title></head>
+<html><head><title>gavel — frontend not built</title></head>
 <body style="font-family: system-ui; max-width: 40rem; margin: 4rem auto;">
 <h1>Frontend not built yet</h1>
 <p>The API server is running, but <code>ui/frontend/dist/</code> does not exist.</p>

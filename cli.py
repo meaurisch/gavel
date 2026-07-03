@@ -175,7 +175,7 @@ def _serve_ui(db: Path, port: int, verbose: bool, landing: str = "") -> None:
     from ui.server import app as fastapi_app, set_db_path
 
     set_db_path(db)
-    console.print(f"[bold]Tiltyard UI[/] → http://localhost:{port}{landing}")
+    console.print(f"[bold]gavel[/] → http://localhost:{port}{landing}")
     console.print("[dim]Dashboard, grading, run launcher, browse, and reports all live there.[/]")
     uvicorn.run(
         fastapi_app,
@@ -426,7 +426,7 @@ def doctor():
     from doctor import run_all_checks
 
     rows = run_all_checks()
-    table = Table(title="setup-bench doctor")
+    table = Table(title="gavel doctor")
     table.add_column("Check")
     table.add_column("Status")
     table.add_column("Detail")
