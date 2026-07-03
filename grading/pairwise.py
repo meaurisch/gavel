@@ -138,8 +138,9 @@ def _split_file_hunks(diff: str) -> list[tuple[str, str]]:
     return result
 
 
-def anonymize_diff(diff: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
-    """Strip instruction files and redact every given axis id from a diff.
+def redact_axis_ids(text: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
+    """Redact every given axis id from arbitrary text (diffs, gate logs,
+    reconstructed file content — anything served during blind comparison).
 
     Ids match as whole tokens (case-insensitive) with letters/digits as the
     boundary alphabet: the repo-context id ``cosmos`` must not mangle a
@@ -148,7 +149,26 @@ def anonymize_diff(diff: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
     agent leaks an axis id into identifiers. Callers decide which ids to
     redact; causally-inert ids (specs that lay down zero files) should be
     filtered out before calling (see ui.server._inert_axis_ids).
+
+    This is THE redaction implementation for the blind-grading invariant —
+    every UI surface must go through it, not reimplement it.
     """
+    sid_tokens: list[tuple[str, str]] = []
+    for axis, ids in axis_ids_by_axis.items():
+        token = AXIS_TOKENS[axis]
+        for sid in ids:
+            sid_tokens.append((sid, token))
+
+    for sid, token in sorted(sid_tokens, key=lambda pair: len(pair[0]), reverse=True):
+        pattern = re.compile(rf"(?<![A-Za-z0-9]){re.escape(sid)}(?![A-Za-z0-9])", re.IGNORECASE)
+        text = pattern.sub(token, text)
+
+    return text
+
+
+def anonymize_diff(diff: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
+    """Strip instruction files and redact every given axis id from a diff
+    (see redact_axis_ids for the redaction rules)."""
     hunks = _split_file_hunks(diff)
 
     # Preserve any text before the first "diff --git" (unlikely but safe)
@@ -160,19 +180,7 @@ def anonymize_diff(diff: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
             continue
         kept_parts.append(hunk_text)
 
-    cleaned = "".join(kept_parts)
-
-    sid_tokens: list[tuple[str, str]] = []
-    for axis, ids in axis_ids_by_axis.items():
-        token = AXIS_TOKENS[axis]
-        for sid in ids:
-            sid_tokens.append((sid, token))
-
-    for sid, token in sorted(sid_tokens, key=lambda pair: len(pair[0]), reverse=True):
-        pattern = re.compile(rf"(?<![A-Za-z0-9]){re.escape(sid)}(?![A-Za-z0-9])", re.IGNORECASE)
-        cleaned = pattern.sub(token, cleaned)
-
-    return cleaned
+    return redact_axis_ids("".join(kept_parts), axis_ids_by_axis)
 
 
 def _extract_dep_name(line: str, filename: str) -> str:
