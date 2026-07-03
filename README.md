@@ -243,7 +243,8 @@ guessed the same test path. The overwritten agent file is restored after the run
 
 ## Current state
 
-The full pipeline is built and tested (267 tests green, 1 env-gated test
+The full pipeline is built and tested (297 fast tests green plus a 14-test
+Playwright UI suite behind the `integration` marker, 1 env-gated test
 deselected) — engine, 5-axis matrix, three-tier gate, axis-general blind
 grading, Bradley-Terry ranking, API-rate cost, the report command with the
 quality-vs-cost Pareto frontier, and task-quality tooling. The task set spans

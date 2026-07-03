@@ -369,6 +369,33 @@ def test_marathon_keyboard_session_with_reload(page, server):
         assert meth in reveal
 
 
+def test_reveal_closes_session_in_ui(page, server):
+    """Guessing the reveal URL mid-session must not turn into unblinded
+    grading: the reveal shows judged pairs only, and the session page then
+    refuses further judgments (critic finding #1)."""
+    _start_session(page, server, "methodology")
+    session_url = page.url
+    page.keyboard.press("a")
+    page.wait_for_function(
+        "() => document.querySelector('[data-testid=\"pair-progress\"]').textContent.includes('1 judged')"
+    )
+
+    page.goto(session_url.rstrip("/") + "/reveal")
+    page.wait_for_selector('[data-testid="session-closed-note"]')
+    note = page.get_by_test_id("session-closed-note").inner_text()
+    assert "stayed blind" in note
+    # Only the judged pair is unblinded.
+    assert page.locator('[data-testid="reveal-pairs"] tbody tr').count() == 1
+
+    page.goto(session_url)
+    page.wait_for_selector('[data-testid="session-closed-bar"]')
+    assert page.get_by_test_id("judge-bar").count() == 0
+    before = page.get_by_test_id("pair-progress").inner_text()
+    page.keyboard.press("a")
+    page.wait_for_timeout(400)
+    assert page.get_by_test_id("pair-progress").inner_text() == before, "judgment accepted after reveal"
+
+
 # ---------------------------------------------------------------------------
 # Run launcher spend gate (never launches anything paid)
 # ---------------------------------------------------------------------------

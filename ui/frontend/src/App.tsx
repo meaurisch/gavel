@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
 import { api } from "./api";
 import { useDb } from "./db";
@@ -17,6 +18,15 @@ function DbSwitcher() {
 
   const options = dbs ?? [];
   const defaultName = options.find((d) => d.is_default)?.name;
+
+  // Self-heal a stale selection (e.g. a scratch DB that was deleted, left
+  // behind in localStorage): fall back to the server default instead of
+  // silently 404ing every request while the switcher shows the default.
+  useEffect(() => {
+    if (dbs && db !== "" && !dbs.some((d) => d.name === db)) {
+      setDb("");
+    }
+  }, [dbs, db, setDb]);
 
   return (
     <label className="row" style={{ gap: "var(--space-2)" }} data-testid="db-switcher">

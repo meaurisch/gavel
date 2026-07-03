@@ -85,7 +85,8 @@ CREATE TABLE IF NOT EXISTS grading_session (
     axis TEXT NOT NULL,
     cell TEXT NOT NULL,
     pairs TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    revealed_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS judgment (
@@ -125,6 +126,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "task_spec", "visible_test_cmd", "TEXT")
     _ensure_column(conn, "task_spec", "difficulty", "TEXT")
     _ensure_column(conn, "run_result", "error", "TEXT")
+    _ensure_column(conn, "grading_session", "revealed_at", "TEXT")
     conn.commit()
 
 
@@ -381,8 +383,18 @@ def list_judgments(conn: sqlite3.Connection, session_id: str) -> list[Judgment]:
 
 def insert_grading_session(conn: sqlite3.Connection, s: GradingSession) -> None:
     conn.execute(
-        "INSERT INTO grading_session VALUES (?, ?, ?, ?, ?)",
-        (s.id, s.axis, json.dumps(s.cell), json.dumps(s.pairs), s.created_at),
+        "INSERT INTO grading_session VALUES (?, ?, ?, ?, ?, ?)",
+        (s.id, s.axis, json.dumps(s.cell), json.dumps(s.pairs), s.created_at, s.revealed_at),
+    )
+    conn.commit()
+
+
+def mark_session_revealed(conn: sqlite3.Connection, session_id: str, revealed_at: str) -> None:
+    """Idempotently close a session at its FIRST reveal — the original
+    timestamp must survive later reveal-page loads."""
+    conn.execute(
+        "UPDATE grading_session SET revealed_at = ? WHERE id = ? AND revealed_at IS NULL",
+        (revealed_at, session_id),
     )
     conn.commit()
 

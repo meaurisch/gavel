@@ -76,9 +76,12 @@ class OriginalResolver:
 
         try:
             task = load_task(task_id)
-        except Exception as e:
+        except Exception:
             self.available = False
-            self.reason = f"task spec for {task_id!r} not available locally ({e.__class__.__name__})"
+            self.reason = (
+                f"no local task spec for {task_id!r} — original file content can only be "
+                "reconstructed for tasks that exist in this checkout"
+            )
             return
 
         self._base_commit = task.base_commit

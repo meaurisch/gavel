@@ -39,6 +39,17 @@ export function RevealPage() {
           </span>
         </div>
 
+        <div className="notice-banner" style={{ marginBottom: "var(--space-4)" }} data-testid="session-closed-note">
+          This session is now closed: revealing ends blind judging permanently.
+          {data.n_unjudged > 0 && (
+            <>
+              {" "}
+              <strong>{data.n_unjudged} unjudged pair{data.n_unjudged === 1 ? "" : "s"} stayed blind</strong>{" "}
+              and are not shown — start a new session to grade this cell further.
+            </>
+          )}
+        </div>
+
         {data.bt_scores && (
           <div className="card" data-testid="bt-table">
             <div className="card-title">Bradley-Terry ranking (this session)</div>
@@ -59,7 +70,7 @@ export function RevealPage() {
                       <td>{i + 1}</td>
                       <td><IdChip catalog={catalog} kind={kind} id={s.axis_value} /></td>
                       <td className="num">{s.elo.toFixed(0)}</td>
-                      <td className="num">{s.ci_lower.toFixed(0)}–{s.ci_upper.toFixed(0)}</td>
+                      <td className="num">{s.ci_lower.toFixed(0)} to {s.ci_upper.toFixed(0)}</td>
                       <td className="num">{fmtPct(data.pass_rates?.[s.axis_value] ?? null)}</td>
                     </tr>
                   ))}
@@ -103,7 +114,7 @@ export function RevealPage() {
         </div>
 
         <div className="card">
-          <div className="card-title">Every pair, unblinded</div>
+          <div className="card-title">Judged pairs, unblinded</div>
           <div className="table-wrap">
             <table className="table" data-testid="reveal-pairs">
               <thead>
@@ -121,11 +132,7 @@ export function RevealPage() {
                     <td><IdChip catalog={catalog} kind={kind} id={p.left_value} /></td>
                     <td><IdChip catalog={catalog} kind={kind} id={p.right_value} /></td>
                     <td>
-                      {p.choice === null ? (
-                        <span className="badge neutral">not judged</span>
-                      ) : (
-                        <span className="badge accent">{p.choice}</span>
-                      )}
+                      <span className="badge accent">{p.choice}</span>
                     </td>
                   </tr>
                 ))}

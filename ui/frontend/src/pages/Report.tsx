@@ -3,7 +3,7 @@
 // `python cli.py report`, plus links to generated HTML artifacts.
 
 import { useState } from "react";
-import { api, fmtDate, fmtPct, fmtUsd } from "../api";
+import { api, fmtPct, fmtUsd } from "../api";
 import { useDb } from "../db";
 import { useCatalog, useFetch } from "../hooks";
 import { AXES, AXIS_LABELS } from "../types";
@@ -116,7 +116,7 @@ export function ReportPage() {
                         </td>
                         <td className="num">{s.elo !== null ? s.elo.toFixed(0) : "—"}</td>
                         <td className="num">
-                          {s.bt_ci_elo ? `${s.bt_ci_elo[0].toFixed(0)}–${s.bt_ci_elo[1].toFixed(0)}` : "—"}
+                          {s.bt_ci_elo ? `${s.bt_ci_elo[0].toFixed(0)} to ${s.bt_ci_elo[1].toFixed(0)}` : "—"}
                         </td>
                         <td className="num">{s.n_comparisons}</td>
                         <td className="num">{fmtPct(s.tier_pass_rates["compile"] ?? null)}</td>
@@ -171,7 +171,7 @@ export function ReportPage() {
                   {data.artifacts.map((a) => (
                     <div key={a.name} className="row small">
                       <a href={a.url} target="_blank" rel="noreferrer">{a.name}</a>
-                      <span className="xsmall faint">{fmtDate(a.modified_at)}</span>
+                      <span className="xsmall faint">(timestamp in the name is UTC; newest first)</span>
                     </div>
                   ))}
                 </div>

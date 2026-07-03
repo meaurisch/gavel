@@ -154,7 +154,12 @@ export function ThreeWayDiff({
       } else {
         map.set(f.path, {
           content: f.content,
-          note: f.status === "unavailable" ? "original unavailable" : null,
+          note:
+            f.status === "unavailable"
+              ? "original unavailable"
+              : f.status === "new"
+                ? "new file — did not exist before the change"
+                : null,
         });
       }
     }

@@ -157,6 +157,7 @@ export interface Session {
   pairs: Pair[];
   judged: { pair_index: number; choice: string }[];
   created_at: string | null;
+  revealed_at: string | null;
 }
 
 export interface SessionSummary {
@@ -166,6 +167,7 @@ export interface SessionSummary {
   total_pairs: number;
   n_judged: number;
   created_at: string;
+  revealed_at: string | null;
 }
 
 export interface OriginalFile {
@@ -187,6 +189,8 @@ export interface RevealResponse {
   summary: Record<string, { wins: number; losses: number; ties: number }>;
   axis: Axis;
   cell: Record<string, string>;
+  n_unjudged: number;
+  revealed_at: string | null;
   bt_scores: { axis_value: string; elo: number; ci_lower: number; ci_upper: number }[] | null;
   analyzer_flags: {
     non_discriminating_tasks: string[];

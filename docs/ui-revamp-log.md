@@ -96,3 +96,34 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
 - Note for automation: the run-launcher multi-pick buttons derive toggle
   state from props, so same-tick programmatic clicks race React's rerender —
   click sequentially with a settle delay in tests (humans are unaffected).
+- Fresh-context critic pass (subagent driving the live app) found 1 blocker,
+  1 major, 10 minors/nits; all fixed and re-verified live + by tests:
+  - BLOCKER: `/grade/session/<id>/reveal` unblinded ALL pairs of an
+    in-progress session and the session kept accepting judgments. Fix:
+    reveal permanently closes the session (`grading_session.revealed_at`,
+    migrated via _ensure_column), `/api/judge` returns 409 on a revealed
+    session (persisted — survives restart), reveal exposes JUDGED pairs
+    only (unjudged assignments could deblind future sessions over the same
+    trials), UI swaps the judge bar for a "session closed" bar. Verified
+    live (UI keyboard ignored, direct API 409) + fast tests + a dedicated
+    Playwright test.
+  - MAJOR: stale `tiltyard.db` in localStorage (e.g. a deleted scratch DB)
+    half-bricked the app while the switcher showed the default as selected.
+    Fix: DbSwitcher self-heals to the server default when the stored name
+    isn't in /api/dbs. Verified live.
+  - Deliberate decision on metric fingerprinting (critic #3): cost/tokens/
+    wall stay visible on methodology/repo-context axes (cost is part of the
+    judgment per the tool's decision rule) but are now server-side rounded
+    to ~2 significant figures so they can't be joined 1:1 against the
+    unblinded Browse table.
+  - Demo three-way cleanup: created files report status "new" with a
+    "new file" note instead of an internal-exception banner; unavailability
+    note only appears when a shown file is actually unreconstructable.
+  - Picker gained an unfinished-session resume banner (was dashboard-only);
+    "Session not found" now offers a back-link + wrong-DB hint; runner
+    select lists all real runners (copilot-cli disabled as not-runnable,
+    db-only ids like demo-runner excluded); claude-code plan without a
+    model is validated client-side; "Write results to" placeholder names
+    the actual active DB; Elo CIs render "x to y" (negative-bound
+    readability); artifact list notes its filenames are UTC; axis picker
+    persists in the URL (?axis=) and toggles carry aria-pressed.

@@ -115,7 +115,9 @@ def test_resolver_unavailable_without_local_task(monkeypatch):
     monkeypatch.setattr(originals, "load_task", boom)
     r = OriginalResolver("demo-lru-cache", "demo-baseline", "none", "demo-runner")
     assert not r.available
-    assert "not available locally" in r.reason
+    assert "no local task spec" in r.reason
+    # user-facing message must not expose internal exception class names
+    assert "Error" not in r.reason
     assert r.content("anything.py") is None
 
 

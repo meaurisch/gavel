@@ -104,12 +104,14 @@ def test_gate_detail_logs_served_and_redacted(client):
     assert "[methodology]" in all_logs
 
 
-def test_metrics_visible_on_methodology_axis(client):
+def test_metrics_visible_on_methodology_axis_and_coarsened(client):
     data = _start_session(client, axis="methodology")
     pair = data["pairs"][0]
     assert pair["metrics_hidden"] is False
+    # Values are rounded to ~2 significant figures so they can't be joined
+    # 1:1 against the unblinded Browse table (fingerprinting).
     assert pair["left"]["metrics"]["usd"] == 0.5
-    assert pair["left"]["metrics"]["wall_seconds"] == 12.5
+    assert pair["left"]["metrics"]["wall_seconds"] == 12.0  # exact value is 12.5
     assert pair["left"]["metrics"]["input_tokens"] == 1000
 
 
@@ -196,6 +198,51 @@ def test_sessions_list_shows_progress(client):
 
 def test_session_404_for_unknown(client):
     assert client.get("/api/session/nope").status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Reveal closes the session (blind-grading invariant)
+# ---------------------------------------------------------------------------
+
+def test_reveal_closes_session_and_hides_unjudged_pairs(client):
+    data = _start_session(client, axis="methodology")
+    sid = data["session_id"]
+    total = data["total_pairs"]
+    client.post("/api/judge", json={"session_id": sid, "pair_index": 0, "choice": "A"})
+
+    rev = client.get("/api/reveal", params={"session_id": sid})
+    assert rev.status_code == 200
+    body = rev.json()
+    # Only the judged pair is unblinded; the rest stay blind forever.
+    assert len(body["pairs"]) == 1
+    assert body["pairs"][0]["choice"] == "A"
+    assert body["n_unjudged"] == total - 1
+    assert body["revealed_at"] is not None
+
+    # Judging after reveal is refused — including re-judging the judged pair.
+    for idx in (0, 1):
+        resp = client.post("/api/judge", json={"session_id": sid, "pair_index": idx, "choice": "B"})
+        assert resp.status_code == 409, f"judgment accepted after reveal (pair {idx})"
+        assert "closed" in resp.json()["detail"]
+
+    # The closure is persisted, not in-memory: survive a "restart".
+    server._sessions.clear()
+    resp = client.post("/api/judge", json={"session_id": sid, "pair_index": 1, "choice": "A"})
+    assert resp.status_code == 409
+
+    # The session payload and listing both carry the closed state.
+    assert client.get(f"/api/session/{sid}").json()["revealed_at"] is not None
+    listed = {s["session_id"]: s for s in client.get("/api/sessions").json()}
+    assert listed[sid]["revealed_at"] is not None
+
+
+def test_reveal_timestamp_stable_across_loads(client):
+    data = _start_session(client, axis="methodology")
+    sid = data["session_id"]
+    client.post("/api/judge", json={"session_id": sid, "pair_index": 0, "choice": "tie"})
+    first = client.get("/api/reveal", params={"session_id": sid}).json()["revealed_at"]
+    second = client.get("/api/reveal", params={"session_id": sid}).json()["revealed_at"]
+    assert first == second
 
 
 # ---------------------------------------------------------------------------

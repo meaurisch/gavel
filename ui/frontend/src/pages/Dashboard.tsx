@@ -36,7 +36,9 @@ export function Dashboard() {
   const { data: runs } = useFetch(() => api.runs(), [db]);
 
   const active = dbs?.find((d) => (db === "" ? d.is_default : d.name === db));
-  const unfinished = (sessions ?? []).filter((s) => s.n_judged < s.total_pairs).slice(0, 5);
+  const unfinished = (sessions ?? [])
+    .filter((s) => s.n_judged < s.total_pairs && s.revealed_at === null)
+    .slice(0, 5);
   const activeRun = (runs ?? []).find((r) => r.status === "running");
   const empty = active !== undefined && active.n_trials === 0;
 

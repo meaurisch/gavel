@@ -135,9 +135,11 @@ export function GradeSession() {
     [session],
   );
 
+  const closed = session?.revealed_at != null;
+
   const judge = useCallback(
     async (choice: "A" | "B" | "tie") => {
-      if (!session || index === null || judging) return;
+      if (!session || index === null || judging || closed) return;
       setJudging(true);
       setJudgeError(null);
       try {
@@ -165,7 +167,7 @@ export function GradeSession() {
         setJudging(false);
       }
     },
-    [session, index, judging, choices, db, navigate],
+    [session, index, judging, closed, choices, db, navigate],
   );
 
   // Keyboard-first flow.
@@ -203,7 +205,20 @@ export function GradeSession() {
   }, [judge, goto, index]);
 
   if (loading) return <main className="app-main"><div className="empty-state">Loading session…</div></main>;
-  if (error) return <main className="app-main"><div className="error-banner">{error}</div></main>;
+  if (error) {
+    return (
+      <main className="app-main">
+        <div className="page">
+          <div className="error-banner">{error}</div>
+          <p className="small muted">
+            If this session exists, it may live in a different database — check the database selector in
+            the top bar.
+          </p>
+          <Link className="btn" to={`/grade${db ? `?db=${db}` : ""}`}>← Back to the grading picker</Link>
+        </div>
+      </main>
+    );
+  }
   if (!session || !pair || index === null) return <main className="app-main"><div className="empty-state">Session is empty.</div></main>;
 
   const currentChoice = choices.get(index);
@@ -235,6 +250,7 @@ export function GradeSession() {
           <button
             className={`btn sm ${view === "two" ? "primary" : ""}`}
             onClick={() => setView("two")}
+            aria-pressed={view === "two"}
             data-testid="view-two"
           >
             A | B
@@ -242,6 +258,7 @@ export function GradeSession() {
           <button
             className={`btn sm ${view === "three" ? "primary" : ""}`}
             onClick={() => setView("three")}
+            aria-pressed={view === "three"}
             data-testid="view-three"
           >
             Original | A | B
@@ -275,6 +292,31 @@ export function GradeSession() {
       </div>
 
       {/* judge bar */}
+      {closed ? (
+        <div
+          className="row"
+          style={{
+            padding: "var(--space-2) var(--space-4)",
+            borderTop: "1px solid var(--color-border)",
+            background: "var(--color-surface)",
+            flex: "none",
+            justifyContent: "center",
+            gap: "var(--space-3)",
+          }}
+          data-testid="session-closed-bar"
+        >
+          <span className="badge warn">session closed</span>
+          <span className="small muted">
+            This session was revealed — its pairs are no longer blind, so judging is disabled.
+          </span>
+          <Link className="btn primary sm" to={`/grade/session/${session.session_id}/reveal${db ? `?db=${db}` : ""}`}>
+            View results
+          </Link>
+          <Link className="btn sm" to={`/grade${db ? `?db=${db}` : ""}`}>
+            Grade this cell again (new session)
+          </Link>
+        </div>
+      ) : (
       <div
         className="row"
         style={{
@@ -328,6 +370,7 @@ export function GradeSession() {
           <kbd className="key">←</kbd><kbd className="key">→</kbd> navigate · <kbd className="key">V</kbd> view
         </span>
       </div>
+      )}
     </main>
   );
 }

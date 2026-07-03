@@ -94,12 +94,17 @@ class GradingSession:
     """A persisted grading session: which axis was compared, in which cell,
     over which ordered trial pairs. Persisting this (not just the judgments)
     lets the Bradley-Terry ranking be rebuilt after a server restart and lets
-    `report` consume past sessions."""
+    `report` consume past sessions.
+
+    revealed_at closes the session: once the grader has seen the unblinded
+    pair assignments, further judgments would no longer be blind, so the
+    server refuses them permanently."""
     id: str
     axis: str
     cell: dict[str, str]           # task_id + the pinned axis values
     pairs: list[tuple[str, str]]   # ordered (left_trial_id, right_trial_id)
     created_at: str
+    revealed_at: str | None = None
 
 
 @dataclass

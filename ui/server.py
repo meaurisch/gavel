@@ -35,6 +35,7 @@ from core.db import (
     grading_readiness,
     get_grading_session,
     insert_grading_session,
+    mark_session_revealed,
     list_judgments,
     upsert_judgment,
     list_passing_trials,
@@ -117,12 +118,14 @@ def _open(db: str = "") -> sqlite3.Connection:
 
 class SessionState:
     def __init__(self, session_id: str, axis: str, cell: dict[str, str],
-                 pairs: list[tuple[str, str]], judgments_made: set[int] | None = None):
+                 pairs: list[tuple[str, str]], judgments_made: set[int] | None = None,
+                 revealed_at: str | None = None):
         self.session_id = session_id
         self.axis = axis
         self.cell = cell
         self.pairs = pairs
         self.judgments_made: set[int] = judgments_made or set()
+        self.revealed_at = revealed_at
 
 
 _sessions: dict[str, SessionState] = {}
@@ -151,6 +154,7 @@ def _get_session(conn: sqlite3.Connection, session_id: str) -> SessionState | No
         cell=stored.cell,
         pairs=list(stored.pairs),
         judgments_made=made,
+        revealed_at=stored.revealed_at,
     )
     _sessions[session_id] = session
     return session
@@ -284,6 +288,7 @@ class SessionResponse(BaseModel):
     pairs: list[PairResponse]
     judged: list[JudgedPair] = []
     created_at: str | None = None
+    revealed_at: str | None = None
 
 
 class SessionSummary(BaseModel):
@@ -293,6 +298,7 @@ class SessionSummary(BaseModel):
     total_pairs: int
     n_judged: int
     created_at: str
+    revealed_at: str | None = None
 
 
 class JudgeRequest(BaseModel):
@@ -338,10 +344,12 @@ class AnalyzerFlagsModel(BaseModel):
 
 
 class RevealResponse(BaseModel):
-    pairs: list[RevealPair]
+    pairs: list[RevealPair]           # judged pairs ONLY — unjudged stay blind
     summary: dict[str, AxisValueRecord]
     axis: str
     cell: dict[str, str]
+    n_unjudged: int = 0
+    revealed_at: str | None = None
     bt_scores: list[BTScore] | None = None
     analyzer_flags: AnalyzerFlagsModel | None = None
     pass_rates: dict[str, float] | None = None
@@ -480,6 +488,21 @@ async def get_catalog(db: str = "") -> dict:
         conn.close()
 
 
+def _coarse(v: float | int | None) -> float | int | None:
+    """Round to ~2 significant figures. Metrics shown during comparison must
+    stay useful for judgment ("4x the tokens for the same quality") but not
+    be joinable 1:1 against the unblinded Browse table — a unique exact cost
+    identifies the trial and would deblind the pair."""
+    if v is None or v == 0:
+        return v
+    exp = math.floor(math.log10(abs(v)))
+    factor = 10.0 ** (exp - 1)
+    out = round(v / factor) * factor
+    if isinstance(v, int):
+        return int(out)
+    return round(out, max(0, -(exp - 1)))
+
+
 def _tier_detail(passed: bool | None, output: str | None,
                  axis_ids: dict[str, list[str]]) -> TierDetail:
     if output is None:
@@ -529,11 +552,11 @@ def _build_pair_responses(
             metrics = None
             if not metrics_hidden:
                 metrics = SideMetrics(
-                    usd=cr.usd_equiv if cr else None,
-                    input_tokens=cr.input_tokens if cr else None,
-                    output_tokens=cr.output_tokens if cr else None,
-                    cache_read_tokens=cr.cache_read_tokens if cr else None,
-                    wall_seconds=rr.wall_seconds,
+                    usd=_coarse(cr.usd_equiv) if cr else None,
+                    input_tokens=_coarse(cr.input_tokens) if cr else None,
+                    output_tokens=_coarse(cr.output_tokens) if cr else None,
+                    cache_read_tokens=_coarse(cr.cache_read_tokens) if cr else None,
+                    wall_seconds=_coarse(rr.wall_seconds),
                 )
 
             sides.append(BlindDiffResponse(
@@ -662,6 +685,7 @@ async def get_sessions(db: str = "") -> list[SessionSummary]:
                 total_pairs=len(s.pairs),
                 n_judged=n_judged,
                 created_at=s.created_at,
+                revealed_at=s.revealed_at,
             ))
         return out
     finally:
@@ -721,6 +745,7 @@ async def get_session(session_id: str, db: str = "") -> SessionResponse:
             pairs=pair_responses,
             judged=judged,
             created_at=stored.created_at,
+            revealed_at=stored.revealed_at,
         )
     finally:
         conn.close()
@@ -772,11 +797,6 @@ async def get_pair_originals(session_id: str, pair_index: int, db: str = "") -> 
                     content = resolver.content(old_path)
                     entry[side] = ("ok", content) if content is not None else ("new", None)
 
-        note = None
-        left_resolver = get_resolver(left.task_id, left.methodology_id, left.repo_context_id, left.runner)
-        if not left_resolver.available:
-            note = f"Originals unavailable: {left_resolver.reason}"
-
         out: list[OriginalFile] = []
         for path in sorted(files):
             entry = files[path]
@@ -799,6 +819,14 @@ async def get_pair_originals(session_id: str, pair_index: int, db: str = "") -> 
                     content=redact_axis_ids(content, axis_ids) if content is not None else None,
                 ))
 
+        # Only flag unavailability when it actually affects a shown file —
+        # a pair of purely-created files has no original by definition and
+        # needs no warning.
+        note = None
+        if any(f.status == "unavailable" for f in out):
+            resolver = get_resolver(left.task_id, left.methodology_id, left.repo_context_id, left.runner)
+            note = f"Some originals could not be reconstructed: {resolver.reason or 'unknown reason'}"
+
         return OriginalsResponse(pair_index=pair_index, files=out, note=note)
     finally:
         conn.close()
@@ -811,6 +839,14 @@ async def judge(req: JudgeRequest) -> JudgeResponse:
         session = _get_session(conn, req.session_id)
         if session is None:
             raise HTTPException(404, "Session not found")
+
+        # Once a session has been revealed the grader knows every pair's
+        # assignment — a judgment after that would not be blind. Refuse
+        # permanently (blind-grading invariant).
+        if session.revealed_at is not None:
+            raise HTTPException(
+                409, "Session was revealed and is closed — start a new session to grade this cell again"
+            )
 
         if req.choice not in ("A", "B", "tie"):
             raise HTTPException(400, "Choice must be A, B, or tie")
@@ -852,6 +888,13 @@ async def reveal(session_id: str, db: str = "") -> RevealResponse:
         if session is None:
             raise HTTPException(404, "Session not found")
 
+        # Revealing closes the session for good (see /api/judge). The first
+        # reveal's timestamp sticks; later loads of the reveal page are reads.
+        if session.revealed_at is None:
+            revealed_at = datetime.now(timezone.utc).isoformat()
+            mark_session_revealed(conn, session_id, revealed_at)
+            session.revealed_at = revealed_at
+
         field = AXIS_FIELDS[session.axis]
 
         judgments = list_judgments(conn, session_id)
@@ -862,15 +905,24 @@ async def reveal(session_id: str, db: str = "") -> RevealResponse:
         reveal_pairs: list[RevealPair] = []
         summary: dict[str, AxisValueRecord] = defaultdict(lambda: AxisValueRecord(wins=0, losses=0, ties=0))
         comparisons: list[tuple[str, str, str]] = []
+        n_unjudged = 0
 
         for i, (left_id, right_id) in enumerate(session.pairs):
+            j = judgment_by_pair.get((left_id, right_id))
+            choice = j.choice if j else None
+
+            # Unjudged pairs stay blind forever: the session is closed now,
+            # but their assignments still say which trial (= which diff) maps
+            # to which axis value — knowledge that could deblind a future
+            # session over the same trials. Expose only what was judged.
+            if choice is None:
+                n_unjudged += 1
+                continue
+
             left_trial = get_trial(conn, left_id)
             right_trial = get_trial(conn, right_id)
             left_value = getattr(left_trial, field)
             right_value = getattr(right_trial, field)
-
-            j = judgment_by_pair.get((left_id, right_id))
-            choice = j.choice if j else None
 
             reveal_pairs.append(RevealPair(
                 pair_index=i,
@@ -928,6 +980,8 @@ async def reveal(session_id: str, db: str = "") -> RevealResponse:
             summary=dict(summary),
             axis=session.axis,
             cell=session.cell,
+            n_unjudged=n_unjudged,
+            revealed_at=session.revealed_at,
             bt_scores=bt_scores,
             analyzer_flags=flags,
             pass_rates=pass_rates,

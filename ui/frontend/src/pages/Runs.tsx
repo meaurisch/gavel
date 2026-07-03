@@ -250,6 +250,8 @@ export function Runs() {
   const [startError, setStartError] = useState<string | null>(null);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const { data: runList, reload: reloadRuns } = useFetch(() => api.runs(), []);
+  const { data: dbList } = useFetch(() => api.dbs(), [db]);
+  const activeDbName = db || dbList?.find((d) => d.is_default)?.name || "server default";
 
   useEffect(() => {
     const running = (runList ?? []).find((r) => r.status === "running");
@@ -259,11 +261,21 @@ export function Runs() {
   const localTasks = (catalog?.tasks ?? []).filter((t) => t.available_locally).map((t) => t.id);
   const localMeths = (catalog?.methodologies ?? []).filter((m) => m.available_locally).map((m) => m.id);
   const localCtxs = (catalog?.repo_contexts ?? []).filter((c) => c.available_locally).map((c) => c.id);
-  const runners = (catalog?.runners ?? []).filter((r) => r.n_trials > 0 || ["claude-code", "oracle", "nop", "manual"].includes(r.id));
+  // Only real runners belong in the launcher (db-only ids like a demo
+  // runner aren't executable); unlaunchable ones stay visible but disabled
+  // so the axis is fully explained.
+  const KNOWN_RUNNERS = ["oracle", "nop", "claude-code", "manual", "copilot-cli"];
+  const runners = KNOWN_RUNNERS
+    .map((id) => (catalog?.runners ?? []).find((r) => r.id === id))
+    .filter((r): r is NonNullable<typeof r> => r !== undefined);
 
   const doPlan = async () => {
     setPlanError(null);
     setPlan(null);
+    if (runner === "claude-code" && !model.trim()) {
+      setPlanError("Model is required for claude-code (e.g. claude-haiku-4-5) — see the Models list on the Grade page for priced ids.");
+      return;
+    }
     try {
       const p = await api.runsPlan(db, {
         task,
@@ -325,7 +337,7 @@ export function Runs() {
                     <option key={r.id} value={r.id} disabled={!r.browser_launchable}>
                       {r.id}
                       {r.paid ? " — PAID" : " — free"}
-                      {!r.browser_launchable ? " (terminal only)" : ""}
+                      {!r.browser_launchable ? (r.id === "manual" ? " (terminal only)" : " (not runnable)") : ""}
                     </option>
                   ))}
                 </select>
@@ -357,7 +369,7 @@ export function Runs() {
                 <input
                   className="control"
                   value={targetDb}
-                  placeholder={db || "results.db (active)"}
+                  placeholder={`${activeDbName} (active)`}
                   onChange={(e) => setTargetDb(e.target.value)}
                   data-testid="target-db"
                 />

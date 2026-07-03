@@ -6,7 +6,7 @@
 //    compared), not as cascading dropdowns you must guess through.
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api";
 import { useDb } from "../db";
 import { useCatalog, useFetch } from "../hooks";
@@ -205,10 +205,48 @@ function CatalogReference() {
   );
 }
 
+function ResumeCard() {
+  const { db } = useDb();
+  const { data: sessions } = useFetch(() => api.sessions(db), [db]);
+  const unfinished = (sessions ?? []).filter(
+    (s) => s.n_judged < s.total_pairs && s.revealed_at === null,
+  );
+  if (unfinished.length === 0) return null;
+  return (
+    <div className="notice-banner" style={{ marginBottom: "var(--space-4)" }} data-testid="picker-resume">
+      <div className="spread">
+        <span>
+          You have {unfinished.length} unfinished session{unfinished.length === 1 ? "" : "s"} — starting a
+          new one on the same cell fragments your judgments.
+        </span>
+      </div>
+      <div className="stack" style={{ gap: "var(--space-1)", marginTop: "var(--space-2)" }}>
+        {unfinished.slice(0, 4).map((s) => (
+          <div key={s.session_id} className="row small">
+            <span className="badge accent">{AXIS_LABELS[s.axis] ?? s.axis}</span>
+            <span className="mono xsmall">{Object.values(s.cell).join(" · ")}</span>
+            <span className="muted xsmall">{s.n_judged}/{s.total_pairs} judged</span>
+            <Link className="btn sm" to={`/grade/session/${s.session_id}${db ? `?db=${db}` : ""}`}>
+              Resume
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function GradePicker() {
   const { db } = useDb();
   const { data: axes } = useFetch(() => api.axes(db), [db]);
-  const [axis, setAxis] = useState<Axis>("methodology");
+  const [params, setParams] = useSearchParams();
+  const axisParam = params.get("axis");
+  const axis: Axis = AXES.includes(axisParam as Axis) ? (axisParam as Axis) : "methodology";
+  const setAxis = (a: Axis) => {
+    const next = new URLSearchParams(params);
+    next.set("axis", a);
+    setParams(next, { replace: true });
+  };
 
   const gradeable = new Map((axes ?? []).map((a) => [a.axis, a.n_cells]));
 
@@ -216,6 +254,7 @@ export function GradePicker() {
     <main className="app-main">
       <div className="page">
         <h1>Start a grading session</h1>
+        <ResumeCard />
         <div className="card">
           <div className="card-title">1 · Choose the comparison axis</div>
           <div className="row wrap" data-testid="axis-picker">
@@ -226,6 +265,7 @@ export function GradePicker() {
                   key={a}
                   className={`btn ${axis === a ? "primary" : ""}`}
                   onClick={() => setAxis(a)}
+                  aria-pressed={axis === a}
                   data-testid={`axis-${a}`}
                 >
                   {AXIS_LABELS[a]}
