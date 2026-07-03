@@ -16,7 +16,20 @@ export function TrialDetailPage() {
   const { data, error, loading } = useFetch(() => api.trialDetail(db, trialId!), [db, trialId]);
 
   if (loading) return <main className="app-main"><div className="empty-state">Loading…</div></main>;
-  if (error) return <main className="app-main"><div className="error-banner">{error}</div></main>;
+  if (error) {
+    return (
+      <main className="app-main">
+        <div className="page">
+          <div className="error-banner">{error}</div>
+          <p className="small muted">
+            If this trial exists, it may live in a different database — check the database selector in the
+            top bar.
+          </p>
+          <Link className="btn" to={`/browse${db ? `?db=${db}` : ""}`}>← Back to Browse</Link>
+        </div>
+      </main>
+    );
+  }
   if (!data) return null;
 
   const { trial, run_result, gate_result, cost_record } = data;

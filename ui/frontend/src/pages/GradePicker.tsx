@@ -23,20 +23,28 @@ const CELL_KIND: Record<string, "task" | "methodology" | "repo_context" | "model
   runner: "runner",
 };
 
+const AXIS_NOUNS: Record<Axis, [string, string]> = {
+  methodology: ["methodology", "methodologies"],
+  model: ["model", "models"],
+  repo_context: ["repo context", "repo contexts"],
+  runner: ["runner", "runners"],
+};
+
 function CellRow({
-  axisNoun,
+  axis,
   cell,
   onStart,
   catalog,
   starting,
 }: {
-  axisNoun: string;
+  axis: Axis;
   cell: Cell;
   onStart: () => void;
   catalog: ReturnType<typeof useCatalog>["catalog"];
   starting: boolean;
 }) {
   const pinned = Object.entries(cell).filter(([k]) => k !== "n_values" && k !== "n_pairs");
+  const noun = AXIS_NOUNS[axis][cell.n_values === 1 ? 0 : 1];
   return (
     <tr data-testid="cell-row">
       <td>
@@ -46,7 +54,7 @@ function CellRow({
           ))}
         </span>
       </td>
-      <td>{cell.n_values} {axisNoun}</td>
+      <td>{cell.n_values} {noun}</td>
       <td className="num">{cell.n_pairs}</td>
       <td style={{ textAlign: "right" }}>
         <button className="btn sm primary" onClick={onStart} disabled={starting} data-testid="start-session">
@@ -102,8 +110,6 @@ function AxisCells({ axis }: { axis: Axis }) {
     );
   }
 
-  const axisNoun = `${AXIS_LABELS[axis].toLowerCase().replace("repo context", "repo context")}${cells.some((c) => c.n_values !== 1) ? "s" : ""}`;
-
   return (
     <>
       {startError && <div className="error-banner" style={{ marginBottom: "var(--space-2)" }}>{startError}</div>}
@@ -121,7 +127,7 @@ function AxisCells({ axis }: { axis: Axis }) {
             {cells.map((cell, i) => (
               <CellRow
                 key={i}
-                axisNoun={axisNoun}
+                axis={axis}
                 cell={cell}
                 catalog={catalog}
                 onStart={() => start(cell)}
@@ -190,7 +196,12 @@ function CatalogReference() {
                   <HoverPreview anchor={<span className="badge neutral mono">{e.id}</span>}>
                     <PreviewBody catalog={catalog} kind={sec.kind} id={e.id} />
                   </HoverPreview>
-                  <span className="muted xsmall" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {/* flex items default to min-width:auto — without minWidth:0
+                      the ellipsis never engages and the card overflows the page */}
+                  <span
+                    className="muted xsmall"
+                    style={{ flex: "1 1 0", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  >
                     {e.blurb ?? "—"}
                   </span>
                 </div>

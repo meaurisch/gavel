@@ -587,6 +587,14 @@ kbd.key {
   gap: var(--space-4);
 }
 
+/* Grid items default to min-width:auto — long unwrappable content would
+   blow the column out past 1fr and overflow the page (same class of bug as
+   the phase-1 diff-pane fix). Never let it. */
+.grid-2 > *,
+.grid-3 > * {
+  min-width: 0;
+}
+
 .empty-state {
   text-align: center;
   color: var(--color-text-muted);

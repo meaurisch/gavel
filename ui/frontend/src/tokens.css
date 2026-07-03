@@ -7,6 +7,9 @@
    ============================================================ */
 
 :root {
+  /* native form controls + scrollbars follow the active theme */
+  color-scheme: light;
+
   /* ---- Surfaces ---- */
   --color-bg:            #f4f5f7;  /* app background */
   --color-surface:       #ffffff;  /* cards, panels, table bodies */
@@ -124,6 +127,8 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --color-bg:            #14161b;
   --color-surface:       #1b1e25;
   --color-surface-inset: #22262f;

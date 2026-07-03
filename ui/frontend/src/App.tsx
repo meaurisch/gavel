@@ -61,13 +61,13 @@ function ThemeToggle() {
   }, [theme]);
   return (
     <button
-      className="btn ghost sm"
+      className="btn sm"
       onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
       title={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
       aria-label="Toggle color theme"
       data-testid="theme-toggle"
     >
-      {theme === "light" ? "☾" : "☀"}
+      {theme === "light" ? "☾ dark" : "☀ light"}
     </button>
   );
 }

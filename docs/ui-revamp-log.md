@@ -128,6 +128,51 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
     readability); artifact list notes its filenames are UTC; axis picker
     persists in the URL (?axis=) and toggles carry aria-pressed.
 
+## Phase 2 — implementing the Gavel design system
+
+- Claude Design's exports landed in `docs/design/exports/`: tokens.css
+  (light + dark), the full design-system doc with per-component specs and
+  per-screen mockups, and a proposed name refinement — **"gavel"** (the
+  strike of judgment) over phase 1's provisional Tiltyard. Adopted: it's
+  shorter, verbs well, and the identity (mid-swing mark, one indigo accent,
+  playfully-professional voice) is built around it.
+- Tokens: adopted Design's token NAMES wholesale (they're the system of
+  record now) with a marked compatibility-alias block so phase-1 inline
+  var() references keep resolving to the same values. Dark theme shipped as
+  `[data-theme="dark"]` + a persisted nav toggle; verified live (every
+  surface flips, including the mark's dark lockup variant).
+- Fonts: IBM Plex Sans + JetBrains Mono (OFL) self-hosted via fontsource
+  packages — bundled into dist/assets by Vite, zero network at runtime
+  (checked: the built CSS references only local hashed woff2). Diff/log
+  code disables font ligatures: a grader must see the literal `->`, not
+  `→` (caught this live on the restyled session screen).
+- base.css/diff.css rebuilt to the component specs: pill-in-track nav,
+  one-primary buttons + focus rings, neutral mono id chips with accent
+  hover, keycap kbd chips, segmented view toggles, caps-11 table headers +
+  right-aligned mono numerics, banner semantics (amber = paid/spend ONLY;
+  informational = neutral — reveal/closed banners switched accordingly),
+  log expanders with char counts, side-symmetric equal-lightness diff
+  tints with sign-colored quiet gutters, leading-code 1.65.
+- Screens per mockups: dashboard stat strip (new `total_usd` on /api/dbs)
+  + resume progress bars; picker = "Pick a contest" with
+  Cell/Contenders/Pairs columns (new exact `n_pairs` on /api/cells, same
+  arithmetic as generate_pairs); browse uses the compact B/V/H triplet;
+  reveal = "The verdict" with a session-winner chip and the gavel-has-
+  struck close notice; runs launcher arms via a mono SPEND field with the
+  caps SPENDS-REAL-API-BUDGET chip; three-way gaps expand via click or the
+  X key ("unchanged region — N aligned rows collapsed").
+- The standalone report artifact (grading/report_html.py) restyled to the
+  same palette+mark — the original feedback called out the UI and artifact
+  as two disconnected themes.
+- Naming surfaces: pyproject → `gavel` (with `setup-bench` legacy script
+  alias), `gavel doctor` table title, README retitle, CLAUDE.md facts
+  rewritten. In-app microcopy uses the real command (`python cli.py run`),
+  not the mockup's `gavel run`, since the documented flow doesn't pip-install
+  the package.
+- Verified after restyle: full fast suite 299 green; all 15 Playwright
+  integration tests green (pane equality, line-number tracking, blinding,
+  marathon, spend gate — the exact phase-1 assertions).
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green
