@@ -1,0 +1,208 @@
+/* Diff rendering. Structural invariants (the old UI's bug fixes):
+   - .diff-columns children get min-width: 0 so one long code line can NEVER
+     steal width from the sibling pane (grid items default to min-width:auto);
+   - panes scroll their own overflow instead of growing;
+   - line numbers are table cells in the SAME row as their code line. */
+
+.diff-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  flex: 1;
+  min-height: 0;
+}
+
+.diff-columns > * {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.diff-pane {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-1);
+}
+
+.diff-file-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text);
+  max-width: 100%;
+  /* stays visible while the pane scrolls horizontally */
+  width: fit-content;
+  min-width: 100%;
+}
+
+.diff-file-header .path {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+table.diff {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+table.diff td {
+  padding: 0 var(--space-2);
+  vertical-align: top;
+}
+
+table.diff td.lineno {
+  width: 1%;
+  min-width: 2.6em;
+  text-align: right;
+  color: var(--color-diff-lineno);
+  user-select: none;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  font-variant-numeric: tabular-nums;
+}
+
+table.diff td.code {
+  white-space: pre;
+}
+
+table.diff tr.add td.code { background: var(--color-diff-add-bg); }
+table.diff tr.add td.lineno { background: var(--color-diff-add-strong); }
+table.diff tr.del td.code { background: var(--color-diff-del-bg); }
+table.diff tr.del td.lineno { background: var(--color-diff-del-strong); }
+
+table.diff tr.hunk td {
+  background: var(--color-diff-hunk-bg);
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+  padding: 2px var(--space-2);
+  user-select: none;
+}
+
+table.diff td.marker {
+  width: 1.2em;
+  padding: 0;
+  text-align: center;
+  color: var(--color-text-faint);
+  user-select: none;
+}
+
+/* --- three-way ------------------------------------------------------------ */
+
+.threeway-pane {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-1);
+}
+
+table.threeway {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+table.threeway col.lineno-col {
+  width: 3.2em;
+}
+
+table.threeway thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+}
+
+table.threeway th.file-path {
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+table.threeway td {
+  padding: 0 var(--space-2);
+  vertical-align: top;
+}
+
+table.threeway td.lineno {
+  text-align: right;
+  color: var(--color-diff-lineno);
+  user-select: none;
+  background: var(--color-surface-2);
+  border-right: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
+}
+
+table.threeway td.code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+table.threeway td.pane-sep {
+  border-left: 2px solid var(--color-border-strong);
+}
+
+table.threeway td.code.cell-add { background: var(--color-diff-add-bg); }
+table.threeway td.code.cell-absent {
+  background: var(--color-diff-del-bg);
+  color: var(--color-text-faint);
+}
+table.threeway td.code.cell-orig-changed { background: var(--color-diff-hunk-bg); }
+table.threeway td.code.cell-empty { background: var(--color-surface-2); }
+table.threeway td.code.cell-unknown {
+  color: var(--color-text-faint);
+  font-style: italic;
+}
+
+table.threeway tr.gap td {
+  background: var(--color-diff-hunk-bg);
+  color: var(--color-text-faint);
+  text-align: center;
+  padding: 2px;
+  user-select: none;
+}
+
+table.threeway tr.gap button {
+  border: none;
+  background: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-family: var(--font-sans);
+}
+
+.diff-empty {
+  padding: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}

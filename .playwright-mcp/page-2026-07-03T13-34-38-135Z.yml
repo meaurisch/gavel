@@ -1,0 +1,212 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "Tiltyard" [ref=e5] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e6]:
+      - link "Dashboard" [ref=e7] [cursor=pointer]:
+        - /url: /
+      - link "Grade" [ref=e8] [cursor=pointer]:
+        - /url: /grade
+      - link "Runs" [ref=e9] [cursor=pointer]:
+        - /url: /runs
+      - link "Browse" [ref=e10] [cursor=pointer]:
+        - /url: /browse
+      - link "Report" [ref=e11] [cursor=pointer]:
+        - /url: /report
+    - generic [ref=e12]:
+      - generic [ref=e13]: Database
+      - combobox "Database" [ref=e14]:
+        - option "results-demo.db (default)" [selected]
+        - option "results-shakedown.db — 4 trials"
+        - option "results.db — 26 trials"
+  - main [ref=e51]:
+    - generic [ref=e52]:
+      - heading "Start a grading session" [level=1] [ref=e53]
+      - generic [ref=e54]:
+        - generic [ref=e55]: 1 · Choose the comparison axis
+        - generic [ref=e56]:
+          - button "Methodology 1" [ref=e57] [cursor=pointer]:
+            - text: Methodology
+            - generic [ref=e58]: "1"
+          - button "Model 1" [ref=e59] [cursor=pointer]:
+            - text: Model
+            - generic [ref=e60]: "1"
+          - button "Repo context 0" [ref=e61] [cursor=pointer]:
+            - text: Repo context
+            - generic [ref=e62]: "0"
+          - button "Runner 0" [ref=e63] [cursor=pointer]:
+            - text: Runner
+            - generic [ref=e64]: "0"
+        - paragraph [ref=e65]: The chosen axis varies inside a session; every other axis is pinned to one value (the “cell”).
+      - generic [ref=e66]:
+        - generic [ref=e67]: 2 · Pick a cell and start
+        - table [ref=e69]:
+          - rowgroup [ref=e70]:
+            - row "Task (pinned) Repo context (pinned) Model (pinned) Runner (pinned) Methodology values" [ref=e71]:
+              - columnheader "Task (pinned)" [ref=e72]
+              - columnheader "Repo context (pinned)" [ref=e73]
+              - columnheader "Model (pinned)" [ref=e74]
+              - columnheader "Runner (pinned)" [ref=e75]
+              - columnheader "Methodology values" [ref=e76]
+              - columnheader [ref=e77]
+          - rowgroup [ref=e78]:
+            - row "demo-lru-cache none demo-model-s demo-runner 4 Start session" [ref=e79]:
+              - cell "demo-lru-cache" [ref=e80]:
+                - generic [ref=e82]: demo-lru-cache
+              - cell "none" [ref=e83]:
+                - generic [ref=e85]: none
+              - cell "demo-model-s" [ref=e86]:
+                - generic [ref=e88]: demo-model-s
+              - cell "demo-runner" [ref=e89]:
+                - generic [ref=e91]: demo-runner
+              - cell "4" [ref=e92]
+              - cell "Start session" [ref=e93]:
+                - button "Start session" [ref=e94] [cursor=pointer]
+        - paragraph [ref=e95]:
+          - text: Hover any id for details. The
+          - strong [ref=e96]: Methodology
+          - text: column varies inside the session — its values stay hidden until you finish and reveal.
+      - generic [ref=e97]:
+        - generic [ref=e98]: The five axes — everything available
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - heading "Tasks" [level=3] [ref=e101]
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - generic [ref=e105]: cosmos-A
+                - generic [ref=e106]: "[medium] We want to drop our dependency on AutoMapper and map objects explicitly. The"
+              - generic [ref=e107]:
+                - generic [ref=e109]: cosmos-B
+                - generic [ref=e110]: "[medium] Our ToDo API can create, update, and delete items, but a user still has no way to"
+              - generic [ref=e111]:
+                - generic [ref=e113]: demo-lru-cache
+                - generic [ref=e114]: —
+              - generic [ref=e115]:
+                - generic [ref=e117]: moreiter-A
+                - generic [ref=e118]: "[medium] Users processing event streams keep asking for running aggregates: \"what's"
+              - generic [ref=e119]:
+                - generic [ref=e121]: pyvrp-A
+                - generic [ref=e122]: "[medium] Our solver handles VRP variants with mutually-exclusive client groups, where"
+              - generic [ref=e123]:
+                - generic [ref=e125]: pyvrp-B
+                - generic [ref=e126]: "[hard] The local-search framework only has binary operators today — every operator"
+              - generic [ref=e127]:
+                - generic [ref=e129]: pyvrp-C
+                - generic [ref=e130]: "[medium] We need a reusable building block for modelling non-linear duration costs: a"
+          - generic [ref=e131]:
+            - heading "Methodologies" [level=3] [ref=e132]
+            - generic [ref=e133]:
+              - generic [ref=e134]:
+                - generic [ref=e136]: baseline
+                - generic [ref=e137]: No instructions — pure ablation control
+              - generic [ref=e138]:
+                - generic [ref=e140]: custom
+                - generic [ref=e141]: User's own agentic setup (conductor + executor + validators + reviewers)
+              - generic [ref=e142]:
+                - generic [ref=e144]: demo-agentpack
+                - generic [ref=e145]: —
+              - generic [ref=e146]:
+                - generic [ref=e148]: demo-baseline
+                - generic [ref=e149]: —
+              - generic [ref=e150]:
+                - generic [ref=e152]: demo-checklist
+                - generic [ref=e153]: —
+              - generic [ref=e154]:
+                - generic [ref=e156]: demo-tdd
+                - generic [ref=e157]: —
+              - generic [ref=e158]:
+                - generic [ref=e160]: ecc
+                - generic [ref=e161]: ECC v2.0.0 — Everything Claude Code agent operating system
+              - generic [ref=e162]:
+                - generic [ref=e164]: karpathy
+                - generic [ref=e165]: Andrej Karpathy's coding discipline (forrestchang/andrej-karpathy-skills)
+              - generic [ref=e166]:
+                - generic [ref=e168]: superpowers
+                - generic [ref=e169]: obra/superpowers structured workflow methodology
+          - generic [ref=e170]:
+            - heading "Repo contexts" [level=3] [ref=e171]
+            - generic [ref=e172]:
+              - generic [ref=e173]:
+                - generic [ref=e175]: cosmos
+                - generic [ref=e176]: CleanArchitectureCosmosDB repo context (.NET 8, Clean Architecture + Cosmos DB)
+              - generic [ref=e177]:
+                - generic [ref=e179]: none
+                - generic [ref=e180]: No repo-specific context (ablation control)
+              - generic [ref=e181]:
+                - generic [ref=e183]: pyvrp-instructions
+                - generic [ref=e184]: PyVRP repo context (C++/pybind11 + Python VRP solver; builds under WSL)
+          - generic [ref=e185]:
+            - heading "Models" [level=3] [ref=e186]
+            - generic [ref=e187]:
+              - generic [ref=e188]:
+                - generic [ref=e190]: claude-fable-5
+                - generic [ref=e191]: anthropic · $10/MTok in · $50/MTok out
+              - generic [ref=e192]:
+                - generic [ref=e194]: claude-haiku-4-5
+                - generic [ref=e195]: anthropic · $1/MTok in · $5/MTok out
+              - generic [ref=e196]:
+                - generic [ref=e198]: claude-opus-4-5
+                - generic [ref=e199]: anthropic · $15/MTok in · $75/MTok out
+              - generic [ref=e200]:
+                - generic [ref=e202]: claude-opus-4-6
+                - generic [ref=e203]: anthropic · $5/MTok in · $25/MTok out
+              - generic [ref=e204]:
+                - generic [ref=e206]: claude-opus-4-7
+                - generic [ref=e207]: anthropic · $5/MTok in · $25/MTok out
+              - generic [ref=e208]:
+                - generic [ref=e210]: claude-opus-4-8
+                - generic [ref=e211]: anthropic · $5/MTok in · $25/MTok out
+              - generic [ref=e212]:
+                - generic [ref=e214]: claude-sonnet-4-5
+                - generic [ref=e215]: anthropic · $3/MTok in · $15/MTok out
+              - generic [ref=e216]:
+                - generic [ref=e218]: claude-sonnet-4-6
+                - generic [ref=e219]: anthropic · $3/MTok in · $15/MTok out
+              - generic [ref=e220]:
+                - generic [ref=e222]: demo-model-m
+                - generic [ref=e223]: —
+              - generic [ref=e224]:
+                - generic [ref=e226]: demo-model-s
+                - generic [ref=e227]: —
+              - generic [ref=e228]:
+                - generic [ref=e230]: gpt-4.1
+                - generic [ref=e231]: openai · $2/MTok in · $8/MTok out
+              - generic [ref=e232]:
+                - generic [ref=e234]: gpt-4.1-mini
+                - generic [ref=e235]: openai · $0.4/MTok in · $1.6/MTok out
+              - generic [ref=e236]:
+                - generic [ref=e238]: gpt-4.1-nano
+                - generic [ref=e239]: openai · $0.1/MTok in · $0.4/MTok out
+              - generic [ref=e240]:
+                - generic [ref=e242]: gpt-4o
+                - generic [ref=e243]: openai · $2.5/MTok in · $10/MTok out
+              - generic [ref=e244]:
+                - generic [ref=e246]: gpt-4o-mini
+                - generic [ref=e247]: openai · $0.15/MTok in · $0.6/MTok out
+              - generic [ref=e248]:
+                - generic [ref=e250]: o3
+                - generic [ref=e251]: openai · $2/MTok in · $8/MTok out
+              - generic [ref=e252]:
+                - generic [ref=e254]: o4-mini
+                - generic [ref=e255]: openai · $1.1/MTok in · $4.4/MTok out
+          - generic [ref=e256]:
+            - heading "Runners" [level=3] [ref=e257]
+            - generic [ref=e258]:
+              - generic [ref=e259]:
+                - generic [ref=e261]: claude-code
+                - generic [ref=e262]: Headless Claude Code CLI — runs the real agent. Spends real API budget on every trial.
+              - generic [ref=e263]:
+                - generic [ref=e265]: oracle
+                - generic [ref=e266]: Applies the task's reference diff — free pipeline self-test that should pass the gate.
+              - generic [ref=e267]:
+                - generic [ref=e269]: nop
+                - generic [ref=e270]: Does nothing — free pipeline self-test that should fail the gate.
+              - generic [ref=e271]:
+                - generic [ref=e273]: manual
+                - generic [ref=e274]: "Human-in-IDE: the tool prepares the worktree and waits at the terminal. Launch via `python cli.py run --runner manual` (needs interactive stdin)."
+              - generic [ref=e275]:
+                - generic [ref=e277]: copilot-cli
+                - generic [ref=e278]: Stub — Copilot support is deferred (no plan on hand). Not runnable.
+              - generic [ref=e279]:
+                - generic [ref=e281]: demo-runner
+                - generic [ref=e282]: Unknown runner id (present in this DB only).

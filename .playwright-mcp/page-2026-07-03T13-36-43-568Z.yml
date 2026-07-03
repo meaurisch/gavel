@@ -1,0 +1,21 @@
+- generic [ref=f1e3]:
+  - navigation [ref=f1e4]:
+    - link "Tiltyard" [ref=f1e5] [cursor=pointer]:
+      - /url: /
+    - generic [ref=f1e6]:
+      - link "Dashboard" [ref=f1e7] [cursor=pointer]:
+        - /url: /
+      - link "Grade" [ref=f1e8] [cursor=pointer]:
+        - /url: /grade
+      - link "Runs" [ref=f1e9] [cursor=pointer]:
+        - /url: /runs
+      - link "Browse" [ref=f1e10] [cursor=pointer]:
+        - /url: /browse
+      - link "Report" [ref=f1e11] [cursor=pointer]:
+        - /url: /report
+    - generic [ref=f1e12]:
+      - generic [ref=f1e13]: Database
+      - combobox "Database" [ref=f1e14]:
+        - option "(default)" [selected]
+  - main [ref=f1e15]:
+    - generic [ref=f1e16]: Loading session…

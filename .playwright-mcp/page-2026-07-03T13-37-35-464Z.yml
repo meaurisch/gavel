@@ -1,0 +1,391 @@
+- generic [ref=f2e3]:
+  - navigation [ref=f2e4]:
+    - link "Tiltyard" [ref=f2e5] [cursor=pointer]:
+      - /url: /
+    - generic [ref=f2e6]:
+      - link "Dashboard" [ref=f2e7] [cursor=pointer]:
+        - /url: /
+      - link "Grade" [ref=f2e8] [cursor=pointer]:
+        - /url: /grade
+      - link "Runs" [ref=f2e9] [cursor=pointer]:
+        - /url: /runs
+      - link "Browse" [ref=f2e10] [cursor=pointer]:
+        - /url: /browse
+      - link "Report" [ref=f2e11] [cursor=pointer]:
+        - /url: /report
+    - generic [ref=f2e12]:
+      - generic [ref=f2e13]: Database
+      - combobox "Database" [ref=f2e14]:
+        - option "(default)" [selected]
+  - main [ref=f2e15]:
+    - generic [ref=f2e16]:
+      - generic [ref=f2e17]:
+        - heading "Browse trials" [level=1] [ref=f2e18]
+        - generic [ref=f2e19]: 15 of 15 trials
+      - generic [ref=f2e21]:
+        - generic [ref=f2e22]:
+          - generic [ref=f2e23]: Task
+          - combobox [ref=f2e24]:
+            - option "(all)" [selected]
+            - option "demo-lru-cache"
+        - generic [ref=f2e25]:
+          - generic [ref=f2e26]: Methodology
+          - combobox [ref=f2e27]:
+            - option "(all)" [selected]
+            - option "demo-agentpack"
+            - option "demo-baseline"
+            - option "demo-checklist"
+            - option "demo-tdd"
+        - generic [ref=f2e28]:
+          - generic [ref=f2e29]: Repo context
+          - combobox [ref=f2e30]:
+            - option "(all)" [selected]
+            - option "none"
+        - generic [ref=f2e31]:
+          - generic [ref=f2e32]: Model
+          - combobox [ref=f2e33]:
+            - option "(all)" [selected]
+            - option "demo-model-m"
+            - option "demo-model-s"
+        - generic [ref=f2e34]:
+          - generic [ref=f2e35]: Runner
+          - combobox [ref=f2e36]:
+            - option "(all)" [selected]
+            - option "demo-runner"
+        - generic [ref=f2e37]:
+          - generic [ref=f2e38]: Hidden gate
+          - combobox [ref=f2e39]:
+            - option "(all)" [selected]
+            - option "passed"
+            - option "failed"
+            - option "no verdict"
+      - table [ref=f2e42]:
+        - rowgroup [ref=f2e43]:
+          - row "Task Methodology Context Model Runner Rep Gate USD Tokens Wall Error" [ref=f2e44]:
+            - columnheader "Task" [ref=f2e45]
+            - columnheader "Methodology" [ref=f2e46]
+            - columnheader "Context" [ref=f2e47]
+            - columnheader "Model" [ref=f2e48]
+            - columnheader "Runner" [ref=f2e49]
+            - columnheader "Rep" [ref=f2e50]
+            - columnheader "Gate" [ref=f2e51]
+            - columnheader "USD" [ref=f2e52]
+            - columnheader "Tokens" [ref=f2e53]
+            - columnheader "Wall" [ref=f2e54]
+            - columnheader "Error" [ref=f2e55]
+        - rowgroup [ref=f2e56]:
+          - row "demo-lru-cache demo-agentpack none demo-model-s demo-runner 0 build ✓ visible ✓ hidden ✓ $0.546 21.8k / 4.9k 44.0s" [ref=f2e57] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e58]:
+              - generic [ref=f2e59]: demo-lru-cache
+            - cell "demo-agentpack" [ref=f2e60]:
+              - generic [ref=f2e61]: demo-agentpack
+            - cell "none" [ref=f2e62]:
+              - generic [ref=f2e63]: none
+            - cell "demo-model-s" [ref=f2e64]:
+              - generic [ref=f2e65]: demo-model-s
+            - cell "demo-runner" [ref=f2e66]:
+              - generic [ref=f2e67]: demo-runner
+            - cell "0" [ref=f2e68]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e69]:
+              - generic [ref=f2e70]:
+                - 'generic "build: passed" [ref=f2e71]': build ✓
+                - 'generic "visible: passed" [ref=f2e72]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e73]': hidden ✓
+            - cell "$0.546" [ref=f2e74]
+            - cell "21.8k / 4.9k" [ref=f2e75]
+            - cell "44.0s" [ref=f2e76]
+            - cell [ref=f2e77]
+          - row "demo-lru-cache demo-agentpack none demo-model-s demo-runner 1 build ✓ visible ✓ hidden ✓ $0.620 24.8k / 5.6k 64.0s" [ref=f2e78] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e79]:
+              - generic [ref=f2e80]: demo-lru-cache
+            - cell "demo-agentpack" [ref=f2e81]:
+              - generic [ref=f2e82]: demo-agentpack
+            - cell "none" [ref=f2e83]:
+              - generic [ref=f2e84]: none
+            - cell "demo-model-s" [ref=f2e85]:
+              - generic [ref=f2e86]: demo-model-s
+            - cell "demo-runner" [ref=f2e87]:
+              - generic [ref=f2e88]: demo-runner
+            - cell "1" [ref=f2e89]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e90]:
+              - generic [ref=f2e91]:
+                - 'generic "build: passed" [ref=f2e92]': build ✓
+                - 'generic "visible: passed" [ref=f2e93]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e94]': hidden ✓
+            - cell "$0.620" [ref=f2e95]
+            - cell "24.8k / 5.6k" [ref=f2e96]
+            - cell "64.0s" [ref=f2e97]
+            - cell [ref=f2e98]
+          - row "demo-lru-cache demo-agentpack none demo-model-s demo-runner 2 build ✓ visible ✓ hidden ✗ $0.694 27.8k / 6.2k 84.0s" [ref=f2e99] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e100]:
+              - generic [ref=f2e101]: demo-lru-cache
+            - cell "demo-agentpack" [ref=f2e102]:
+              - generic [ref=f2e103]: demo-agentpack
+            - cell "none" [ref=f2e104]:
+              - generic [ref=f2e105]: none
+            - cell "demo-model-s" [ref=f2e106]:
+              - generic [ref=f2e107]: demo-model-s
+            - cell "demo-runner" [ref=f2e108]:
+              - generic [ref=f2e109]: demo-runner
+            - cell "2" [ref=f2e110]
+            - cell "build ✓ visible ✓ hidden ✗" [ref=f2e111]:
+              - generic [ref=f2e112]:
+                - 'generic "build: passed" [ref=f2e113]': build ✓
+                - 'generic "visible: passed" [ref=f2e114]': visible ✓
+                - 'generic "hidden: failed" [ref=f2e115]': hidden ✗
+            - cell "$0.694" [ref=f2e116]
+            - cell "27.8k / 6.2k" [ref=f2e117]
+            - cell "84.0s" [ref=f2e118]
+            - cell [ref=f2e119]
+          - row "demo-lru-cache demo-baseline none demo-model-m demo-runner 0 build ✓ visible ✓ hidden ✓ $0.210 8.4k / 1.9k 43.0s" [ref=f2e120] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e121]:
+              - generic [ref=f2e122]: demo-lru-cache
+            - cell "demo-baseline" [ref=f2e123]:
+              - generic [ref=f2e124]: demo-baseline
+            - cell "none" [ref=f2e125]:
+              - generic [ref=f2e126]: none
+            - cell "demo-model-m" [ref=f2e127]:
+              - generic [ref=f2e128]: demo-model-m
+            - cell "demo-runner" [ref=f2e129]:
+              - generic [ref=f2e130]: demo-runner
+            - cell "0" [ref=f2e131]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e132]:
+              - generic [ref=f2e133]:
+                - 'generic "build: passed" [ref=f2e134]': build ✓
+                - 'generic "visible: passed" [ref=f2e135]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e136]': hidden ✓
+            - cell "$0.210" [ref=f2e137]
+            - cell "8.4k / 1.9k" [ref=f2e138]
+            - cell "43.0s" [ref=f2e139]
+            - cell [ref=f2e140]
+          - row "demo-lru-cache demo-baseline none demo-model-m demo-runner 1 build ✓ visible ✓ hidden ✓ $0.231 9.2k / 2.1k 63.0s" [ref=f2e141] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e142]:
+              - generic [ref=f2e143]: demo-lru-cache
+            - cell "demo-baseline" [ref=f2e144]:
+              - generic [ref=f2e145]: demo-baseline
+            - cell "none" [ref=f2e146]:
+              - generic [ref=f2e147]: none
+            - cell "demo-model-m" [ref=f2e148]:
+              - generic [ref=f2e149]: demo-model-m
+            - cell "demo-runner" [ref=f2e150]:
+              - generic [ref=f2e151]: demo-runner
+            - cell "1" [ref=f2e152]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e153]:
+              - generic [ref=f2e154]:
+                - 'generic "build: passed" [ref=f2e155]': build ✓
+                - 'generic "visible: passed" [ref=f2e156]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e157]': hidden ✓
+            - cell "$0.231" [ref=f2e158]
+            - cell "9.2k / 2.1k" [ref=f2e159]
+            - cell "63.0s" [ref=f2e160]
+            - cell [ref=f2e161]
+          - row "demo-lru-cache demo-baseline none demo-model-m demo-runner 2 build ✓ visible ✓ hidden ✓ $0.252 10.1k / 2.3k 83.0s" [ref=f2e162] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e163]:
+              - generic [ref=f2e164]: demo-lru-cache
+            - cell "demo-baseline" [ref=f2e165]:
+              - generic [ref=f2e166]: demo-baseline
+            - cell "none" [ref=f2e167]:
+              - generic [ref=f2e168]: none
+            - cell "demo-model-m" [ref=f2e169]:
+              - generic [ref=f2e170]: demo-model-m
+            - cell "demo-runner" [ref=f2e171]:
+              - generic [ref=f2e172]: demo-runner
+            - cell "2" [ref=f2e173]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e174]:
+              - generic [ref=f2e175]:
+                - 'generic "build: passed" [ref=f2e176]': build ✓
+                - 'generic "visible: passed" [ref=f2e177]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e178]': hidden ✓
+            - cell "$0.252" [ref=f2e179]
+            - cell "10.1k / 2.3k" [ref=f2e180]
+            - cell "83.0s" [ref=f2e181]
+            - cell [ref=f2e182]
+          - row "demo-lru-cache demo-baseline none demo-model-s demo-runner 0 build ✓ visible ✓ hidden ✓ $0.044 1.8k / 396 43.0s" [ref=f2e183] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e184]:
+              - generic [ref=f2e185]: demo-lru-cache
+            - cell "demo-baseline" [ref=f2e186]:
+              - generic [ref=f2e187]: demo-baseline
+            - cell "none" [ref=f2e188]:
+              - generic [ref=f2e189]: none
+            - cell "demo-model-s" [ref=f2e190]:
+              - generic [ref=f2e191]: demo-model-s
+            - cell "demo-runner" [ref=f2e192]:
+              - generic [ref=f2e193]: demo-runner
+            - cell "0" [ref=f2e194]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e195]:
+              - generic [ref=f2e196]:
+                - 'generic "build: passed" [ref=f2e197]': build ✓
+                - 'generic "visible: passed" [ref=f2e198]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e199]': hidden ✓
+            - cell "$0.044" [ref=f2e200]
+            - cell "1.8k / 396" [ref=f2e201]
+            - cell "43.0s" [ref=f2e202]
+            - cell [ref=f2e203]
+          - row "demo-lru-cache demo-baseline none demo-model-s demo-runner 1 build ✓ visible ✗ hidden ✗ $0.050 2.0k / 450 63.0s" [ref=f2e204] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e205]:
+              - generic [ref=f2e206]: demo-lru-cache
+            - cell "demo-baseline" [ref=f2e207]:
+              - generic [ref=f2e208]: demo-baseline
+            - cell "none" [ref=f2e209]:
+              - generic [ref=f2e210]: none
+            - cell "demo-model-s" [ref=f2e211]:
+              - generic [ref=f2e212]: demo-model-s
+            - cell "demo-runner" [ref=f2e213]:
+              - generic [ref=f2e214]: demo-runner
+            - cell "1" [ref=f2e215]
+            - cell "build ✓ visible ✗ hidden ✗" [ref=f2e216]:
+              - generic [ref=f2e217]:
+                - 'generic "build: passed" [ref=f2e218]': build ✓
+                - 'generic "visible: failed" [ref=f2e219]': visible ✗
+                - 'generic "hidden: failed" [ref=f2e220]': hidden ✗
+            - cell "$0.050" [ref=f2e221]
+            - cell "2.0k / 450" [ref=f2e222]
+            - cell "63.0s" [ref=f2e223]
+            - cell [ref=f2e224]
+          - row "demo-lru-cache demo-baseline none demo-model-s demo-runner 2 build ✓ visible ✓ hidden ✓ $0.056 2.2k / 504 83.0s" [ref=f2e225] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e226]:
+              - generic [ref=f2e227]: demo-lru-cache
+            - cell "demo-baseline" [ref=f2e228]:
+              - generic [ref=f2e229]: demo-baseline
+            - cell "none" [ref=f2e230]:
+              - generic [ref=f2e231]: none
+            - cell "demo-model-s" [ref=f2e232]:
+              - generic [ref=f2e233]: demo-model-s
+            - cell "demo-runner" [ref=f2e234]:
+              - generic [ref=f2e235]: demo-runner
+            - cell "2" [ref=f2e236]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e237]:
+              - generic [ref=f2e238]:
+                - 'generic "build: passed" [ref=f2e239]': build ✓
+                - 'generic "visible: passed" [ref=f2e240]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e241]': hidden ✓
+            - cell "$0.056" [ref=f2e242]
+            - cell "2.2k / 504" [ref=f2e243]
+            - cell "83.0s" [ref=f2e244]
+            - cell [ref=f2e245]
+          - row "demo-lru-cache demo-checklist none demo-model-s demo-runner 0 build ✓ visible ✓ hidden ✓ $0.079 3.2k / 712 44.0s" [ref=f2e246] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e247]:
+              - generic [ref=f2e248]: demo-lru-cache
+            - cell "demo-checklist" [ref=f2e249]:
+              - generic [ref=f2e250]: demo-checklist
+            - cell "none" [ref=f2e251]:
+              - generic [ref=f2e252]: none
+            - cell "demo-model-s" [ref=f2e253]:
+              - generic [ref=f2e254]: demo-model-s
+            - cell "demo-runner" [ref=f2e255]:
+              - generic [ref=f2e256]: demo-runner
+            - cell "0" [ref=f2e257]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e258]:
+              - generic [ref=f2e259]:
+                - 'generic "build: passed" [ref=f2e260]': build ✓
+                - 'generic "visible: passed" [ref=f2e261]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e262]': hidden ✓
+            - cell "$0.079" [ref=f2e263]
+            - cell "3.2k / 712" [ref=f2e264]
+            - cell "44.0s" [ref=f2e265]
+            - cell [ref=f2e266]
+          - row "demo-lru-cache demo-checklist none demo-model-s demo-runner 1 build ✓ visible ✓ hidden ✓ $0.090 3.6k / 810 64.0s" [ref=f2e267] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e268]:
+              - generic [ref=f2e269]: demo-lru-cache
+            - cell "demo-checklist" [ref=f2e270]:
+              - generic [ref=f2e271]: demo-checklist
+            - cell "none" [ref=f2e272]:
+              - generic [ref=f2e273]: none
+            - cell "demo-model-s" [ref=f2e274]:
+              - generic [ref=f2e275]: demo-model-s
+            - cell "demo-runner" [ref=f2e276]:
+              - generic [ref=f2e277]: demo-runner
+            - cell "1" [ref=f2e278]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e279]:
+              - generic [ref=f2e280]:
+                - 'generic "build: passed" [ref=f2e281]': build ✓
+                - 'generic "visible: passed" [ref=f2e282]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e283]': hidden ✓
+            - cell "$0.090" [ref=f2e284]
+            - cell "3.6k / 810" [ref=f2e285]
+            - cell "64.0s" [ref=f2e286]
+            - cell [ref=f2e287]
+          - row "demo-lru-cache demo-checklist none demo-model-s demo-runner 2 build ✓ visible ✓ hidden ✓ $0.101 4.0k / 907 84.0s" [ref=f2e288] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e289]:
+              - generic [ref=f2e290]: demo-lru-cache
+            - cell "demo-checklist" [ref=f2e291]:
+              - generic [ref=f2e292]: demo-checklist
+            - cell "none" [ref=f2e293]:
+              - generic [ref=f2e294]: none
+            - cell "demo-model-s" [ref=f2e295]:
+              - generic [ref=f2e296]: demo-model-s
+            - cell "demo-runner" [ref=f2e297]:
+              - generic [ref=f2e298]: demo-runner
+            - cell "2" [ref=f2e299]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e300]:
+              - generic [ref=f2e301]:
+                - 'generic "build: passed" [ref=f2e302]': build ✓
+                - 'generic "visible: passed" [ref=f2e303]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e304]': hidden ✓
+            - cell "$0.101" [ref=f2e305]
+            - cell "4.0k / 907" [ref=f2e306]
+            - cell "84.0s" [ref=f2e307]
+            - cell [ref=f2e308]
+          - row "demo-lru-cache demo-tdd none demo-model-s demo-runner 0 build ✓ visible ✓ hidden ✓ $0.141 5.6k / 1.3k 38.0s" [ref=f2e309] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e310]:
+              - generic [ref=f2e311]: demo-lru-cache
+            - cell "demo-tdd" [ref=f2e312]:
+              - generic [ref=f2e313]: demo-tdd
+            - cell "none" [ref=f2e314]:
+              - generic [ref=f2e315]: none
+            - cell "demo-model-s" [ref=f2e316]:
+              - generic [ref=f2e317]: demo-model-s
+            - cell "demo-runner" [ref=f2e318]:
+              - generic [ref=f2e319]: demo-runner
+            - cell "0" [ref=f2e320]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e321]:
+              - generic [ref=f2e322]:
+                - 'generic "build: passed" [ref=f2e323]': build ✓
+                - 'generic "visible: passed" [ref=f2e324]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e325]': hidden ✓
+            - cell "$0.141" [ref=f2e326]
+            - cell "5.6k / 1.3k" [ref=f2e327]
+            - cell "38.0s" [ref=f2e328]
+            - cell [ref=f2e329]
+          - row "demo-lru-cache demo-tdd none demo-model-s demo-runner 1 build ✓ visible ✓ hidden ✓ $0.160 6.4k / 1.4k 58.0s" [ref=f2e330] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e331]:
+              - generic [ref=f2e332]: demo-lru-cache
+            - cell "demo-tdd" [ref=f2e333]:
+              - generic [ref=f2e334]: demo-tdd
+            - cell "none" [ref=f2e335]:
+              - generic [ref=f2e336]: none
+            - cell "demo-model-s" [ref=f2e337]:
+              - generic [ref=f2e338]: demo-model-s
+            - cell "demo-runner" [ref=f2e339]:
+              - generic [ref=f2e340]: demo-runner
+            - cell "1" [ref=f2e341]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e342]:
+              - generic [ref=f2e343]:
+                - 'generic "build: passed" [ref=f2e344]': build ✓
+                - 'generic "visible: passed" [ref=f2e345]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e346]': hidden ✓
+            - cell "$0.160" [ref=f2e347]
+            - cell "6.4k / 1.4k" [ref=f2e348]
+            - cell "58.0s" [ref=f2e349]
+            - cell [ref=f2e350]
+          - row "demo-lru-cache demo-tdd none demo-model-s demo-runner 2 build ✓ visible ✓ hidden ✓ $0.179 7.2k / 1.6k 78.0s" [ref=f2e351] [cursor=pointer]:
+            - cell "demo-lru-cache" [ref=f2e352]:
+              - generic [ref=f2e353]: demo-lru-cache
+            - cell "demo-tdd" [ref=f2e354]:
+              - generic [ref=f2e355]: demo-tdd
+            - cell "none" [ref=f2e356]:
+              - generic [ref=f2e357]: none
+            - cell "demo-model-s" [ref=f2e358]:
+              - generic [ref=f2e359]: demo-model-s
+            - cell "demo-runner" [ref=f2e360]:
+              - generic [ref=f2e361]: demo-runner
+            - cell "2" [ref=f2e362]
+            - cell "build ✓ visible ✓ hidden ✓" [ref=f2e363]:
+              - generic [ref=f2e364]:
+                - 'generic "build: passed" [ref=f2e365]': build ✓
+                - 'generic "visible: passed" [ref=f2e366]': visible ✓
+                - 'generic "hidden: passed" [ref=f2e367]': hidden ✓
+            - cell "$0.179" [ref=f2e368]
+            - cell "7.2k / 1.6k" [ref=f2e369]
+            - cell "78.0s" [ref=f2e370]
+            - cell [ref=f2e371]

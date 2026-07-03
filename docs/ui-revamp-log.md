@@ -64,3 +64,18 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
 - `/api/dbs` fix: the configured default DB now always wins its name slot —
   previously a root `results.db` shadowed a `--db`-configured file of the
   same name (caught by test_dbs_lists_default).
+- Frontend SPA landed (Vite+React+TS in ui/frontend, tokens.css + base.css as
+  the shared design scaffold) and verified live on the demo DB via Playwright
+  MCP: dashboard (DB switcher, readiness, resume list), picker (axis buttons
+  with cell counts, cell rows, five-axis catalog reference, hover preview
+  confirmed to show cosmos-B's full instruction), grading session (pane
+  widths measured EXACTLY equal 442.5/442.5, gate badges + logs + metrics
+  visible, keyboard 'a' judged and advanced, no axis-value leak in body
+  text), three-way Original|A|B (renders new-file pairs correctly), browse →
+  trial detail (raw tier logs + unblinded diff), report (BT ranking + picks
+  match cli.py report's demo output).
+- Diff bug found by driving the app: new-file hunks (`@@ -0,0 +1,N @@`)
+  anchored insertions at old line -1 (git's zero-count convention means
+  "after line N", not "at N-1"), so three-way tables rendered ZERO rows for
+  created files. Fixed in lib/diff.ts annotate(); verified 29 aligned rows
+  render for the demo pair afterward.

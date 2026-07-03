@@ -1,0 +1,48 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "Tiltyard" [ref=e5] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e6]:
+      - link "Dashboard" [ref=e7] [cursor=pointer]:
+        - /url: /
+      - link "Grade" [ref=e8] [cursor=pointer]:
+        - /url: /grade
+      - link "Runs" [ref=e9] [cursor=pointer]:
+        - /url: /runs
+      - link "Browse" [ref=e10] [cursor=pointer]:
+        - /url: /browse
+      - link "Report" [ref=e11] [cursor=pointer]:
+        - /url: /report
+    - generic [ref=e12]:
+      - generic [ref=e13]: Database
+      - combobox "Database" [ref=e14]:
+        - option "results-demo.db (default)" [selected]
+        - option "results-shakedown.db — 4 trials"
+        - option "results.db — 26 trials"
+  - main [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - heading "Dashboard" [level=1] [ref=e18]
+        - generic [ref=e19]: …
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: Grade — blind pairwise comparison
+          - paragraph [ref=e23]: Pick a comparison axis and a cell, then judge anonymized A/B diffs. Only hidden-gate passers enter grading.
+          - link "Start grading" [ref=e24] [cursor=pointer]:
+            - /url: /grade
+        - generic [ref=e25]:
+          - generic [ref=e26]: Resume a session
+          - paragraph [ref=e27]: No unfinished grading sessions in this database.
+        - generic [ref=e28]:
+          - generic [ref=e29]: Runs — execute trials
+          - paragraph [ref=e30]: Launch new trials with live progress. Free self-test runners by default; real agent runs (claude-code) sit behind an explicit spend confirmation.
+          - link "Open run launcher" [ref=e31] [cursor=pointer]:
+            - /url: /runs
+        - generic [ref=e32]:
+          - generic [ref=e33]: Results
+          - paragraph [ref=e34]: Browse every trial (gate logs, diffs, costs) or view the Bradley-Terry ranking with the cost/quality frontier.
+          - generic [ref=e35]:
+            - link "Browse trials" [ref=e36] [cursor=pointer]:
+              - /url: /browse
+            - link "View report" [ref=e37] [cursor=pointer]:
+              - /url: /report
