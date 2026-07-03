@@ -257,8 +257,14 @@ machine derives the same base shas, locked in
 `tasks/_repo_setup/repos.lock.yaml`. All five tasks re-validate on the
 rebuilt bases: oracle PASS / nop FAIL (pyvrp via WSL, cosmos via dotnet 8).
 
-**The whole decision loop has run end-to-end.** The grading UI was shaken out
-with Playwright on both the synthetic demo DB and real pipeline data: four
+**The whole decision loop has run end-to-end.** The web UI carries a
+committed Playwright regression suite (`pytest -m integration
+tests/test_ui_playwright.py` after `python -m playwright install chromium`):
+measured pane-width equality, line-number/scroll tracking, three-way view
+alignment, per-axis blinding on the rendered page, an 18-pair keyboard
+marathon with a mid-session reload, and the paid-runner spend gate. The
+grading flow was also shaken out on both the synthetic demo DB and real
+pipeline data: four
 manual-runner cosmos-B trials (two hand-authored solution variants) passed
 the hidden gate, were graded blind through the UI — with blinding verified on
 the served diffs — and produced a Bradley-Terry ranking and report, at zero
