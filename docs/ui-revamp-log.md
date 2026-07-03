@@ -127,3 +127,21 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
     the actual active DB; Elo CIs render "x to y" (negative-bound
     readability); artifact list notes its filenames are UTC; axis picker
     persists in the URL (?axis=) and toggles carry aria-pressed.
+
+## End of phase 1
+
+- Final state: 299 fast tests green + 15 Playwright integration tests green
+  (1 env-gated test deselected, as before). Tree clean on `ui-ux-revamp`.
+- Screenshots of every key screen (functionally correct, deliberately plain)
+  captured live from the demo DB at 1440×900 into
+  `docs/design/screenshots/`: dashboard, picker with an open hover preview,
+  two-way session (gate logs expanded, coarsened metrics visible), three-way
+  session (new-file originals), reveal (BT mini-ranking), runs with the
+  spend gate open, browse, trial detail (raw tier logs), report.
+  `docs/screenshots/grading-compare.png` (referenced by the README) replaced
+  with the current two-way session shot — the old image showed the deleted
+  diff2html UI.
+- Claude Design brief at `docs/design/claude-design-brief.md` (follows the
+  `recalibration_prompts/15` handoff shape). Phase 2 = human runs Claude
+  Design with brief + screenshots, then a follow-up session implements the
+  design onto tokens.css/base.css/diff.css and re-runs the Playwright suite.
