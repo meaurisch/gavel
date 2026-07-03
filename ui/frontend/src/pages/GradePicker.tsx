@@ -24,28 +24,33 @@ const CELL_KIND: Record<string, "task" | "methodology" | "repo_context" | "model
 };
 
 function CellRow({
+  axisNoun,
   cell,
   onStart,
   catalog,
   starting,
 }: {
+  axisNoun: string;
   cell: Cell;
   onStart: () => void;
   catalog: ReturnType<typeof useCatalog>["catalog"];
   starting: boolean;
 }) {
-  const pinned = Object.entries(cell).filter(([k]) => k !== "n_values");
+  const pinned = Object.entries(cell).filter(([k]) => k !== "n_values" && k !== "n_pairs");
   return (
     <tr data-testid="cell-row">
-      {pinned.map(([k, v]) => (
-        <td key={k}>
-          <IdChip catalog={catalog} kind={CELL_KIND[k]} id={String(v)} />
-        </td>
-      ))}
-      <td className="num">{cell.n_values}</td>
       <td>
+        <span className="row wrap" style={{ gap: "var(--space-1)" }}>
+          {pinned.map(([k, v]) => (
+            <IdChip key={k} catalog={catalog} kind={CELL_KIND[k]} id={String(v)} />
+          ))}
+        </span>
+      </td>
+      <td>{cell.n_values} {axisNoun}</td>
+      <td className="num">{cell.n_pairs}</td>
+      <td style={{ textAlign: "right" }}>
         <button className="btn sm primary" onClick={onStart} disabled={starting} data-testid="start-session">
-          {starting ? "Starting…" : "Start session"}
+          {starting ? "Starting…" : "Grade"}
         </button>
       </td>
     </tr>
@@ -97,14 +102,7 @@ function AxisCells({ axis }: { axis: Axis }) {
     );
   }
 
-  const pinnedKeys = Object.keys(cells[0]).filter((k) => k !== "n_values");
-  const headers: Record<string, string> = {
-    task_id: "Task",
-    methodology_id: "Methodology",
-    repo_context_id: "Repo context",
-    model: "Model",
-    runner: "Runner",
-  };
+  const axisNoun = `${AXIS_LABELS[axis].toLowerCase().replace("repo context", "repo context")}${cells.some((c) => c.n_values !== 1) ? "s" : ""}`;
 
   return (
     <>
@@ -113,10 +111,9 @@ function AxisCells({ axis }: { axis: Axis }) {
         <table className="table">
           <thead>
             <tr>
-              {pinnedKeys.map((k) => (
-                <th key={k}>{headers[k] ?? k} (pinned)</th>
-              ))}
-              <th className="num">{AXIS_LABELS[axis]} values</th>
+              <th>Cell (pinned axes)</th>
+              <th>Contenders</th>
+              <th className="num">Pairs</th>
               <th />
             </tr>
           </thead>
@@ -124,6 +121,7 @@ function AxisCells({ axis }: { axis: Axis }) {
             {cells.map((cell, i) => (
               <CellRow
                 key={i}
+                axisNoun={axisNoun}
                 cell={cell}
                 catalog={catalog}
                 onStart={() => start(cell)}
@@ -134,8 +132,8 @@ function AxisCells({ axis }: { axis: Axis }) {
         </table>
       </div>
       <p className="xsmall muted" style={{ marginBottom: 0 }}>
-        Hover any id for details. The <strong>{AXIS_LABELS[axis]}</strong> column varies inside the session —
-        its values stay hidden until you finish and reveal.
+        Hover any id for details. The <strong>{AXIS_LABELS[axis]}</strong> contenders vary inside the
+        session — their identities stay hidden until you finish and reveal.
       </p>
     </>
   );
@@ -213,7 +211,7 @@ function ResumeCard() {
   );
   if (unfinished.length === 0) return null;
   return (
-    <div className="notice-banner" style={{ marginBottom: "var(--space-4)" }} data-testid="picker-resume">
+    <div className="info-banner" style={{ marginBottom: "var(--space-4)" }} data-testid="picker-resume">
       <div className="spread">
         <span>
           You have {unfinished.length} unfinished session{unfinished.length === 1 ? "" : "s"} — starting a
@@ -253,10 +251,10 @@ export function GradePicker() {
   return (
     <main className="app-main">
       <div className="page">
-        <h1>Start a grading session</h1>
+        <h1>Pick a contest</h1>
         <ResumeCard />
         <div className="card">
-          <div className="card-title">1 · Choose the comparison axis</div>
+          <div className="card-title">Comparison axis</div>
           <div className="row wrap" data-testid="axis-picker">
             {AXES.map((a) => {
               const n = gradeable.get(a) ?? 0;
@@ -280,7 +278,7 @@ export function GradePicker() {
         </div>
 
         <div className="card">
-          <div className="card-title">2 · Pick a cell and start</div>
+          <div className="card-title">Gradeable cells</div>
           <AxisCells axis={axis} />
         </div>
 

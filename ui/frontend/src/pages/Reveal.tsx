@@ -32,15 +32,15 @@ export function RevealPage() {
     <main className="app-main">
       <div className="page">
         <div className="spread">
-          <h1>Session results — {AXIS_LABELS[data.axis] ?? data.axis}</h1>
+          <h1>The verdict — {AXIS_LABELS[data.axis] ?? data.axis}</h1>
           <span className="row">
             <Link className="btn" to={`/grade${db ? `?db=${db}` : ""}`}>Grade another cell</Link>
             <Link className="btn primary" to={`/report${db ? `?db=${db}` : ""}`}>Full report</Link>
           </span>
         </div>
 
-        <div className="notice-banner" style={{ marginBottom: "var(--space-4)" }} data-testid="session-closed-note">
-          This session is now closed: revealing ends blind judging permanently.
+        <div className="info-banner" style={{ marginBottom: "var(--space-4)" }} data-testid="session-closed-note">
+          The gavel has struck — this session is closed. Revealing ends blind judging permanently.
           {data.n_unjudged > 0 && (
             <>
               {" "}
@@ -68,9 +68,14 @@ export function RevealPage() {
                   {data.bt_scores.map((s, i) => (
                     <tr key={s.axis_value}>
                       <td>{i + 1}</td>
-                      <td><IdChip catalog={catalog} kind={kind} id={s.axis_value} /></td>
+                      <td>
+                        <span className="row" style={{ gap: "var(--space-2)" }}>
+                          <IdChip catalog={catalog} kind={kind} id={s.axis_value} />
+                          {i === 0 && <span className="badge accent">session winner</span>}
+                        </span>
+                      </td>
                       <td className="num">{s.elo.toFixed(0)}</td>
-                      <td className="num">{s.ci_lower.toFixed(0)} to {s.ci_upper.toFixed(0)}</td>
+                      <td className="num">{s.ci_lower.toFixed(0)} – {s.ci_upper.toFixed(0)}</td>
                       <td className="num">{fmtPct(data.pass_rates?.[s.axis_value] ?? null)}</td>
                     </tr>
                   ))}

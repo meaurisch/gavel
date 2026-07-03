@@ -52,6 +52,27 @@ export function Dashboard() {
           </span>
         </div>
 
+        {active && (
+          <div className="stat-strip" style={{ marginBottom: "var(--space-6)" }} data-testid="stat-strip">
+            <div className="stat">
+              <div className="value">{active.n_trials}</div>
+              <div className="label">trials</div>
+            </div>
+            <div className="stat">
+              <div className="value">{active.n_passers}</div>
+              <div className="label">gate passers</div>
+            </div>
+            <div className="stat">
+              <div className="value">{active.n_judgments}</div>
+              <div className="label">judgments</div>
+            </div>
+            <div className="stat">
+              <div className="value">${active.total_usd.toFixed(2)}</div>
+              <div className="label">total spend</div>
+            </div>
+          </div>
+        )}
+
         {activeRun && (
           <div className="notice-banner" style={{ marginBottom: "var(--space-4)" }}>
             A run is in progress ({activeRun.n_done}/{activeRun.n_trials} trials) —{" "}
@@ -125,7 +146,10 @@ export function Dashboard() {
                       <CellChips cell={s.cell} catalog={catalog} />
                     </span>
                     <span className="row" style={{ gap: "var(--space-2)" }}>
-                      <span className="muted">
+                      <span className="progress" title={`${s.n_judged} of ${s.total_pairs} judged`}>
+                        <span style={{ width: `${Math.round((s.n_judged / s.total_pairs) * 100)}%` }} />
+                      </span>
+                      <span className="muted xsmall mono">
                         {s.n_judged}/{s.total_pairs}
                       </span>
                       <Link className="btn sm" to={`/grade/session/${s.session_id}`}>

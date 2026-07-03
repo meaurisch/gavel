@@ -1,0 +1,144 @@
+/* ============================================================
+   GAVEL — design tokens
+   Replace the VALUES in the app's tokens.css with these.
+   Light theme is :root; dark theme overrides under
+   [data-theme="dark"]. All colors chosen for hours-long use:
+   muted large surfaces, restrained contrast outside diff content.
+   ============================================================ */
+
+:root {
+  /* ---- Surfaces ---- */
+  --color-bg:            #f4f5f7;  /* app background */
+  --color-surface:       #ffffff;  /* cards, panels, table bodies */
+  --color-surface-inset: #eef0f3;  /* wells, gutters, chip bg, log headers */
+  --color-surface-hover: #e8eaee;  /* row hover, chip hover */
+
+  /* ---- Borders ---- */
+  --color-border:        #e0e3e9;
+  --color-border-strong: #c9cedb;  /* inputs, buttons */
+
+  /* ---- Text ---- */
+  --color-text:           #20242e;
+  --color-text-secondary: #4a5160;
+  --color-text-muted:     #7c8494;
+  --color-text-faint:     #a7adba;  /* line numbers, placeholders */
+
+  /* ---- Accent (indigo — the only brand hue) ---- */
+  --color-accent:         #4e59c8;
+  --color-accent-hover:   #3f49ad;
+  --color-accent-subtle:  #eceef9;  /* active-nav pill, selected bg */
+  --color-accent-border:  #c9cdf0;
+  --color-accent-text-on: #ffffff;
+
+  /* ---- Semantic: pass / fail / warn(paid) / neutral ---- */
+  --color-pass:         #27714a;
+  --color-pass-bg:      #e4f1e8;
+  --color-pass-border:  #c2ddcc;
+  --color-fail:         #a63d33;
+  --color-fail-bg:      #f8eae7;
+  --color-fail-border:  #e7c6bf;
+  --color-warn:         #8a611a;
+  --color-warn-bg:      #f6eeda;
+  --color-warn-border:  #e3d3a9;
+  --color-neutral:      #5a6170;
+  --color-neutral-bg:   #eef0f3;
+  --color-neutral-border:#dfe2e8;
+
+  /* ---- Diff (side-symmetric; legible for hours) ---- */
+  --diff-add-bg:      #e7f2ea;
+  --diff-add-gutter:  #d9e9de;
+  --diff-add-sign:    #2c7a4d;
+  --diff-del-bg:      #f9ecea;
+  --diff-del-gutter:  #f0dcd8;
+  --diff-del-sign:    #a8483c;
+  --diff-ctx-bg:      #ffffff;
+  --diff-gutter-bg:   #f7f8fa;
+  --diff-gutter-text: #b2b8c3;
+  --diff-hunk-bg:     #f0f2f6;
+  --diff-hunk-text:   #868da0;
+  --diff-word-add:    #cbe5d3;  /* word-level emphasis inside add lines */
+  --diff-word-del:    #f0d4cd;
+
+  /* ---- Type ---- */
+  --font-ui:   'IBM Plex Sans', system-ui, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+
+  --text-2xs: 11px;   /* micro caps labels, kbd chips */
+  --text-xs:  12px;   /* chips, table meta, badges */
+  --text-sm:  13px;   /* dense body, tables, diff code */
+  --text-md:  14px;   /* default body */
+  --text-lg:  16px;   /* card titles */
+  --text-xl:  18px;   /* section headings */
+  --text-2xl: 22px;   /* page titles */
+  --text-3xl: 28px;   /* dashboard display */
+
+  --leading-tight: 1.3;
+  --leading-body:  1.5;
+  --leading-code:  1.65;  /* diff lines */
+
+  /* ---- Spacing scale ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ---- Radii ---- */
+  --radius-sm: 4px;   /* kbd chips, badges */
+  --radius-md: 6px;   /* buttons, inputs, chips */
+  --radius-lg: 10px;  /* cards, panels */
+  --radius-pill: 999px;
+
+  /* ---- Shadows (minimal; borders do most of the work) ---- */
+  --shadow-card:  0 1px 2px rgba(15,18,26,.05);
+  --shadow-pop:   0 8px 24px rgba(15,18,26,.14), 0 2px 6px rgba(15,18,26,.08);
+  --shadow-kbd:   inset 0 -1px 0 var(--color-border-strong);
+}
+
+[data-theme="dark"] {
+  --color-bg:            #14161b;
+  --color-surface:       #1b1e25;
+  --color-surface-inset: #22262f;
+  --color-surface-hover: #262b35;
+  --color-border:        #2c313c;
+  --color-border-strong: #3a4150;
+  --color-text:           #dfe2e8;
+  --color-text-secondary: #9aa1b0;
+  --color-text-muted:     #6d7482;
+  --color-text-faint:     #4d5464;
+  --color-accent:         #9aa4f0;
+  --color-accent-hover:   #b0b8f4;
+  --color-accent-subtle:  #242849;
+  --color-accent-border:  #3d4487;
+  --color-accent-text-on: #14161b;
+  --color-pass:        #6fbf8f;
+  --color-pass-bg:     #17281d;
+  --color-pass-border: #24422f;
+  --color-fail:        #d98a7d;
+  --color-fail-bg:     #2e1d1b;
+  --color-fail-border: #4a2c27;
+  --color-warn:        #d4b36a;
+  --color-warn-bg:     #2b2417;
+  --color-warn-border: #453a20;
+  --color-neutral:     #9aa1b0;
+  --color-neutral-bg:  #22262f;
+  --color-neutral-border:#2c313c;
+  --diff-add-bg:      #182b20;
+  --diff-add-gutter:  #1d3527;
+  --diff-add-sign:    #6fbf8f;
+  --diff-del-bg:      #2e1d1b;
+  --diff-del-gutter:  #3a2420;
+  --diff-del-sign:    #d98a7d;
+  --diff-ctx-bg:      #1b1e25;
+  --diff-gutter-bg:   #181b21;
+  --diff-gutter-text: #4d5464;
+  --diff-hunk-bg:     #22262f;
+  --diff-hunk-text:   #6d7482;
+  --diff-word-add:    #24503a;
+  --diff-word-del:    #57302a;
+  --shadow-card: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-pop:  0 8px 24px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.3);
+}

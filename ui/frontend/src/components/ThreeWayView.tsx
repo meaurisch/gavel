@@ -44,12 +44,14 @@ function ThreeWayFileTable({
   bDiff,
   original,
   originalNote,
+  expandAll,
 }: {
   path: string;
   aDiff: string;
   bDiff: string;
   original: string | null;
   originalNote: string | null;
+  expandAll: boolean;
 }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
@@ -57,8 +59,8 @@ function ThreeWayFileTable({
     const aFile = parseUnifiedDiff(aDiff).find((f) => f.displayPath === path);
     const bFile = parseUnifiedDiff(bDiff).find((f) => f.displayPath === path);
     const origLines = original !== null ? splitLines(original) : null;
-    return buildThreeWay(path, aFile, bFile, origLines, expanded);
-  }, [path, aDiff, bDiff, original, expanded]);
+    return buildThreeWay(path, aFile, bFile, origLines, expanded, expandAll);
+  }, [path, aDiff, bDiff, original, expanded, expandAll]);
 
   return (
     <table className="threeway" data-testid="threeway-file">
@@ -97,10 +99,10 @@ function ThreeWayFileTable({
                         setExpanded((prev) => new Set(prev).add(row.gapStart!))
                       }
                     >
-                      ⋯ expand {row.gapSize} unchanged line{row.gapSize === 1 ? "" : "s"} ⋯
+                      ▸ unchanged region — {row.gapSize} aligned row{row.gapSize === 1 ? "" : "s"} collapsed · click or <kbd className="key">X</kbd> to expand
                     </button>
                   ) : (
-                    <>⋯ {row.gapSize} unchanged line{row.gapSize === 1 ? "" : "s"} (original not available) ⋯</>
+                    <>⋯ unchanged region — {row.gapSize} row{row.gapSize === 1 ? "" : "s"} (original not available) ⋯</>
                   )}
                 </td>
               </tr>
@@ -128,10 +130,12 @@ export function ThreeWayDiff({
   aDiff,
   bDiff,
   originals,
+  expandAll = false,
 }: {
   aDiff: string;
   bDiff: string;
   originals: OriginalsResponse | null;
+  expandAll?: boolean;
 }) {
   const paths = useMemo(() => {
     const set = new Set<string>();
@@ -182,6 +186,7 @@ export function ThreeWayDiff({
               bDiff={bDiff}
               original={orig?.content ?? null}
               originalNote={orig?.note ?? null}
+              expandAll={expandAll}
             />
           );
         })

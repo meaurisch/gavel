@@ -26,6 +26,7 @@ export interface DbInfo {
   n_passers: number;
   n_judgments: number;
   n_sessions: number;
+  total_usd: number;
   modified_at: number;
 }
 
@@ -96,6 +97,7 @@ export interface Cell {
   model?: string;
   runner?: string;
   n_values: number;
+  n_pairs: number;
 }
 
 export interface DiffProxy {

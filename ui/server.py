@@ -390,6 +390,7 @@ class DbInfo(BaseModel):
     n_passers: int
     n_judgments: int
     n_sessions: int
+    total_usd: float
     modified_at: float
 
 
@@ -438,7 +439,22 @@ async def get_cells(axis: str, db: str = "") -> list[dict]:
         raise HTTPException(400, f"Unknown axis {axis!r}; valid: {sorted(AXIS_FIELDS)}")
     conn = _open(db)
     try:
-        return list_grading_cells(conn, axis)
+        cells = list_grading_cells(conn, axis)
+        # Enrich with the number of pairs a session would actually serve —
+        # the same arithmetic generate_pairs uses: default 3·C(m,2), capped
+        # by the number of distinct cross-value passer pairs.
+        comparison_col = AXIS_FIELDS[axis]
+        for cell in cells:
+            pinned = {k: v for k, v in cell.items() if k not in ("task_id", "n_values")}
+            trials = list_passing_trials(conn, task_id=cell["task_id"], **pinned)
+            counts: dict[str, int] = defaultdict(int)
+            for t in trials:
+                counts[getattr(t, comparison_col)] += 1
+            total = sum(counts.values())
+            candidates = (total * total - sum(c * c for c in counts.values())) // 2
+            m = len(counts)
+            cell["n_pairs"] = min((m * (m - 1) // 2) * 3, candidates)
+        return cells
     finally:
         conn.close()
 
@@ -465,6 +481,7 @@ async def get_dbs() -> list[DbInfo]:
             n_passers = conn.execute("SELECT COUNT(*) FROM gate_result WHERE passed = 1").fetchone()[0]
             n_judgments = conn.execute("SELECT COUNT(*) FROM judgment").fetchone()[0]
             n_sessions = conn.execute("SELECT COUNT(*) FROM grading_session").fetchone()[0]
+            total_usd = conn.execute("SELECT COALESCE(SUM(usd_equiv), 0) FROM cost_record").fetchone()[0]
         finally:
             conn.close()
         infos.append(DbInfo(
@@ -474,6 +491,7 @@ async def get_dbs() -> list[DbInfo]:
             n_passers=n_passers,
             n_judgments=n_judgments,
             n_sessions=n_sessions,
+            total_usd=round(total_usd, 4),
             modified_at=path.stat().st_mtime,
         ))
     return infos

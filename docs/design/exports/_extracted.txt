@@ -1,0 +1,1051 @@
+Tiltyard — Design System
+1a
+Identity — wordmark, mark, rationale
+gavel
+The mark is the
+gavel mid-swing
+: mallet and handle reduced to two rounded bars, tilted at the moment before the strike. One accent square, one glyph, no gradients. Reads at 16px favicon scale.
+32
+16
+gavel
+app-chrome lockup
+gavel
+dark
+Name
+gavel
+— the strike of judgment. Five letters, says exactly what the tool does (you judge, it tallies), and it verbs beautifully:
+gavel run
+,
+pip install gavel
+, "gavel it". The wink is built in — you bang a tiny gavel on your own experiments — and it never needs explaining.
+Voice
+Playfully professional: a tool by and for engineers who tinker with agentic setups. Near-monochrome surfaces keep hours of judging calm; one lively indigo accent, a winking gavel mark, and microcopy that's allowed a dry joke. The playfulness lives in the accent, the mark, and the words — never in extra ornament.
+Fonts (self-host, offline)
+IBM Plex Sans
+(UI, 400/500/600) +
+JetBrains Mono
+(code/ids, 400/500/600). Both OFL/open — commit the woff2 files to the repo, load via
+@font-face
+. Fallbacks: system-ui / ui-monospace.
+1b
+Foundations — palette, type scale, diff colors (values live in tokens.css)
+Neutrals & accent
+--color-bg
+#f4f5f7
+--color-surface
+#ffffff
+--surface-inset
+#eef0f3
+--color-border
+#e0e3e9
+--text-muted
+#7c8494
+--text-secondary
+#4a5160
+--color-text
+#20242e
+--color-accent
+#4e59c8
+--accent-subtle
+#eceef9
+Semantic — pass / fail / warn(paid) / neutral
+pass · ok
+#27714a on #e4f1e8
+fail · error
+#a63d33 on #f8eae7
+warn · paid
+#8a611a on #f6eeda
+neutral
+#5a6170 on #eef0f3
+Diff colors — side-symmetric, low-saturation
+@@ -12,6 +12,8 @@ — hunk header #868da0 / #f0f2f6
+14
+context line — text on --diff-ctx-bg
+15
+-
+removed line — #f9ecea, gutter #f0dcd8,
+word-level
+15
++
+added line — #e7f2ea, gutter #d9e9de,
+word-level
+16
+line numbers #b2b8c3 on #f7f8fa — visually quiet
+Text stays full-strength
+#20242e
+on both tints; only the background, gutter, and +/− sign carry the add/remove hue. Both tints sit at equal lightness (~L 0.94) so neither side of a pair looks heavier.
+Type scale
+28 / 600
+Page display
+22 / 600
+Page title
+16 / 600
+Card title
+14 / 400
+Body — default reading size
+13 / 400
+Dense body — tables, diff code (mono)
+12 / mono
+id-chips, badges, metrics
+11 / 600 caps
+Section label
+1c
+Components — buttons, chips, badges, gate cells, kbd, inputs, expanders, banners
+Buttons
+Primary
+Secondary
+Ghost →
+Disabled
+One primary per view, max. Hover: darken to #34456f / border #a9b1c2. Focus: 2px #c9cdf0 ring.
+Id chips (all five axes — one neutral style)
+cosmos-B
+baseline
+claude-haiku-4-5
+hover / open
+Mono 12, pill. Hover swaps to accent-subtle + opens the preview card. Never color-code by axis — the axis is given by context/columns.
+Keyboard hint chips
+A
+T
+←
+V
+view
+Bottom border 2px gives keycap depth without shadows. Always paired with a lowercase verb label at 12px muted.
+Gate badges — full & compact triplet
+build ✓
+hidden ✕
+B✓
+V✓
+H✕
+B✓
+V✓
+H✓
+Full form on session/detail headers; compact
+B/V/H triplet
+in tables (one cell instead of three badges — quieter rows).
+Select & input
+results-demo.db
+▾
+SPEND
+Focus ring 2px #c9cdf0. Inputs that expect typed tokens (confirmation phrase, reps) are mono.
+Log expander
+▸
+hidden output
+4 chars
+▾
+hidden output
+4 chars
+demo
+Header stays inset-gray in both states; char/line count right-aligned. Body scrolls past 180px.
+Banners
+⚠
+This run spends real API money.
+Estimate unknown for this combination.
+Session closed: revealing ends blind judging permanently.
+Warn = paid/spend only. Informational states use neutral, never amber.
+Table pattern
+Task
+USD
+Wall
+demo-lru-cache
+$0.546
+44.0s
+demo-lru-cache
+$0.620
+64.0s
+Caps-11 headers, 1px #eef0f3 row rules, numerics right-aligned mono-12, hover row #f7f8fa. 36–40px row height.
+Segmented control / nav
+A | B
+Original | A | B
+Grade
+Runs
+Top nav = pill-in-track (right). View toggles = bordered segments, accent fill on active (left).
+1d
+Dashboard — stat strip promoted; grading is the hero; resume rows get progress bars
+gavel
+Dashboard
+Grade
+Runs
+Browse
+Report
+db
+results-demo.db
+▾
+Dashboard
+15
+trials
+13
+gate passers
+65
+judgments
+$4.12
+total spend
+Grade — blind pairwise comparison
+Pick a comparison axis and a cell, then judge anonymized A/B diffs. Only hidden-gate passers enter grading.
+Methodology
+1 gradeable cell
+Model
+1 gradeable cell
+Repo context
+nothing to compare yet
+Runner
+nothing to compare yet
+Start grading
+Resume a session
+Model
+demo-lru-cache
+demo-baseline
+none
+0/3
+Resume
+Methodology
+demo-lru-cache
+none
+demo-model-s
+0/18
+Resume
+Methodology
+demo-lru-cache
+none
+demo-model-s
+4/18
+Resume
+Methodology
+demo-lru-cache
+none
+demo-model-s
+1/18
+Resume
+Runs — execute trials
+Launch new trials with live progress. Free self-test runners by default; real agent runs (
+claude-code
+) sit behind an explicit spend confirmation.
+Open run launcher
+Results
+Browse every trial (gate logs, diffs, costs) or view the Bradley-Terry ranking with the cost/quality frontier.
+Browse trials
+View report
+1e
+Grading session, A | B — the core screen. Symmetric sides, quiet gutters, sticky judge bar with keycaps
+gavel
+Dashboard
+Grade
+Runs
+Browse
+Report
+db
+results-demo.db
+▾
+← Picker
+comparing: Methodology
+demo-lru-cache
+none
+demo-model-s
+demo-runner
+pair
+1
+/ 18 · 0 judged
+A | B
+Original | A | B
+sync scroll
+A
+build ✓
+visible ✓
+hidden ✓
+1 file ·
++54
+−0
+· $0.550 · 22.0k/4.9k tok · 44.0s
+▸
+hidden output
+4 chars
+B
+build ✓
+visible ✓
+hidden ✓
+1 file ·
++29
+−0
+· $0.180 · 7.2k/1.6k tok · 78.0s
+▸
+hidden output
+4 chars
+lru_cache.py
+created
++54
+−0
+@@ -0,0 +1,54 @@
+1
++
+# rev 1
+2
++
+from dataclasses import dataclass
+3
++
+from typing import Any, Optional
+4
++
+5
++
+@dataclass
+6
++
+class _Node:
+7
++
+key: Any
+8
++
+value: Any
+9
++
+prev: "Optional[_Node]" = None
+10
++
+next: "Optional[_Node]" = None
+11
++
+12
++
+class LRUCache:
+13
++
+"""Doubly-linked-list LRU cache."""
+14
++
+def __init__(self, capacity: int):
+15
++
+self._capacity = capacity
+16
++
+self._map: dict = {}
+⋯ 38 more added lines
+lru_cache.py
+created
++29
+−0
+@@ -0,0 +1,29 @@
+1
++
+# rev 3
+2
++
+from collections import OrderedDict
+3
++
+4
++
+class LRUCache:
+5
++
+"""LRU cache with O(1) get/put."""
+6
++
+7
++
+def __init__(self, capacity, on_evict=None):
+8
++
+if capacity <= 0:
+9
++
+raise ValueError("capacity must be positive")
+10
++
+self._capacity = capacity
+11
++
+self._items: OrderedDict = OrderedDict()
+12
++
+self._on_evict = on_evict
+13
++
+14
++
+def get(self, key, default=None):
+15
++
+try:
+16
++
+self._items.move_to_end(key)
+⋯ 13 more added lines
+←
+prev
+A
+A wins
+T
+Tie
+B
+B wins
+next
+→
+V
+view
+1f
+Same screen, dark theme — every value comes from the [data-theme="dark"] token block
+gavel
+Dashboard
+Grade
+Runs
+Browse
+Report
+db
+results-demo.db
+▾
+← Picker
+comparing: Methodology
+demo-lru-cache
+none
+demo-model-s
+pair
+1
+/ 18 · 0 judged
+A | B
+Original | A | B
+A
+build ✓
+visible ✓
+hidden ✓
+1 file ·
++54
+−0
+· $0.550 · 44.0s
+B
+build ✓
+visible ✓
+hidden ✓
+1 file ·
++29
+−0
+· $0.180 · 78.0s
+lru_cache.py
+created
++54
+−0
+@@ -0,0 +1,54 @@
+1
++
+# rev 1
+2
++
+from dataclasses import dataclass
+3
++
+from typing import Any, Optional
+4
++
+5
++
+@dataclass
+6
++
+class _Node:
+7
++
+key: Any
+8
++
+value: Any
+⋯ 46 more added lines
+lru_cache.py
+created
++29
+−0
+@@ -0,0 +1,29 @@
+1
++
+# rev 3
+2
++
+from collections import OrderedDict
+3
++
+4
++
+class LRUCache:
+5
++
+"""LRU cache with O(1) get/put."""
+6
++
+7
++
+def __init__(self, capacity, on_evict=None):
+8
++
+if capacity <= 0:
+⋯ 21 more added lines
+←
+prev
+A
+A wins
+T
+Tie
+B
+B wins
+next
+→
+1g
+Original | A | B mode — one aligned table per file, collapsible gap rows for unchanged regions
+← Picker
+comparing: Methodology
+demo-lru-cache
+none
+pair
+1
+/ 18 · 0 judged
+A | B
+Original | A | B
+lru_cache.py
+A: created
++54
+−0
+· B: created
++29
+−0
+new file — did not exist before the change
+Original
+A
+B
+1
+# rev 1
+2
+from dataclasses import dataclass
+3
+from typing import Any, Optional
+4
+5
+@dataclass
+6
+class _Node:
+7
+key: Any
+8
+value: Any
+1
+# rev 3
+2
+from collections import OrderedDict
+3
+4
+class LRUCache:
+5
+"""LRU cache with O(1) get/put."""
+6
+7
+def __init__(self, capacity):
+8
+if capacity <= 0:
+▸
+unchanged region — 21 aligned rows collapsed
+click or
+x
+to expand
+30
+def _push_back(self, node):
+31
+node.prev = self._tail
+28
+if self._on_evict is not None:
+29
+self._on_evict(key, value)
+←
+prev
+A
+A wins
+T
+Tie
+B
+B wins
+next
+→
+1h
+Grading picker — axis buttons with counts, gradeable cells, catalog, and the id-chip hover preview card
+gavel
+Dashboard
+Grade
+Runs
+Browse
+Report
+db
+results-demo.db
+▾
+Pick a contest
+Comparison axis
+Methodology
+1 cell
+Model
+1 cell
+Repo context
+0
+Runner
+0
+Cell (pinned axes)
+Contenders
+Pairs
+demo-lru-cache
+none
+demo-model-s
+demo-runner
+4 methodologies
+18
+Grade
+The five axes — everything available
+Tasks
+cosmos-A
+[medium] Drop the AutoMapper dependency and map objects explicitly…
+cosmos-B
+[medium] ToDo API can create, update, delete — but not complete…
+task
+cosmos-B
+medium
+Our ToDo API can create, update, and delete items, but a user still has no way to mark one as done. Add a complete/reopen lifecycle end to end, and let search filter by completion status. Follow the existing MediatR vertical-slice conventions.
+- ToDoItem.Reopen() alongside MarkComplete()
+- Two new slices under WebAPI.Models.ToDoItem
+- Keep IsCompleted's private setter
+pyvrp-A
+[hard] Duration aggregates: "what's the total wait time per client group"…
+pyvrp-B
+[hard] Every operator must respect linear duration costs…
+Methodologies
+baseline
+No instructions — pure ablation control
+custom
+Your own agentic setup (conductor + executor + validators)
+ecc
+ECC v2.0.0 — Everything Claude Code agent operating system
+karpathy
+Andrej Karpathy's coding discipline
+Models
+claude-haiku-4-5
+anthropic · $1/MTok in · $5/MTok out
+claude-sonnet-4-6
+anthropic · $3/MTok in · $15/MTok out
+gpt-4.1
+openai · $2/MTok in · $8/MTok out
+1i
+Post-session reveal — winner gets the accent (allowed now: blinding is over)
+gavel
+Dashboard
+Grade
+Runs
+Browse
+Report
+db
+results-demo.db
+▾
+The verdict — Methodology
+Grade another cell
+Full report
+The gavel has struck — this session is closed. Revealing ends blind judging permanently.
+Bradley-Terry ranking (this session)
+#
+Methodology
+Elo
+95% CI
+Hidden-gate pass
+1
+demo-checklist
+session winner
+1084
+928 – 2066
+100%
+2
+demo-agentpack
+1072
+916 – 2045
+67%
+3
+demo-baseline
+928
+−2200 – 1132
+67%
+4
+demo-tdd
+916
+716 – 1913
+100%
+Win / loss / tie per value
+Methodology
+W
+L
+T
+demo-checklist
+6
+2
+3
+demo-agentpack
+3
+1
+3
+demo-baseline
+2
+4
+1
+demo-tdd
+1
+5
+5
+Judged pairs, unblinded
+#
+A was
+B was
+Your call
+1
+demo-agentpack
+demo-tdd
+A
+2
+demo-tdd
+demo-baseline
+B
+3
+demo-checklist
+demo-agentpack
+Tie
+1j
+Run launcher — paid feels consequential (one amber panel + typed phrase), never scary-red
+gavel
+Dashboard
+Grade
+Runs
+Browse
+Report
+db
+results-demo.db
+▾
+Runs
+Launch trials
+Tasks
+— 1 selected · hover an id for details
+cosmos-A
+cosmos-B
+moreiter-A
+pyvrp-A
+pyvrp-B
+pyvrp-C
+Methodologies
+— 1 selected
+baseline
+custom
+ecc
+karpathy
+superpowers
+Repo contexts
+— 1 selected
+cosmos
+none
+pyvrp-instructions
+Runner
+claude-code
+PAID
+▾
+Model
+claude-haiku-4-5
+▾
+Reps
+1
+Write results to
+results-demo.db (active)
+Preview plan
+Headless Claude Code CLI — runs the real agent. Spends real API budget on every trial.
+1 trial
+SPENDS REAL API BUDGET
+Task
+Methodology
+Context
+Model
+Reps
+cosmos-B
+baseline
+cosmos
+claude-haiku-4-5
+1
+This run spends real API money.
+No historical cost data for this combination — the estimate is unknown.
+claude-haiku-4-5 · $1/MTok in · $5/MTok out
+Type
+SPEND
+to arm the launch:
+SPEND
+Launch — spends money
+free runners launch instantly, no phrase, no amber
+Runs this server session
+Nothing launched from the browser yet. Terminal runs (
+gavel run
+) appear in Browse once finished.
+1k
+Browse — compact B/V/H gate triplet replaces three badges; numerics right-aligned mono
+gavel
+Dashboard
+Grade
+Runs
+Browse
+Report
+db
+results-demo.db
+▾
+Browse trials
+15 of 15 trials
+Task
+(all)
+▾
+Methodology
+(all)
+▾
+Repo context
+(all)
+▾
+Model
+(all)
+▾
+Runner
+(all)
+▾
+Hidden gate
+(all)
+▾
+Task
+Methodology
+Context
+Model
+Runner
+Rep
+Gate
+USD
+Tokens
+Wall
+demo-lru-cache
+demo-agentpack
+none
+demo-model-s
+demo-runner
+0
+B✓
+V✓
+H✓
+$0.546
+21.8k / 4.9k
+44.0s
+demo-lru-cache
+demo-agentpack
+none
+demo-model-s
+demo-runner
+2
+B✓
+V✓
+H✕
+$0.694
+27.8k / 6.2k
+84.0s
+demo-lru-cache
+demo-baseline
+none
+demo-model-m
+demo-runner
+0
+B✓
+V✓
+H✓
+$0.210
+8.4k / 1.9k
+43.0s
+demo-lru-cache
+demo-baseline
+none
+demo-model-s
+demo-runner
+1
+B✓
+V✕
+H✕
+$0.050
+2.0k / 450
+63.0s
+demo-lru-cache
+demo-checklist
+none
+demo-model-s
+demo-runner
+0
+B✓
+V✓
+H✓
+$0.079
+3.2k / 712
+44.0s
+demo-lru-cache
+demo-tdd
+none
+demo-model-s
+demo-runner
+2
+B✓
+V✓
+H✓
+$0.179
+7.2k / 1.6k
+78.0s
+1l
+Trial detail — verdict banner up top, tier scorecard with raw logs, cost table, unblinded diff
+gavel
+Dashboard
+Grade
+Runs
+Browse
+Report
+db
+results-demo.db
+▾
+demo-lru-cache__demo-agentpack__none__demo-model-s__r0
+demo-lru-cache
+demo-agentpack
+none
+demo-model-s
+demo-runner
+rep 0
+← All trials
+Gate scorecard
+HIDDEN GATE PASSED
+the hidden tier is the definitive quality gate
+build ✓
+no output recorded
+visible tests ✓
+no output recorded
+hidden tests ✓
+▾
+raw output
+4 chars
+demo
+Execution & cost
+Wall time
+44.0s
+Exit status
+0
+Error
+—
+Cost (API-rate)
+$0.546
+Self-reported
+$0.546 (usd)
+Tokens
+21.8k in · 4.9k out · 54.6k cache
+Diff — as captured, unblinded
+lru_cache.py
+created
++54
+−0
+@@ -0,0 +1,54 @@
+1
++
+# rev 1
+2
++
+from dataclasses import dataclass
+3
++
+from typing import Any, Optional
+4
++
+5
++
+@dataclass
+6
++
+class _Node:
+⋯ 48 more added lines
+1m
+Report — Bradley-Terry ranking, CI bars, frontier + picks as accent chips
+gavel
+Dashboard
+Grade
+Runs
+Browse
+Report
+db
+results-demo.db
+▾
+Report
+80 blind judgments across 6 sessions
+Comparison axis
+Methodology
+Model
+Repo context
+Runner
+Pin to task (optional)
+(all tasks)
+▾
+Methodology ranking — Bradley-Terry
+Methodology
+Elo
+95% CI
+Comps
+Build
+Visible
+Hidden
+Trials
+Mean $
+Total $
+Frontier
+demo-tdd
+quality pick
+1077
+1003–1160
+46
+100%
+100%
+100%
+3
+$0.160
+$0.480
+yes
+demo-checklist
+budget pick
+1044
+975–1123
+46
+100%
+100%
+100%
+3
+$0.090
+$0.270
+yes
+demo-agentpack
+1014
+939–1091
+35
+100%
+100%
+67%
+3
+$0.620
+$1.860
+no
+demo-baseline
+865
+739–953
+33
+100%
+83%
+83%
+6
+$0.140
+$0.843
+no
+High-stakes pick:
+demo-tdd ·
+Routine pick:
+demo-checklist
+(routine = cheapest value statistically indistinguishable from the winner)
+Analyzer flags
+flaky task
+demo-lru-cache
+Generated HTML artifacts — reports/
+report-methodology-20260702-235729.html
+UTC timestamp · newest first
+report-methodology-20260702-214343.html

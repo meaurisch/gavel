@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<title>Tiltyard — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#e9ebee; font-family:'IBM Plex Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  * { box-sizing:border-box; }
+</style>
+</helmet>
+<section style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start;padding:56px">
+
+<!-- ============ 1a IDENTITY ============ -->
+<div id="1a" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1a" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1a</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Identity — wordmark, mark, rationale</span>
+  </div>
+  <div style="background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;box-shadow:0 2px 8px rgba(15,18,26,.06);padding:56px;display:flex;flex-direction:column;gap:48px">
+    <div style="display:flex;align-items:flex-end;gap:64px">
+      <div style="display:flex;flex-direction:column;gap:24px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <svg width="56" height="56" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg>
+          <span style="font-size:44px;font-weight:600;letter-spacing:-0.015em;color:#20242e">gavel</span>
+        </div>
+        <div style="max-width:560px;font-size:14px;line-height:1.55;color:#4a5160">The mark is the <strong>gavel mid-swing</strong>: mallet and handle reduced to two rounded bars, tilted at the moment before the strike. One accent square, one glyph, no gradients. Reads at 16px favicon scale.</div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:20px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+          <svg width="32" height="32" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494">32</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+          <svg width="16" height="16" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="7" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="5.5" y="5.5" width="5.5" height="13" rx="2.75" fill="#ffffff"></rect><rect x="9.5" y="10.6" width="11" height="2.8" rx="1.4" fill="#ffffff"></rect></g><rect x="13" y="20.5" width="9.5" height="3" rx="1.5" fill="#ffffff"></rect></svg>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494">16</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding-left:24px">
+          <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e0e3e9;border-radius:8px;padding:10px 16px">
+            <svg width="20" height="20" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg>
+            <span style="font-size:17px;font-weight:600;letter-spacing:-0.01em;color:#20242e">gavel</span>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494">app-chrome lockup</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding-left:24px">
+          <div style="background:#14161b;border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:8px">
+            <svg width="20" height="20" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#9aa4f0"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#14161b"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#14161b"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#14161b"></rect></svg>
+            <span style="font-size:17px;font-weight:600;letter-spacing:-0.01em;color:#dfe2e8">gavel</span>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494">dark</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;padding:20px 24px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494;margin-bottom:10px">Name</div>
+        <div style="font-size:13px;line-height:1.55;color:#4a5160"><strong style="color:#20242e">gavel</strong> — the strike of judgment. Five letters, says exactly what the tool does (you judge, it tallies), and it verbs beautifully: <span style="font-family:'JetBrains Mono',monospace;font-size:12px;background:#eef0f3;padding:1px 6px;border-radius:4px">gavel run</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:12px;background:#eef0f3;padding:1px 6px;border-radius:4px">pip install gavel</span>, "gavel it". The wink is built in — you bang a tiny gavel on your own experiments — and it never needs explaining.</div>
+      </div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;padding:20px 24px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494;margin-bottom:10px">Voice</div>
+        <div style="font-size:13px;line-height:1.55;color:#4a5160">Playfully professional: a tool by and for engineers who tinker with agentic setups. Near-monochrome surfaces keep hours of judging calm; one lively indigo accent, a winking gavel mark, and microcopy that's allowed a dry joke. The playfulness lives in the accent, the mark, and the words — never in extra ornament.</div>
+      </div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;padding:20px 24px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494;margin-bottom:10px">Fonts (self-host, offline)</div>
+        <div style="font-size:13px;line-height:1.55;color:#4a5160"><strong style="color:#20242e">IBM Plex Sans</strong> (UI, 400/500/600) + <strong style="color:#20242e">JetBrains Mono</strong> (code/ids, 400/500/600). Both OFL/open — commit the woff2 files to the repo, load via <span style="font-family:'JetBrains Mono',monospace;font-size:12px;background:#eef0f3;padding:1px 6px;border-radius:4px">@font-face</span>. Fallbacks: system-ui / ui-monospace.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1b FOUNDATIONS ============ -->
+<div id="1b" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1b" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1b</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Foundations — palette, type scale, diff colors (values live in tokens.css)</span>
+  </div>
+  <div style="background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;box-shadow:0 2px 8px rgba(15,18,26,.06);padding:48px;display:flex;flex-direction:column;gap:40px">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Neutrals &amp; accent</div>
+      <div style="display:flex;gap:12px">
+        <div style="flex:1"><div style="height:56px;border-radius:8px;background:#f4f5f7;border:1px solid #dfe2e8"></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4a5160;margin-top:6px">--color-bg<br>#f4f5f7</div></div>
+        <div style="flex:1"><div style="height:56px;border-radius:8px;background:#ffffff;border:1px solid #dfe2e8"></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4a5160;margin-top:6px">--color-surface<br>#ffffff</div></div>
+        <div style="flex:1"><div style="height:56px;border-radius:8px;background:#eef0f3;border:1px solid #dfe2e8"></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4a5160;margin-top:6px">--surface-inset<br>#eef0f3</div></div>
+        <div style="flex:1"><div style="height:56px;border-radius:8px;background:#e0e3e9"></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4a5160;margin-top:6px">--color-border<br>#e0e3e9</div></div>
+        <div style="flex:1"><div style="height:56px;border-radius:8px;background:#7c8494"></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4a5160;margin-top:6px">--text-muted<br>#7c8494</div></div>
+        <div style="flex:1"><div style="height:56px;border-radius:8px;background:#4a5160"></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4a5160;margin-top:6px">--text-secondary<br>#4a5160</div></div>
+        <div style="flex:1"><div style="height:56px;border-radius:8px;background:#20242e"></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4a5160;margin-top:6px">--color-text<br>#20242e</div></div>
+        <div style="flex:1"><div style="height:56px;border-radius:8px;background:#4e59c8"></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4e59c8;margin-top:6px;font-weight:600">--color-accent<br>#4e59c8</div></div>
+        <div style="flex:1"><div style="height:56px;border-radius:8px;background:#eceef9;border:1px solid #c9cdf0"></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4a5160;margin-top:6px">--accent-subtle<br>#eceef9</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Semantic — pass / fail / warn(paid) / neutral</div>
+      <div style="display:flex;gap:12px">
+        <div style="flex:1;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:8px;padding:14px 16px"><div style="font-size:13px;font-weight:600;color:#27714a">pass · ok</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#27714a;opacity:.8;margin-top:4px">#27714a on #e4f1e8</div></div>
+        <div style="flex:1;background:#f8eae7;border:1px solid #e7c6bf;border-radius:8px;padding:14px 16px"><div style="font-size:13px;font-weight:600;color:#a63d33">fail · error</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a63d33;opacity:.8;margin-top:4px">#a63d33 on #f8eae7</div></div>
+        <div style="flex:1;background:#f6eeda;border:1px solid #e3d3a9;border-radius:8px;padding:14px 16px"><div style="font-size:13px;font-weight:600;color:#8a611a">warn · paid</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8a611a;opacity:.8;margin-top:4px">#8a611a on #f6eeda</div></div>
+        <div style="flex:1;background:#eef0f3;border:1px solid #dfe2e8;border-radius:8px;padding:14px 16px"><div style="font-size:13px;font-weight:600;color:#5a6170">neutral</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5a6170;opacity:.8;margin-top:4px">#5a6170 on #eef0f3</div></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Diff colors — side-symmetric, low-saturation</div>
+        <div style="border:1px solid #e0e3e9;border-radius:8px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.65;background:#fff">
+          <div style="display:flex;background:#f0f2f6;color:#868da0"><span style="width:76px;flex:none;text-align:right;padding:2px 10px 2px 0"></span><span style="padding:2px 12px">@@ -12,6 +12,8 @@ — hunk header #868da0 / #f0f2f6</span></div>
+          <div style="display:flex;background:#fff"><span style="width:76px;flex:none;text-align:right;padding:2px 10px 2px 0;color:#b2b8c3;background:#f7f8fa">14</span><span style="padding:2px 12px;color:#20242e">context line — text on --diff-ctx-bg</span></div>
+          <div style="display:flex;background:#f9ecea"><span style="width:76px;flex:none;text-align:right;padding:2px 10px 2px 0;color:#a8483c;background:#f0dcd8">15</span><span style="padding:2px 12px;color:#20242e"><span style="color:#a8483c;font-weight:600">-</span> removed line — #f9ecea, gutter #f0dcd8, <span style="background:#f0d4cd;border-radius:2px;padding:0 2px">word-level</span></span></div>
+          <div style="display:flex;background:#e7f2ea"><span style="width:76px;flex:none;text-align:right;padding:2px 10px 2px 0;color:#2c7a4d;background:#d9e9de">15</span><span style="padding:2px 12px;color:#20242e"><span style="color:#2c7a4d;font-weight:600">+</span> added line — #e7f2ea, gutter #d9e9de, <span style="background:#cbe5d3;border-radius:2px;padding:0 2px">word-level</span></span></div>
+          <div style="display:flex;background:#fff"><span style="width:76px;flex:none;text-align:right;padding:2px 10px 2px 0;color:#b2b8c3;background:#f7f8fa">16</span><span style="padding:2px 12px;color:#20242e">line numbers #b2b8c3 on #f7f8fa — visually quiet</span></div>
+        </div>
+        <div style="font-size:13px;line-height:1.55;color:#4a5160;max-width:640px">Text stays full-strength <span style="font-family:'JetBrains Mono',monospace;font-size:12px">#20242e</span> on both tints; only the background, gutter, and +/− sign carry the add/remove hue. Both tints sit at equal lightness (~L 0.94) so neither side of a pair looks heavier.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Type scale</div>
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:8px;padding:20px 24px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:16px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;width:110px;flex:none">28 / 600</span><span style="font-size:28px;font-weight:600;letter-spacing:-0.015em;color:#20242e">Page display</span></div>
+          <div style="display:flex;align-items:baseline;gap:16px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;width:110px;flex:none">22 / 600</span><span style="font-size:22px;font-weight:600;letter-spacing:-0.01em;color:#20242e">Page title</span></div>
+          <div style="display:flex;align-items:baseline;gap:16px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;width:110px;flex:none">16 / 600</span><span style="font-size:16px;font-weight:600;color:#20242e">Card title</span></div>
+          <div style="display:flex;align-items:baseline;gap:16px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;width:110px;flex:none">14 / 400</span><span style="font-size:14px;color:#4a5160">Body — default reading size</span></div>
+          <div style="display:flex;align-items:baseline;gap:16px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;width:110px;flex:none">13 / 400</span><span style="font-size:13px;color:#4a5160">Dense body — tables, diff code (mono)</span></div>
+          <div style="display:flex;align-items:baseline;gap:16px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;width:110px;flex:none">12 / mono</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160">id-chips, badges, metrics</span></div>
+          <div style="display:flex;align-items:baseline;gap:16px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;width:110px;flex:none">11 / 600 caps</span><span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Section label</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1c COMPONENTS ============ -->
+<div id="1c" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1c" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1c</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Components — buttons, chips, badges, gate cells, kbd, inputs, expanders, banners</span>
+  </div>
+  <div style="background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;box-shadow:0 2px 8px rgba(15,18,26,.06);padding:48px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:36px 48px">
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Buttons</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button style="font-family:inherit;font-size:13px;font-weight:600;color:#fff;background:#4e59c8;border:1px solid #4e59c8;border-radius:6px;padding:7px 16px;cursor:pointer">Primary</button>
+        <button style="font-family:inherit;font-size:13px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)">Secondary</button>
+        <button style="font-family:inherit;font-size:13px;font-weight:500;color:#4e59c8;background:transparent;border:none;padding:7px 8px;cursor:pointer">Ghost →</button>
+        <button style="font-family:inherit;font-size:13px;font-weight:600;color:#a7adba;background:#eef0f3;border:1px solid #e0e3e9;border-radius:6px;padding:7px 16px;cursor:not-allowed">Disabled</button>
+      </div>
+      <div style="font-size:12px;line-height:1.5;color:#7c8494">One primary per view, max. Hover: darken to #34456f / border #a9b1c2. Focus: 2px #c9cdf0 ring.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Id chips (all five axes — one neutral style)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:2px 9px;cursor:default">cosmos-B</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:2px 9px">baseline</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:2px 9px">claude-haiku-4-5</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4e59c8;background:#eceef9;border:1px solid #c9cdf0;border-radius:999px;padding:2px 9px">hover / open</span>
+      </div>
+      <div style="font-size:12px;line-height:1.5;color:#7c8494">Mono 12, pill. Hover swaps to accent-subtle + opens the preview card. Never color-code by axis — the axis is given by context/columns.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Keyboard hint chips</div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px;min-width:22px;text-align:center;display:inline-block">A</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px;min-width:22px;text-align:center;display:inline-block">T</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px;min-width:22px;text-align:center;display:inline-block">←</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#7c8494"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">V</span>view</span>
+      </div>
+      <div style="font-size:12px;line-height:1.5;color:#7c8494">Bottom border 2px gives keycap depth without shadows. Always paired with a lowercase verb label at 12px muted.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Gate badges — full &amp; compact triplet</div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:2px 9px">build ✓</span>
+        <span style="font-size:12px;font-weight:600;color:#a63d33;background:#f8eae7;border:1px solid #e7c6bf;border-radius:6px;padding:2px 9px">hidden ✕</span>
+        <span style="display:inline-flex;border:1px solid #e0e3e9;border-radius:6px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600">
+          <span style="padding:3px 8px;color:#27714a;background:#e4f1e8">B✓</span>
+          <span style="padding:3px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">V✓</span>
+          <span style="padding:3px 8px;color:#a63d33;background:#f8eae7;border-left:1px solid #e7c6bf">H✕</span>
+        </span>
+        <span style="display:inline-flex;border:1px solid #e0e3e9;border-radius:6px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600">
+          <span style="padding:3px 8px;color:#27714a;background:#e4f1e8">B✓</span>
+          <span style="padding:3px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">V✓</span>
+          <span style="padding:3px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">H✓</span>
+        </span>
+      </div>
+      <div style="font-size:12px;line-height:1.5;color:#7c8494">Full form on session/detail headers; compact <strong>B/V/H triplet</strong> in tables (one cell instead of three badges — quieter rows).</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Select &amp; input</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="display:inline-flex;align-items:center;gap:24px;font-size:13px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 12px;box-shadow:0 1px 2px rgba(15,18,26,.05)">results-demo.db <span style="color:#7c8494;font-size:11px">▾</span></span>
+        <span style="display:inline-flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:13px;color:#a7adba;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 12px;width:140px">SPEND</span>
+      </div>
+      <div style="font-size:12px;line-height:1.5;color:#7c8494">Focus ring 2px #c9cdf0. Inputs that expect typed tokens (confirmation phrase, reps) are mono.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Log expander</div>
+      <div style="border:1px solid #e0e3e9;border-radius:6px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:8px;background:#eef0f3;padding:6px 12px;font-size:12px;font-weight:500;color:#4a5160;cursor:pointer"><span style="font-size:10px;color:#7c8494">▸</span> hidden output <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;margin-left:auto">4 chars</span></div>
+      </div>
+      <div style="border:1px solid #e0e3e9;border-radius:6px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:8px;background:#eef0f3;padding:6px 12px;font-size:12px;font-weight:500;color:#4a5160;cursor:pointer;border-bottom:1px solid #e0e3e9"><span style="font-size:10px;color:#7c8494">▾</span> hidden output <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;margin-left:auto">4 chars</span></div>
+        <pre style="margin:0;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#4a5160;background:#fff;max-height:180px;overflow:auto">demo</pre>
+      </div>
+      <div style="font-size:12px;line-height:1.5;color:#7c8494">Header stays inset-gray in both states; char/line count right-aligned. Body scrolls past 180px.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Banners</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:10px;align-items:flex-start;background:#f6eeda;border:1px solid #e3d3a9;border-radius:8px;padding:10px 14px;font-size:13px;color:#8a611a"><span style="font-weight:700">⚠</span><span><strong>This run spends real API money.</strong> Estimate unknown for this combination.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;background:#eef0f3;border:1px solid #dfe2e8;border-radius:8px;padding:10px 14px;font-size:13px;color:#5a6170">Session closed: revealing ends blind judging permanently.</div>
+      </div>
+      <div style="font-size:12px;line-height:1.5;color:#7c8494">Warn = paid/spend only. Informational states use neutral, never amber.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Table pattern</div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:8px;overflow:hidden">
+        <div style="display:flex;background:#fff;border-bottom:1px solid #e0e3e9;padding:8px 14px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494"><span style="flex:1">Task</span><span style="width:90px;text-align:right">USD</span><span style="width:70px;text-align:right">Wall</span></div>
+        <div style="display:flex;align-items:center;padding:8px 14px;border-bottom:1px solid #eef0f3"><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span></span><span style="width:90px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.546</span><span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">44.0s</span></div>
+        <div style="display:flex;align-items:center;padding:8px 14px;background:#f7f8fa"><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span></span><span style="width:90px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.620</span><span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">64.0s</span></div>
+      </div>
+      <div style="font-size:12px;line-height:1.5;color:#7c8494">Caps-11 headers, 1px #eef0f3 row rules, numerics right-aligned mono-12, hover row #f7f8fa. 36–40px row height.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Segmented control / nav</div>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+        <span style="display:inline-flex;border:1px solid #c9cedb;border-radius:6px;overflow:hidden;font-size:12px;font-weight:500">
+          <span style="padding:5px 12px;background:#4e59c8;color:#fff">A | B</span>
+          <span style="padding:5px 12px;background:#fff;color:#4a5160;border-left:1px solid #c9cedb">Original | A | B</span>
+        </span>
+        <span style="display:inline-flex;gap:2px;background:#eef0f3;border-radius:8px;padding:3px">
+          <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:600;background:#fff;color:#4e59c8;box-shadow:0 1px 2px rgba(15,18,26,.08)">Grade</span>
+          <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Runs</span>
+        </span>
+      </div>
+      <div style="font-size:12px;line-height:1.5;color:#7c8494">Top nav = pill-in-track (right). View toggles = bordered segments, accent fill on active (left).</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ 1d DASHBOARD ============ -->
+<div id="1d" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1d" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1d</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Dashboard — stat strip promoted; grading is the hero; resume rows get progress bars</span>
+  </div>
+  <div style="width:1440px;background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,18,26,.06)">
+    <div style="height:52px;background:#fff;border-bottom:1px solid #e0e3e9;display:flex;align-items:center;gap:24px;padding:0 24px">
+      <span style="display:inline-flex;align-items:center;gap:9px"><svg width="22" height="22" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg><span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#20242e">gavel</span></span>
+      <span style="display:inline-flex;gap:2px;background:#eef0f3;border-radius:8px;padding:3px">
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:600;background:#fff;color:#4e59c8;box-shadow:0 1px 2px rgba(15,18,26,.08)">Dashboard</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Grade</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Runs</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Browse</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Report</span>
+      </span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px"><span style="font-size:12px;color:#7c8494">db</span><span style="display:inline-flex;align-items:center;gap:20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px">results-demo.db <span style="color:#7c8494;font-size:10px">▾</span></span></span>
+    </div>
+    <div style="padding:36px 48px 56px;display:flex;flex-direction:column;gap:28px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.01em;color:#20242e">Dashboard</h1>
+        <div style="display:flex;gap:36px">
+          <div style="text-align:right"><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:#20242e">15</div><div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#7c8494">trials</div></div>
+          <div style="text-align:right"><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:#27714a">13</div><div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#7c8494">gate passers</div></div>
+          <div style="text-align:right"><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:#20242e">65</div><div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#7c8494">judgments</div></div>
+          <div style="text-align:right"><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:#20242e">$4.12</div><div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#7c8494">total spend</div></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05)">
+          <div style="padding:20px 24px 0"><div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Grade — blind pairwise comparison</div>
+          <p style="margin:10px 0 0;font-size:13px;line-height:1.55;color:#4a5160">Pick a comparison axis and a cell, then judge anonymized A/B diffs. Only hidden-gate passers enter grading.</p></div>
+          <div style="padding:16px 24px;display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #eef0f3"><span style="font-size:13px;font-weight:500;color:#20242e;flex:1">Methodology</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a;background:#e4f1e8;border-radius:999px;padding:1px 9px">1 gradeable cell</span></div>
+            <div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #eef0f3"><span style="font-size:13px;font-weight:500;color:#20242e;flex:1">Model</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a;background:#e4f1e8;border-radius:999px;padding:1px 9px">1 gradeable cell</span></div>
+            <div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #eef0f3"><span style="font-size:13px;font-weight:500;color:#7c8494;flex:1">Repo context</span><span style="font-size:12px;color:#a7adba">nothing to compare yet</span></div>
+            <div style="display:flex;align-items:center;padding:9px 0"><span style="font-size:13px;font-weight:500;color:#7c8494;flex:1">Runner</span><span style="font-size:12px;color:#a7adba">nothing to compare yet</span></div>
+          </div>
+          <div style="padding:0 24px 20px"><button style="font-family:inherit;font-size:13px;font-weight:600;color:#fff;background:#4e59c8;border:1px solid #4e59c8;border-radius:6px;padding:8px 18px;cursor:pointer">Start grading</button></div>
+        </div>
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05)">
+          <div style="padding:20px 24px 8px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Resume a session</div>
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 24px;border-bottom:1px solid #eef0f3">
+              <span style="font-size:12px;font-weight:600;color:#4e59c8;background:#eceef9;border-radius:6px;padding:2px 9px;flex:none">Model</span>
+              <span style="display:flex;gap:5px;flex:1;overflow:hidden"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;white-space:nowrap">demo-lru-cache</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;white-space:nowrap">demo-baseline</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span></span>
+              <span style="display:flex;align-items:center;gap:8px;flex:none"><span style="width:64px;height:4px;border-radius:2px;background:#eef0f3;overflow:hidden;display:inline-block"><span style="display:block;height:100%;width:0%;background:#4e59c8"></span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494;width:34px;text-align:right">0/3</span></span>
+              <button style="font-family:inherit;font-size:12px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:4px 12px;cursor:pointer;flex:none">Resume</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 24px;border-bottom:1px solid #eef0f3">
+              <span style="font-size:12px;font-weight:600;color:#4e59c8;background:#eceef9;border-radius:6px;padding:2px 9px;flex:none">Methodology</span>
+              <span style="display:flex;gap:5px;flex:1;overflow:hidden"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;white-space:nowrap">demo-lru-cache</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;white-space:nowrap">demo-model-s</span></span>
+              <span style="display:flex;align-items:center;gap:8px;flex:none"><span style="width:64px;height:4px;border-radius:2px;background:#eef0f3;overflow:hidden;display:inline-block"><span style="display:block;height:100%;width:0%;background:#4e59c8"></span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494;width:34px;text-align:right">0/18</span></span>
+              <button style="font-family:inherit;font-size:12px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:4px 12px;cursor:pointer;flex:none">Resume</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 24px;border-bottom:1px solid #eef0f3">
+              <span style="font-size:12px;font-weight:600;color:#4e59c8;background:#eceef9;border-radius:6px;padding:2px 9px;flex:none">Methodology</span>
+              <span style="display:flex;gap:5px;flex:1;overflow:hidden"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;white-space:nowrap">demo-lru-cache</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;white-space:nowrap">demo-model-s</span></span>
+              <span style="display:flex;align-items:center;gap:8px;flex:none"><span style="width:64px;height:4px;border-radius:2px;background:#eef0f3;overflow:hidden;display:inline-block"><span style="display:block;height:100%;width:22%;background:#4e59c8"></span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494;width:34px;text-align:right">4/18</span></span>
+              <button style="font-family:inherit;font-size:12px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:4px 12px;cursor:pointer;flex:none">Resume</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 24px 16px">
+              <span style="font-size:12px;font-weight:600;color:#4e59c8;background:#eceef9;border-radius:6px;padding:2px 9px;flex:none">Methodology</span>
+              <span style="display:flex;gap:5px;flex:1;overflow:hidden"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;white-space:nowrap">demo-lru-cache</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;white-space:nowrap">demo-model-s</span></span>
+              <span style="display:flex;align-items:center;gap:8px;flex:none"><span style="width:64px;height:4px;border-radius:2px;background:#eef0f3;overflow:hidden;display:inline-block"><span style="display:block;height:100%;width:6%;background:#4e59c8"></span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494;width:34px;text-align:right">1/18</span></span>
+              <button style="font-family:inherit;font-size:12px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:4px 12px;cursor:pointer;flex:none">Resume</button>
+            </div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:20px 24px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Runs — execute trials</div>
+          <p style="margin:0;font-size:13px;line-height:1.55;color:#4a5160">Launch new trials with live progress. Free self-test runners by default; real agent runs (<span style="font-family:'JetBrains Mono',monospace;font-size:12px">claude-code</span>) sit behind an explicit spend confirmation.</p>
+          <div><button style="font-family:inherit;font-size:13px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)">Open run launcher</button></div>
+        </div>
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:20px 24px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Results</div>
+          <p style="margin:0;font-size:13px;line-height:1.55;color:#4a5160">Browse every trial (gate logs, diffs, costs) or view the Bradley-Terry ranking with the cost/quality frontier.</p>
+          <div style="display:flex;gap:10px"><button style="font-family:inherit;font-size:13px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)">Browse trials</button><button style="font-family:inherit;font-size:13px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)">View report</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1e SESSION TWO-WAY (CORE) ============ -->
+<div id="1e" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1e" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1e</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Grading session, A | B — the core screen. Symmetric sides, quiet gutters, sticky judge bar with keycaps</span>
+  </div>
+  <div style="width:1440px;background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,18,26,.06)">
+    <div style="height:52px;background:#fff;border-bottom:1px solid #e0e3e9;display:flex;align-items:center;gap:24px;padding:0 24px">
+      <span style="display:inline-flex;align-items:center;gap:9px"><svg width="22" height="22" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg><span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#20242e">gavel</span></span>
+      <span style="display:inline-flex;gap:2px;background:#eef0f3;border-radius:8px;padding:3px">
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Dashboard</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:600;background:#fff;color:#4e59c8;box-shadow:0 1px 2px rgba(15,18,26,.08)">Grade</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Runs</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Browse</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Report</span>
+      </span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px"><span style="font-size:12px;color:#7c8494">db</span><span style="display:inline-flex;align-items:center;gap:20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px">results-demo.db <span style="color:#7c8494;font-size:10px">▾</span></span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 24px;background:#fff;border-bottom:1px solid #e0e3e9">
+      <button style="font-family:inherit;font-size:13px;font-weight:500;color:#4e59c8;background:transparent;border:none;padding:4px 6px;cursor:pointer">← Picker</button>
+      <span style="font-size:12px;font-weight:600;color:#4e59c8;background:#eceef9;border:1px solid #c9cdf0;border-radius:999px;padding:2px 11px">comparing: Methodology</span>
+      <span style="display:flex;gap:5px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-model-s</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-runner</span></span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:16px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">pair <span style="color:#20242e;font-weight:600">1</span> / 18 · 0 judged</span>
+        <span style="display:inline-flex;border:1px solid #c9cedb;border-radius:6px;overflow:hidden;font-size:12px;font-weight:500">
+          <span style="padding:5px 12px;background:#4e59c8;color:#fff">A | B</span>
+          <span style="padding:5px 12px;background:#fff;color:#4a5160;border-left:1px solid #c9cedb">Original | A | B</span>
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#4a5160"><span style="width:28px;height:16px;border-radius:999px;background:#4e59c8;position:relative;display:inline-block"><span style="position:absolute;top:2px;right:2px;width:12px;height:12px;border-radius:50%;background:#fff"></span></span>sync scroll</span>
+      </span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px 0">
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#20242e;background:#eef0f3;border:1px solid #e0e3e9;border-radius:6px;padding:2px 10px">A</span>
+          <span style="display:inline-flex;gap:6px"><span style="font-size:12px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:2px 9px">build ✓</span><span style="font-size:12px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:2px 9px">visible ✓</span><span style="font-size:12px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:2px 9px">hidden ✓</span></span>
+          <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">1 file · <span style="color:#27714a">+54</span> <span style="color:#a63d33">−0</span> · $0.550 · 22.0k/4.9k tok · 44.0s</span>
+        </div>
+        <div style="border:1px solid #e0e3e9;border-radius:6px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;background:#eef0f3;padding:5px 12px;font-size:12px;font-weight:500;color:#4a5160;cursor:pointer"><span style="font-size:10px;color:#7c8494">▸</span> hidden output <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;margin-left:auto">4 chars</span></div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#20242e;background:#eef0f3;border:1px solid #e0e3e9;border-radius:6px;padding:2px 10px">B</span>
+          <span style="display:inline-flex;gap:6px"><span style="font-size:12px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:2px 9px">build ✓</span><span style="font-size:12px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:2px 9px">visible ✓</span><span style="font-size:12px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:2px 9px">hidden ✓</span></span>
+          <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">1 file · <span style="color:#27714a">+29</span> <span style="color:#a63d33">−0</span> · $0.180 · 7.2k/1.6k tok · 78.0s</span>
+        </div>
+        <div style="border:1px solid #e0e3e9;border-radius:6px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;background:#eef0f3;padding:5px 12px;font-size:12px;font-weight:500;color:#4a5160;cursor:pointer"><span style="font-size:10px;color:#7c8494">▸</span> hidden output <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;margin-left:auto">4 chars</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px 20px">
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #e0e3e9">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#20242e">lru_cache.py</span>
+          <span style="font-size:11px;font-weight:600;color:#5a6170;background:#eef0f3;border:1px solid #dfe2e8;border-radius:999px;padding:1px 8px">created</span>
+          <span style="margin-left:auto;display:inline-flex;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="color:#27714a;background:#e4f1e8;border-radius:999px;padding:1px 8px">+54</span><span style="color:#a63d33;background:#f8eae7;border-radius:999px;padding:1px 8px">−0</span></span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7">
+          <div style="display:flex;background:#f0f2f6;color:#868da0"><span style="width:44px;flex:none"></span><span style="padding:0 12px">@@ -0,0 +1,54 @@</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">1</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#7c8494"># rev 1</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">2</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">from dataclasses import dataclass</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">3</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">from typing import Any, Optional</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">4</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e"> </span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">5</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">@dataclass</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">6</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">class _Node:</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">7</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    key: Any</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">8</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    value: Any</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">9</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    prev: "Optional[_Node]" = None</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">10</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    next: "Optional[_Node]" = None</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">11</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e"> </span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">12</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">class LRUCache:</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">13</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    """Doubly-linked-list LRU cache."""</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">14</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    def __init__(self, capacity: int):</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">15</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">        self._capacity = capacity</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">16</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">        self._map: dict = {}</span></div>
+          <div style="display:flex;border-top:1px solid #eef0f3;color:#a7adba;font-size:11px"><span style="width:44px;flex:none"></span><span style="padding:2px 12px">⋯ 38 more added lines</span></div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #e0e3e9">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#20242e">lru_cache.py</span>
+          <span style="font-size:11px;font-weight:600;color:#5a6170;background:#eef0f3;border:1px solid #dfe2e8;border-radius:999px;padding:1px 8px">created</span>
+          <span style="margin-left:auto;display:inline-flex;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="color:#27714a;background:#e4f1e8;border-radius:999px;padding:1px 8px">+29</span><span style="color:#a63d33;background:#f8eae7;border-radius:999px;padding:1px 8px">−0</span></span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7">
+          <div style="display:flex;background:#f0f2f6;color:#868da0"><span style="width:44px;flex:none"></span><span style="padding:0 12px">@@ -0,0 +1,29 @@</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">1</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#7c8494"># rev 3</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">2</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">from collections import OrderedDict</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">3</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e"> </span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">4</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">class LRUCache:</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">5</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    """LRU cache with O(1) get/put."""</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">6</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e"> </span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">7</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    def __init__(self, capacity, on_evict=None):</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">8</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">        if capacity &lt;= 0:</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">9</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">            raise ValueError("capacity must be positive")</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">10</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">        self._capacity = capacity</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">11</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">        self._items: OrderedDict = OrderedDict()</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">12</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">        self._on_evict = on_evict</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">13</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e"> </span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">14</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    def get(self, key, default=None):</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">15</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">        try:</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">16</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">            self._items.move_to_end(key)</span></div>
+          <div style="display:flex;border-top:1px solid #eef0f3;color:#a7adba;font-size:11px"><span style="width:44px;flex:none"></span><span style="padding:2px 12px">⋯ 13 more added lines</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#fff;border-top:1px solid #e0e3e9;padding:12px 24px;display:flex;align-items:center;gap:20px">
+      <button style="font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#7c8494;background:transparent;border:none;padding:8px 6px;cursor:pointer"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">←</span> prev</button>
+      <span style="flex:1;display:flex;justify-content:center;gap:12px">
+        <button style="font-family:inherit;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:8px;padding:10px 26px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#eef0f3;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">A</span> A wins</button>
+        <button style="font-family:inherit;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:8px;padding:10px 22px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#eef0f3;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">T</span> Tie</button>
+        <button style="font-family:inherit;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:8px;padding:10px 26px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#eef0f3;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">B</span> B wins</button>
+      </span>
+      <button style="font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#4a5160;background:transparent;border:none;padding:8px 6px;cursor:pointer">next <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">→</span></button>
+      <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#a7adba;border-left:1px solid #eef0f3;padding-left:20px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">V</span> view</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1f SESSION TWO-WAY, DARK ============ -->
+<div id="1f" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1f" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1f</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Same screen, dark theme — every value comes from the [data-theme="dark"] token block</span>
+  </div>
+  <div style="width:1440px;background:#14161b;border:1px solid #2c313c;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,18,26,.2)">
+    <div style="height:52px;background:#1b1e25;border-bottom:1px solid #2c313c;display:flex;align-items:center;gap:24px;padding:0 24px">
+      <span style="display:inline-flex;align-items:center;gap:9px"><svg width="22" height="22" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#9aa4f0"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#14161b"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#14161b"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#14161b"></rect></svg><span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#dfe2e8">gavel</span></span>
+      <span style="display:inline-flex;gap:2px;background:#22262f;border-radius:8px;padding:3px">
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#9aa1b0">Dashboard</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:600;background:#1b1e25;color:#9aa4f0;box-shadow:0 1px 2px rgba(0,0,0,.4)">Grade</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#9aa1b0">Runs</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#9aa1b0">Browse</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#9aa1b0">Report</span>
+      </span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px"><span style="font-size:12px;color:#6d7482">db</span><span style="display:inline-flex;align-items:center;gap:20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#dfe2e8;background:#1b1e25;border:1px solid #3a4150;border-radius:6px;padding:6px 12px">results-demo.db <span style="color:#6d7482;font-size:10px">▾</span></span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 24px;background:#1b1e25;border-bottom:1px solid #2c313c">
+      <button style="font-family:inherit;font-size:13px;font-weight:500;color:#9aa4f0;background:transparent;border:none;padding:4px 6px;cursor:pointer">← Picker</button>
+      <span style="font-size:12px;font-weight:600;color:#9aa4f0;background:#242849;border:1px solid #3d4487;border-radius:999px;padding:2px 11px">comparing: Methodology</span>
+      <span style="display:flex;gap:5px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9aa1b0;background:#22262f;border:1px solid #2c313c;border-radius:999px;padding:1px 8px">demo-lru-cache</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9aa1b0;background:#22262f;border:1px solid #2c313c;border-radius:999px;padding:1px 8px">none</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9aa1b0;background:#22262f;border:1px solid #2c313c;border-radius:999px;padding:1px 8px">demo-model-s</span></span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:16px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#6d7482">pair <span style="color:#dfe2e8;font-weight:600">1</span> / 18 · 0 judged</span>
+        <span style="display:inline-flex;border:1px solid #3a4150;border-radius:6px;overflow:hidden;font-size:12px;font-weight:500">
+          <span style="padding:5px 12px;background:#9aa4f0;color:#14161b">A | B</span>
+          <span style="padding:5px 12px;background:#1b1e25;color:#9aa1b0;border-left:1px solid #3a4150">Original | A | B</span>
+        </span>
+      </span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px 0">
+      <div style="background:#1b1e25;border:1px solid #2c313c;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#dfe2e8;background:#22262f;border:1px solid #2c313c;border-radius:6px;padding:2px 10px">A</span>
+        <span style="display:inline-flex;gap:6px"><span style="font-size:12px;font-weight:600;color:#6fbf8f;background:#17281d;border:1px solid #24422f;border-radius:6px;padding:2px 9px">build ✓</span><span style="font-size:12px;font-weight:600;color:#6fbf8f;background:#17281d;border:1px solid #24422f;border-radius:6px;padding:2px 9px">visible ✓</span><span style="font-size:12px;font-weight:600;color:#6fbf8f;background:#17281d;border:1px solid #24422f;border-radius:6px;padding:2px 9px">hidden ✓</span></span>
+        <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6d7482">1 file · <span style="color:#6fbf8f">+54</span> <span style="color:#d98a7d">−0</span> · $0.550 · 44.0s</span>
+      </div>
+      <div style="background:#1b1e25;border:1px solid #2c313c;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#dfe2e8;background:#22262f;border:1px solid #2c313c;border-radius:6px;padding:2px 10px">B</span>
+        <span style="display:inline-flex;gap:6px"><span style="font-size:12px;font-weight:600;color:#6fbf8f;background:#17281d;border:1px solid #24422f;border-radius:6px;padding:2px 9px">build ✓</span><span style="font-size:12px;font-weight:600;color:#6fbf8f;background:#17281d;border:1px solid #24422f;border-radius:6px;padding:2px 9px">visible ✓</span><span style="font-size:12px;font-weight:600;color:#6fbf8f;background:#17281d;border:1px solid #24422f;border-radius:6px;padding:2px 9px">hidden ✓</span></span>
+        <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:#6d7482">1 file · <span style="color:#6fbf8f">+29</span> <span style="color:#d98a7d">−0</span> · $0.180 · 78.0s</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px 20px">
+      <div style="background:#1b1e25;border:1px solid #2c313c;border-radius:10px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #2c313c">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#dfe2e8">lru_cache.py</span>
+          <span style="font-size:11px;font-weight:600;color:#9aa1b0;background:#22262f;border:1px solid #2c313c;border-radius:999px;padding:1px 8px">created</span>
+          <span style="margin-left:auto;display:inline-flex;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="color:#6fbf8f;background:#17281d;border-radius:999px;padding:1px 8px">+54</span><span style="color:#d98a7d;background:#2e1d1b;border-radius:999px;padding:1px 8px">−0</span></span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7">
+          <div style="display:flex;background:#22262f;color:#6d7482"><span style="width:44px;flex:none"></span><span style="padding:0 12px">@@ -0,0 +1,54 @@</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">1</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#6d7482"># rev 1</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">2</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">from dataclasses import dataclass</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">3</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">from typing import Any, Optional</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">4</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6"> </span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">5</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">@dataclass</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">6</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">class _Node:</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">7</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">    key: Any</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">8</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">    value: Any</span></div>
+          <div style="display:flex;border-top:1px solid #22262f;color:#4d5464;font-size:11px"><span style="width:44px;flex:none"></span><span style="padding:2px 12px">⋯ 46 more added lines</span></div>
+        </div>
+      </div>
+      <div style="background:#1b1e25;border:1px solid #2c313c;border-radius:10px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #2c313c">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#dfe2e8">lru_cache.py</span>
+          <span style="font-size:11px;font-weight:600;color:#9aa1b0;background:#22262f;border:1px solid #2c313c;border-radius:999px;padding:1px 8px">created</span>
+          <span style="margin-left:auto;display:inline-flex;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="color:#6fbf8f;background:#17281d;border-radius:999px;padding:1px 8px">+29</span><span style="color:#d98a7d;background:#2e1d1b;border-radius:999px;padding:1px 8px">−0</span></span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7">
+          <div style="display:flex;background:#22262f;color:#6d7482"><span style="width:44px;flex:none"></span><span style="padding:0 12px">@@ -0,0 +1,29 @@</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">1</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#6d7482"># rev 3</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">2</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">from collections import OrderedDict</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">3</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6"> </span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">4</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">class LRUCache:</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">5</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">    """LRU cache with O(1) get/put."""</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">6</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6"> </span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">7</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">    def __init__(self, capacity, on_evict=None):</span></div>
+          <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#6fbf8f;background:#1d3527;font-size:11px">8</span><span style="width:18px;flex:none;text-align:center;color:#6fbf8f;background:#182b20">+</span><span style="flex:1;background:#182b20;padding:0 10px;white-space:pre;color:#c9cdd6">        if capacity &lt;= 0:</span></div>
+          <div style="display:flex;border-top:1px solid #22262f;color:#4d5464;font-size:11px"><span style="width:44px;flex:none"></span><span style="padding:2px 12px">⋯ 21 more added lines</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#1b1e25;border-top:1px solid #2c313c;padding:12px 24px;display:flex;align-items:center;gap:20px">
+      <button style="font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#6d7482;background:transparent;border:none;padding:8px 6px;cursor:pointer"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#9aa1b0;background:#22262f;border:1px solid #3a4150;border-bottom-width:2px;border-radius:4px;padding:2px 7px">←</span> prev</button>
+      <span style="flex:1;display:flex;justify-content:center;gap:12px">
+        <button style="font-family:inherit;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#dfe2e8;background:#22262f;border:1px solid #3a4150;border-radius:8px;padding:10px 26px;cursor:pointer"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#9aa1b0;background:#1b1e25;border:1px solid #3a4150;border-bottom-width:2px;border-radius:4px;padding:2px 7px">A</span> A wins</button>
+        <button style="font-family:inherit;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#dfe2e8;background:#22262f;border:1px solid #3a4150;border-radius:8px;padding:10px 22px;cursor:pointer"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#9aa1b0;background:#1b1e25;border:1px solid #3a4150;border-bottom-width:2px;border-radius:4px;padding:2px 7px">T</span> Tie</button>
+        <button style="font-family:inherit;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#dfe2e8;background:#22262f;border:1px solid #3a4150;border-radius:8px;padding:10px 26px;cursor:pointer"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#9aa1b0;background:#1b1e25;border:1px solid #3a4150;border-bottom-width:2px;border-radius:4px;padding:2px 7px">B</span> B wins</button>
+      </span>
+      <button style="font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#9aa1b0;background:transparent;border:none;padding:8px 6px;cursor:pointer">next <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#9aa1b0;background:#22262f;border:1px solid #3a4150;border-bottom-width:2px;border-radius:4px;padding:2px 7px">→</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1g SESSION THREE-WAY ============ -->
+<div id="1g" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1g" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1g</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Original | A | B mode — one aligned table per file, collapsible gap rows for unchanged regions</span>
+  </div>
+  <div style="width:1440px;background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,18,26,.06)">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 24px;background:#fff;border-bottom:1px solid #e0e3e9">
+      <button style="font-family:inherit;font-size:13px;font-weight:500;color:#4e59c8;background:transparent;border:none;padding:4px 6px;cursor:pointer">← Picker</button>
+      <span style="font-size:12px;font-weight:600;color:#4e59c8;background:#eceef9;border:1px solid #c9cdf0;border-radius:999px;padding:2px 11px">comparing: Methodology</span>
+      <span style="display:flex;gap:5px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span></span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:16px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">pair <span style="color:#20242e;font-weight:600">1</span> / 18 · 0 judged</span>
+        <span style="display:inline-flex;border:1px solid #c9cedb;border-radius:6px;overflow:hidden;font-size:12px;font-weight:500">
+          <span style="padding:5px 12px;background:#fff;color:#4a5160">A | B</span>
+          <span style="padding:5px 12px;background:#4e59c8;color:#fff;border-left:1px solid #c9cedb">Original | A | B</span>
+        </span>
+      </span>
+    </div>
+    <div style="padding:16px 24px 20px;display:flex;flex-direction:column;gap:16px">
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #e0e3e9">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#20242e">lru_cache.py</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">A: created <span style="color:#27714a">+54</span> <span style="color:#a63d33">−0</span> · B: created <span style="color:#27714a">+29</span> <span style="color:#a63d33">−0</span></span>
+          <span style="margin-left:auto;font-size:12px;color:#a7adba">new file — did not exist before the change</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #e0e3e9">
+          <div style="padding:6px 14px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#a7adba;background:#f7f8fa;border-right:1px solid #e0e3e9">Original</div>
+          <div style="padding:6px 14px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#4a5160;background:#f7f8fa;border-right:1px solid #e0e3e9;text-align:center">A</div>
+          <div style="padding:6px 14px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#4a5160;background:#f7f8fa;text-align:center">B</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7">
+          <div style="border-right:1px solid #e0e3e9;background:#fbfbfc"></div>
+          <div style="border-right:1px solid #e0e3e9">
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">1</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#7c8494"># rev 1</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">2</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">from dataclasses import dataclass</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">3</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">from typing import Any, Optional</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">4</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e"> </span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">5</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">@dataclass</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">6</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">class _Node:</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">7</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    key: Any</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">8</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    value: Any</span></div>
+          </div>
+          <div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">1</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#7c8494"># rev 3</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">2</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">from collections import OrderedDict</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">3</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e"> </span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">4</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">class LRUCache:</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">5</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    """LRU cache with O(1) get/put."""</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">6</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e"> </span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">7</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    def __init__(self, capacity):</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">8</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">        if capacity &lt;= 0:</span></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 14px;background:#f7f8fa;border-top:1px solid #eef0f3;font-size:12px;color:#7c8494;cursor:pointer">
+          <span style="font-size:10px;color:#a7adba">▸</span> unchanged region — 21 aligned rows collapsed <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;margin-left:auto">click or <span style="font-weight:600;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:1px 6px">x</span> to expand</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7;border-top:1px solid #eef0f3">
+          <div style="border-right:1px solid #e0e3e9;background:#fbfbfc"></div>
+          <div style="border-right:1px solid #e0e3e9">
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">30</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">    def _push_back(self, node):</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">31</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">        node.prev = self._tail</span></div>
+          </div>
+          <div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">28</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">        if self._on_evict is not None:</span></div>
+            <div style="display:flex"><span style="width:36px;flex:none;text-align:right;padding:0 7px;color:#2c7a4d;background:#d9e9de;font-size:11px">29</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">            self._on_evict(key, value)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#fff;border-top:1px solid #e0e3e9;padding:12px 24px;display:flex;align-items:center;gap:20px">
+      <button style="font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#7c8494;background:transparent;border:none;padding:8px 6px;cursor:pointer"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">←</span> prev</button>
+      <span style="flex:1;display:flex;justify-content:center;gap:12px">
+        <button style="font-family:inherit;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:8px;padding:10px 26px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#eef0f3;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">A</span> A wins</button>
+        <button style="font-family:inherit;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:8px;padding:10px 22px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#eef0f3;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">T</span> Tie</button>
+        <button style="font-family:inherit;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:8px;padding:10px 26px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#eef0f3;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">B</span> B wins</button>
+      </span>
+      <button style="font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#4a5160;background:transparent;border:none;padding:8px 6px;cursor:pointer">next <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-bottom-width:2px;border-radius:4px;padding:2px 7px">→</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1h GRADE PICKER + HOVER CARD ============ -->
+<div id="1h" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1h" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1h</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Grading picker — axis buttons with counts, gradeable cells, catalog, and the id-chip hover preview card</span>
+  </div>
+  <div style="width:1440px;background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,18,26,.06)">
+    <div style="height:52px;background:#fff;border-bottom:1px solid #e0e3e9;display:flex;align-items:center;gap:24px;padding:0 24px">
+      <span style="display:inline-flex;align-items:center;gap:9px"><svg width="22" height="22" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg><span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#20242e">gavel</span></span>
+      <span style="display:inline-flex;gap:2px;background:#eef0f3;border-radius:8px;padding:3px">
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Dashboard</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:600;background:#fff;color:#4e59c8;box-shadow:0 1px 2px rgba(15,18,26,.08)">Grade</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Runs</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Browse</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Report</span>
+      </span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px"><span style="font-size:12px;color:#7c8494">db</span><span style="display:inline-flex;align-items:center;gap:20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px">results-demo.db <span style="color:#7c8494;font-size:10px">▾</span></span></span>
+    </div>
+    <div style="padding:32px 48px 48px;display:flex;flex-direction:column;gap:24px">
+      <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.01em;color:#20242e">Pick a contest</h1>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Comparison axis</div>
+        <div style="display:flex;gap:10px">
+          <button style="font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#4e59c8;background:#eceef9;border:1px solid #c9cdf0;border-radius:6px;padding:7px 14px;cursor:pointer">Methodology <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#fff;border-radius:999px;padding:1px 7px">1 cell</span></button>
+          <button style="font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 14px;cursor:pointer">Model <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494;background:#eef0f3;border-radius:999px;padding:1px 7px">1 cell</span></button>
+          <button style="font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#a7adba;background:#f7f8fa;border:1px solid #e0e3e9;border-radius:6px;padding:7px 14px;cursor:not-allowed">Repo context <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#eef0f3;border-radius:999px;padding:1px 7px">0</span></button>
+          <button style="font-family:inherit;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#a7adba;background:#f7f8fa;border:1px solid #e0e3e9;border-radius:6px;padding:7px 14px;cursor:not-allowed">Runner <span style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#eef0f3;border-radius:999px;padding:1px 7px">0</span></button>
+        </div>
+        <div style="border:1px solid #e0e3e9;border-radius:8px;overflow:hidden">
+          <div style="display:flex;background:#f7f8fa;border-bottom:1px solid #e0e3e9;padding:7px 14px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494"><span style="flex:2">Cell (pinned axes)</span><span style="width:130px;text-align:right">Contenders</span><span style="width:130px;text-align:right">Pairs</span><span style="width:110px"></span></div>
+          <div style="display:flex;align-items:center;padding:9px 14px">
+            <span style="flex:2;display:flex;gap:5px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-model-s</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-runner</span></span>
+            <span style="width:130px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">4 methodologies</span>
+            <span style="width:130px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">18</span>
+            <span style="width:110px;text-align:right"><button style="font-family:inherit;font-size:12px;font-weight:600;color:#fff;background:#4e59c8;border:1px solid #4e59c8;border-radius:6px;padding:5px 14px;cursor:pointer">Grade</button></span>
+          </div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">The five axes — everything available</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px 48px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:14px;font-weight:600;color:#20242e">Tasks</div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;flex:none">cosmos-A</span><span style="font-size:12px;color:#7c8494;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">[medium] Drop the AutoMapper dependency and map objects explicitly…</span></div>
+            <div style="position:relative;display:flex;align-items:baseline;gap:10px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4e59c8;background:#eceef9;border:1px solid #c9cdf0;border-radius:999px;padding:1px 8px;flex:none">cosmos-B</span><span style="font-size:12px;color:#7c8494;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">[medium] ToDo API can create, update, delete — but not complete…</span>
+              <div style="position:absolute;left:0;top:26px;z-index:5;width:460px;background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 8px 24px rgba(15,18,26,.14),0 2px 6px rgba(15,18,26,.08);padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#a7adba">task</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#20242e">cosmos-B</span><span style="font-size:11px;font-weight:600;color:#8a611a;background:#f6eeda;border:1px solid #e3d3a9;border-radius:999px;padding:1px 8px">medium</span></div>
+                <div style="font-size:13px;line-height:1.55;color:#4a5160">Our ToDo API can create, update, and delete items, but a user still has no way to mark one as done. Add a complete/reopen lifecycle end to end, and let search filter by completion status. Follow the existing MediatR vertical-slice conventions.</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#7c8494;background:#f7f8fa;border:1px solid #eef0f3;border-radius:6px;padding:8px 12px">- ToDoItem.Reopen() alongside MarkComplete()<br>- Two new slices under WebAPI.Models.ToDoItem<br>- Keep IsCompleted's private setter</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;flex:none">pyvrp-A</span><span style="font-size:12px;color:#7c8494;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">[hard] Duration aggregates: "what's the total wait time per client group"…</span></div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;flex:none">pyvrp-B</span><span style="font-size:12px;color:#7c8494;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">[hard] Every operator must respect linear duration costs…</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:14px;font-weight:600;color:#20242e">Methodologies</div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;flex:none">baseline</span><span style="font-size:12px;color:#7c8494">No instructions — pure ablation control</span></div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;flex:none">custom</span><span style="font-size:12px;color:#7c8494">Your own agentic setup (conductor + executor + validators)</span></div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;flex:none">ecc</span><span style="font-size:12px;color:#7c8494">ECC v2.0.0 — Everything Claude Code agent operating system</span></div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;flex:none">karpathy</span><span style="font-size:12px;color:#7c8494">Andrej Karpathy's coding discipline</span></div>
+            <div style="font-size:14px;font-weight:600;color:#20242e;margin-top:8px">Models</div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;flex:none">claude-haiku-4-5</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba">anthropic · $1/MTok in · $5/MTok out</span></div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;flex:none">claude-sonnet-4-6</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba">anthropic · $3/MTok in · $15/MTok out</span></div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px;flex:none">gpt-4.1</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba">openai · $2/MTok in · $8/MTok out</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1i REVEAL ============ -->
+<div id="1i" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1i" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1i</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Post-session reveal — winner gets the accent (allowed now: blinding is over)</span>
+  </div>
+  <div style="width:1440px;background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,18,26,.06)">
+    <div style="height:52px;background:#fff;border-bottom:1px solid #e0e3e9;display:flex;align-items:center;gap:24px;padding:0 24px">
+      <span style="display:inline-flex;align-items:center;gap:9px"><svg width="22" height="22" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg><span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#20242e">gavel</span></span>
+      <span style="display:inline-flex;gap:2px;background:#eef0f3;border-radius:8px;padding:3px">
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Dashboard</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:600;background:#fff;color:#4e59c8;box-shadow:0 1px 2px rgba(15,18,26,.08)">Grade</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Runs</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Browse</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Report</span>
+      </span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px"><span style="font-size:12px;color:#7c8494">db</span><span style="display:inline-flex;align-items:center;gap:20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px">results-demo.db <span style="color:#7c8494;font-size:10px">▾</span></span></span>
+    </div>
+    <div style="padding:32px 48px 48px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.01em;color:#20242e">The verdict — Methodology</h1>
+        <div style="display:flex;gap:10px">
+          <button style="font-family:inherit;font-size:13px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)">Grade another cell</button>
+          <button style="font-family:inherit;font-size:13px;font-weight:600;color:#fff;background:#4e59c8;border:1px solid #4e59c8;border-radius:6px;padding:7px 16px;cursor:pointer">Full report</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;background:#eef0f3;border:1px solid #dfe2e8;border-radius:8px;padding:10px 14px;font-size:13px;color:#5a6170">The gavel has struck — this session is closed. Revealing ends blind judging permanently.</div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);overflow:hidden">
+        <div style="padding:16px 24px 12px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Bradley-Terry ranking (this session)</div>
+        <div style="display:flex;padding:7px 24px;border-bottom:1px solid #e0e3e9;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494"><span style="width:40px">#</span><span style="flex:1">Methodology</span><span style="width:110px;text-align:right">Elo</span><span style="width:160px;text-align:right">95% CI</span><span style="width:190px;text-align:right">Hidden-gate pass</span></div>
+        <div style="display:flex;align-items:center;padding:10px 24px;border-bottom:1px solid #eef0f3;background:#eceef9">
+          <span style="width:40px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#4e59c8">1</span>
+          <span style="flex:1;display:flex;align-items:center;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4e59c8;background:#fff;border:1px solid #c9cdf0;border-radius:999px;padding:1px 8px">demo-checklist</span><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#4e59c8"><svg width="13" height="13" viewBox="0 0 28 28"><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#4e59c8"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#4e59c8"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#4e59c8"></rect></svg>session winner</span></span>
+          <span style="width:110px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#20242e">1084</span>
+          <span style="width:160px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">928 – 2066</span>
+          <span style="width:190px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+        </div>
+        <div style="display:flex;align-items:center;padding:10px 24px;border-bottom:1px solid #eef0f3">
+          <span style="width:40px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#7c8494">2</span>
+          <span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-agentpack</span></span>
+          <span style="width:110px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#20242e">1072</span>
+          <span style="width:160px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">916 – 2045</span>
+          <span style="width:190px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">67%</span>
+        </div>
+        <div style="display:flex;align-items:center;padding:10px 24px;border-bottom:1px solid #eef0f3">
+          <span style="width:40px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#7c8494">3</span>
+          <span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-baseline</span></span>
+          <span style="width:110px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#20242e">928</span>
+          <span style="width:160px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">−2200 – 1132</span>
+          <span style="width:190px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">67%</span>
+        </div>
+        <div style="display:flex;align-items:center;padding:10px 24px">
+          <span style="width:40px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#7c8494">4</span>
+          <span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-tdd</span></span>
+          <span style="width:110px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#20242e">916</span>
+          <span style="width:160px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">716 – 1913</span>
+          <span style="width:190px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);overflow:hidden">
+          <div style="padding:16px 24px 12px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Win / loss / tie per value</div>
+          <div style="display:flex;padding:7px 24px;border-bottom:1px solid #e0e3e9;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494"><span style="flex:1">Methodology</span><span style="width:60px;text-align:right">W</span><span style="width:60px;text-align:right">L</span><span style="width:60px;text-align:right">T</span></div>
+          <div style="display:flex;align-items:center;padding:9px 24px;border-bottom:1px solid #eef0f3"><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-checklist</span></span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a;font-weight:600">6</span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">2</span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">3</span></div>
+          <div style="display:flex;align-items:center;padding:9px 24px;border-bottom:1px solid #eef0f3"><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-agentpack</span></span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a;font-weight:600">3</span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">1</span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">3</span></div>
+          <div style="display:flex;align-items:center;padding:9px 24px;border-bottom:1px solid #eef0f3"><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-baseline</span></span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a;font-weight:600">2</span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">4</span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">1</span></div>
+          <div style="display:flex;align-items:center;padding:9px 24px"><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-tdd</span></span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a;font-weight:600">1</span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">5</span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">5</span></div>
+        </div>
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);overflow:hidden">
+          <div style="padding:16px 24px 12px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Judged pairs, unblinded</div>
+          <div style="display:flex;padding:7px 24px;border-bottom:1px solid #e0e3e9;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494"><span style="width:36px">#</span><span style="flex:1">A was</span><span style="flex:1">B was</span><span style="width:110px;text-align:right">Your call</span></div>
+          <div style="display:flex;align-items:center;padding:9px 24px;border-bottom:1px solid #eef0f3"><span style="width:36px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">1</span><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-agentpack</span></span><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-tdd</span></span><span style="width:110px;text-align:right"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#4e59c8;background:#eceef9;border:1px solid #c9cdf0;border-radius:6px;padding:2px 10px">A</span></span></div>
+          <div style="display:flex;align-items:center;padding:9px 24px;border-bottom:1px solid #eef0f3"><span style="width:36px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">2</span><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-tdd</span></span><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-baseline</span></span><span style="width:110px;text-align:right"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#4e59c8;background:#eceef9;border:1px solid #c9cdf0;border-radius:6px;padding:2px 10px">B</span></span></div>
+          <div style="display:flex;align-items:center;padding:9px 24px"><span style="width:36px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">3</span><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-checklist</span></span><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-agentpack</span></span><span style="width:110px;text-align:right"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#5a6170;background:#eef0f3;border:1px solid #dfe2e8;border-radius:6px;padding:2px 10px">Tie</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1j RUNS + SPEND GATE ============ -->
+<div id="1j" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1j" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1j</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Run launcher — paid feels consequential (one amber panel + typed phrase), never scary-red</span>
+  </div>
+  <div style="width:1440px;background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,18,26,.06)">
+    <div style="height:52px;background:#fff;border-bottom:1px solid #e0e3e9;display:flex;align-items:center;gap:24px;padding:0 24px">
+      <span style="display:inline-flex;align-items:center;gap:9px"><svg width="22" height="22" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg><span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#20242e">gavel</span></span>
+      <span style="display:inline-flex;gap:2px;background:#eef0f3;border-radius:8px;padding:3px">
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Dashboard</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Grade</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:600;background:#fff;color:#4e59c8;box-shadow:0 1px 2px rgba(15,18,26,.08)">Runs</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Browse</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Report</span>
+      </span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px"><span style="font-size:12px;color:#7c8494">db</span><span style="display:inline-flex;align-items:center;gap:20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px">results-demo.db <span style="color:#7c8494;font-size:10px">▾</span></span></span>
+    </div>
+    <div style="padding:32px 48px 48px;display:flex;flex-direction:column;gap:20px">
+      <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.01em;color:#20242e">Runs</h1>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:24px;display:flex;flex-direction:column;gap:20px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Launch trials</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;font-weight:600;color:#4a5160">Tasks <span style="font-weight:400;color:#a7adba">— 1 selected · hover an id for details</span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">cosmos-A</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#4e59c8;background:#eceef9;border:1px solid #4e59c8;border-radius:6px;padding:5px 13px;cursor:pointer">cosmos-B</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">moreiter-A</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">pyvrp-A</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">pyvrp-B</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">pyvrp-C</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;font-weight:600;color:#4a5160">Methodologies <span style="font-weight:400;color:#a7adba">— 1 selected</span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#4e59c8;background:#eceef9;border:1px solid #4e59c8;border-radius:6px;padding:5px 13px;cursor:pointer">baseline</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">custom</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">ecc</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">karpathy</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">superpowers</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;font-weight:600;color:#4a5160">Repo contexts <span style="font-weight:400;color:#a7adba">— 1 selected</span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#4e59c8;background:#eceef9;border:1px solid #4e59c8;border-radius:6px;padding:5px 13px;cursor:pointer">cosmos</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">none</button>
+            <button style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:5px 13px;cursor:pointer">pyvrp-instructions</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#4a5160">Runner</span><span style="display:inline-flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 12px;width:250px">claude-code <span style="font-family:'IBM Plex Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.05em;color:#8a611a;background:#f6eeda;border:1px solid #e3d3a9;border-radius:999px;padding:1px 8px">PAID</span><span style="margin-left:auto;color:#7c8494;font-size:10px">▾</span></span></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#4a5160">Model</span><span style="display:inline-flex;align-items:center;gap:20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 12px;width:190px">claude-haiku-4-5 <span style="margin-left:auto;color:#7c8494;font-size:10px">▾</span></span></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#4a5160">Reps</span><span style="display:inline-flex;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 12px;width:64px">1</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#4a5160">Write results to</span><span style="display:inline-flex;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494;background:#f7f8fa;border:1px solid #e0e3e9;border-radius:6px;padding:7px 12px;width:210px">results-demo.db (active)</span></div>
+          <button style="font-family:inherit;font-size:13px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05)">Preview plan</button>
+        </div>
+        <div style="font-size:12px;color:#7c8494">Headless Claude Code CLI — runs the real agent. Spends real API budget on every trial.</div>
+        <div style="border:1px solid #e0e3e9;border-radius:8px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:10px;background:#f7f8fa;border-bottom:1px solid #e0e3e9;padding:8px 14px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#5a6170;background:#eef0f3;border-radius:999px;padding:1px 8px">1 trial</span>
+            <span style="font-size:11px;font-weight:700;letter-spacing:.05em;color:#8a611a;background:#f6eeda;border:1px solid #e3d3a9;border-radius:999px;padding:1px 8px">SPENDS REAL API BUDGET</span>
+          </div>
+          <div style="display:flex;padding:7px 14px;border-bottom:1px solid #eef0f3;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494"><span style="flex:1">Task</span><span style="flex:1">Methodology</span><span style="flex:1">Context</span><span style="flex:1">Model</span><span style="width:60px;text-align:right">Reps</span></div>
+          <div style="display:flex;align-items:center;padding:9px 14px"><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">cosmos-B</span></span><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">baseline</span></span><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">cosmos</span></span><span style="flex:1"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">claude-haiku-4-5</span></span><span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">1</span></div>
+        </div>
+        <div style="background:#f6eeda;border:1px solid #e3d3a9;border-radius:8px;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:13px;color:#8a611a"><strong>This run spends real API money.</strong> No historical cost data for this combination — the estimate is unknown.</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a611a;opacity:.85">claude-haiku-4-5 · $1/MTok in · $5/MTok out</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:13px;color:#8a611a">Type <strong style="font-family:'JetBrains Mono',monospace">SPEND</strong> to arm the launch:</span>
+            <span style="display:inline-flex;font-family:'JetBrains Mono',monospace;font-size:13px;color:#a7adba;background:#fff;border:1px solid #e3d3a9;border-radius:6px;padding:7px 12px;width:150px">SPEND</span>
+          </div>
+        </div>
+        <div><button style="font-family:inherit;font-size:13px;font-weight:600;color:#a7adba;background:#eef0f3;border:1px solid #e0e3e9;border-radius:6px;padding:9px 20px;cursor:not-allowed">Launch — spends money</button><span style="font-size:12px;color:#a7adba;margin-left:12px">free runners launch instantly, no phrase, no amber</span></div>
+      </div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:20px 24px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Runs this server session</div>
+        <div style="font-size:13px;color:#7c8494">Nothing launched from the browser yet. Terminal runs (<span style="font-family:'JetBrains Mono',monospace;font-size:12px;background:#eef0f3;padding:1px 6px;border-radius:4px">gavel run</span>) appear in Browse once finished.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1k BROWSE ============ -->
+<div id="1k" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1k" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1k</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Browse — compact B/V/H gate triplet replaces three badges; numerics right-aligned mono</span>
+  </div>
+  <div style="width:1440px;background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,18,26,.06)">
+    <div style="height:52px;background:#fff;border-bottom:1px solid #e0e3e9;display:flex;align-items:center;gap:24px;padding:0 24px">
+      <span style="display:inline-flex;align-items:center;gap:9px"><svg width="22" height="22" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg><span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#20242e">gavel</span></span>
+      <span style="display:inline-flex;gap:2px;background:#eef0f3;border-radius:8px;padding:3px">
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Dashboard</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Grade</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Runs</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:600;background:#fff;color:#4e59c8;box-shadow:0 1px 2px rgba(15,18,26,.08)">Browse</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Report</span>
+      </span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px"><span style="font-size:12px;color:#7c8494">db</span><span style="display:inline-flex;align-items:center;gap:20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px">results-demo.db <span style="color:#7c8494;font-size:10px">▾</span></span></span>
+    </div>
+    <div style="padding:32px 48px 48px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.01em;color:#20242e">Browse trials</h1>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">15 of 15 trials</span>
+      </div>
+      <div style="display:flex;gap:12px">
+        <span style="display:inline-flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494">Task</span><span style="display:inline-flex;align-items:center;gap:20px;font-size:13px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px;width:150px">(all) <span style="margin-left:auto;color:#7c8494;font-size:10px">▾</span></span></span>
+        <span style="display:inline-flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494">Methodology</span><span style="display:inline-flex;align-items:center;gap:20px;font-size:13px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px;width:150px">(all) <span style="margin-left:auto;color:#7c8494;font-size:10px">▾</span></span></span>
+        <span style="display:inline-flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494">Repo context</span><span style="display:inline-flex;align-items:center;gap:20px;font-size:13px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px;width:150px">(all) <span style="margin-left:auto;color:#7c8494;font-size:10px">▾</span></span></span>
+        <span style="display:inline-flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494">Model</span><span style="display:inline-flex;align-items:center;gap:20px;font-size:13px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px;width:150px">(all) <span style="margin-left:auto;color:#7c8494;font-size:10px">▾</span></span></span>
+        <span style="display:inline-flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494">Runner</span><span style="display:inline-flex;align-items:center;gap:20px;font-size:13px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px;width:150px">(all) <span style="margin-left:auto;color:#7c8494;font-size:10px">▾</span></span></span>
+        <span style="display:inline-flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494">Hidden gate</span><span style="display:inline-flex;align-items:center;gap:20px;font-size:13px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px;width:150px">(all) <span style="margin-left:auto;color:#7c8494;font-size:10px">▾</span></span></span>
+      </div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);overflow:hidden">
+        <div style="display:flex;padding:9px 20px;border-bottom:1px solid #e0e3e9;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494"><span style="width:170px">Task</span><span style="width:170px">Methodology</span><span style="width:90px">Context</span><span style="width:150px">Model</span><span style="width:140px">Runner</span><span style="width:44px;text-align:right">Rep</span><span style="flex:1;text-align:center">Gate</span><span style="width:80px;text-align:right">USD</span><span style="width:120px;text-align:right">Tokens</span><span style="width:70px;text-align:right">Wall</span></div>
+        <div style="display:flex;align-items:center;padding:8px 20px;border-bottom:1px solid #eef0f3"><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span></span><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-agentpack</span></span><span style="width:90px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span></span><span style="width:150px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-model-s</span></span><span style="width:140px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-runner</span></span><span style="width:44px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">0</span><span style="flex:1;text-align:center"><span style="display:inline-flex;border:1px solid #e0e3e9;border-radius:6px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="padding:2px 8px;color:#27714a;background:#e4f1e8">B✓</span><span style="padding:2px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">V✓</span><span style="padding:2px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">H✓</span></span></span><span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.546</span><span style="width:120px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">21.8k / 4.9k</span><span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">44.0s</span></div>
+        <div style="display:flex;align-items:center;padding:8px 20px;border-bottom:1px solid #eef0f3;background:#f7f8fa"><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span></span><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-agentpack</span></span><span style="width:90px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span></span><span style="width:150px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-model-s</span></span><span style="width:140px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-runner</span></span><span style="width:44px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">2</span><span style="flex:1;text-align:center"><span style="display:inline-flex;border:1px solid #e0e3e9;border-radius:6px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="padding:2px 8px;color:#27714a;background:#e4f1e8">B✓</span><span style="padding:2px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">V✓</span><span style="padding:2px 8px;color:#a63d33;background:#f8eae7;border-left:1px solid #e7c6bf">H✕</span></span></span><span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.694</span><span style="width:120px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">27.8k / 6.2k</span><span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">84.0s</span></div>
+        <div style="display:flex;align-items:center;padding:8px 20px;border-bottom:1px solid #eef0f3"><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span></span><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-baseline</span></span><span style="width:90px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span></span><span style="width:150px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-model-m</span></span><span style="width:140px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-runner</span></span><span style="width:44px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">0</span><span style="flex:1;text-align:center"><span style="display:inline-flex;border:1px solid #e0e3e9;border-radius:6px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="padding:2px 8px;color:#27714a;background:#e4f1e8">B✓</span><span style="padding:2px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">V✓</span><span style="padding:2px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">H✓</span></span></span><span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.210</span><span style="width:120px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">8.4k / 1.9k</span><span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">43.0s</span></div>
+        <div style="display:flex;align-items:center;padding:8px 20px;border-bottom:1px solid #eef0f3"><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span></span><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-baseline</span></span><span style="width:90px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span></span><span style="width:150px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-model-s</span></span><span style="width:140px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-runner</span></span><span style="width:44px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">1</span><span style="flex:1;text-align:center"><span style="display:inline-flex;border:1px solid #e0e3e9;border-radius:6px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="padding:2px 8px;color:#27714a;background:#e4f1e8">B✓</span><span style="padding:2px 8px;color:#a63d33;background:#f8eae7;border-left:1px solid #e7c6bf">V✕</span><span style="padding:2px 8px;color:#a63d33;background:#f8eae7;border-left:1px solid #e7c6bf">H✕</span></span></span><span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.050</span><span style="width:120px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">2.0k / 450</span><span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">63.0s</span></div>
+        <div style="display:flex;align-items:center;padding:8px 20px;border-bottom:1px solid #eef0f3"><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span></span><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-checklist</span></span><span style="width:90px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span></span><span style="width:150px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-model-s</span></span><span style="width:140px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-runner</span></span><span style="width:44px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">0</span><span style="flex:1;text-align:center"><span style="display:inline-flex;border:1px solid #e0e3e9;border-radius:6px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="padding:2px 8px;color:#27714a;background:#e4f1e8">B✓</span><span style="padding:2px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">V✓</span><span style="padding:2px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">H✓</span></span></span><span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.079</span><span style="width:120px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">3.2k / 712</span><span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">44.0s</span></div>
+        <div style="display:flex;align-items:center;padding:8px 20px"><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span></span><span style="width:170px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-tdd</span></span><span style="width:90px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span></span><span style="width:150px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-model-s</span></span><span style="width:140px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-runner</span></span><span style="width:44px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">2</span><span style="flex:1;text-align:center"><span style="display:inline-flex;border:1px solid #e0e3e9;border-radius:6px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="padding:2px 8px;color:#27714a;background:#e4f1e8">B✓</span><span style="padding:2px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">V✓</span><span style="padding:2px 8px;color:#27714a;background:#e4f1e8;border-left:1px solid #c2ddcc">H✓</span></span></span><span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.179</span><span style="width:120px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">7.2k / 1.6k</span><span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">78.0s</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1l TRIAL DETAIL ============ -->
+<div id="1l" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1l" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1l</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Trial detail — verdict banner up top, tier scorecard with raw logs, cost table, unblinded diff</span>
+  </div>
+  <div style="width:1440px;background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,18,26,.06)">
+    <div style="height:52px;background:#fff;border-bottom:1px solid #e0e3e9;display:flex;align-items:center;gap:24px;padding:0 24px">
+      <span style="display:inline-flex;align-items:center;gap:9px"><svg width="22" height="22" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg><span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#20242e">gavel</span></span>
+      <span style="display:inline-flex;gap:2px;background:#eef0f3;border-radius:8px;padding:3px">
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Dashboard</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Grade</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Runs</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:600;background:#fff;color:#4e59c8;box-shadow:0 1px 2px rgba(15,18,26,.08)">Browse</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Report</span>
+      </span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px"><span style="font-size:12px;color:#7c8494">db</span><span style="display:inline-flex;align-items:center;gap:20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px">results-demo.db <span style="color:#7c8494;font-size:10px">▾</span></span></span>
+    </div>
+    <div style="padding:32px 48px 48px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <h1 style="margin:0;font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;color:#20242e">demo-lru-cache__demo-agentpack__none__demo-model-s__r0</h1>
+          <div style="display:flex;gap:6px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-lru-cache</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-agentpack</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">none</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-model-s</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-runner</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">rep 0</span></div>
+        </div>
+        <button style="font-family:inherit;font-size:13px;font-weight:500;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:7px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(15,18,26,.05);flex:none">← All trials</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Gate scorecard</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="font-size:13px;font-weight:700;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:4px 14px">HIDDEN GATE PASSED</span><span style="font-size:12px;color:#a7adba">the hidden tier is the definitive quality gate</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:2px 9px">build ✓</span><span style="font-size:12px;color:#a7adba">no output recorded</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:2px 9px">visible tests ✓</span><span style="font-size:12px;color:#a7adba">no output recorded</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:6px;padding:2px 9px">hidden tests ✓</span></div>
+              <div style="border:1px solid #e0e3e9;border-radius:6px;overflow:hidden">
+                <div style="display:flex;align-items:center;gap:8px;background:#eef0f3;padding:5px 12px;font-size:12px;font-weight:500;color:#4a5160;cursor:pointer;border-bottom:1px solid #e0e3e9"><span style="font-size:10px;color:#7c8494">▾</span> raw output <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a7adba;margin-left:auto">4 chars</span></div>
+                <pre style="margin:0;padding:8px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#4a5160;background:#fff">demo</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:20px 24px;display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494;margin-bottom:8px">Execution &amp; cost</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eef0f3"><span style="font-size:13px;color:#4a5160">Wall time</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">44.0s</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eef0f3"><span style="font-size:13px;color:#4a5160">Exit status</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">0</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eef0f3"><span style="font-size:13px;color:#4a5160">Error</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#a7adba">—</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eef0f3"><span style="font-size:13px;color:#4a5160">Cost (API-rate)</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#20242e">$0.546</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eef0f3"><span style="font-size:13px;color:#4a5160">Self-reported</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.546 (usd)</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0"><span style="font-size:13px;color:#4a5160">Tokens</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">21.8k in · 4.9k out · 54.6k cache</span></div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);overflow:hidden">
+        <div style="padding:16px 24px 12px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Diff — as captured, unblinded</div>
+        <div style="margin:0 24px 24px;border:1px solid #e0e3e9;border-radius:8px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #e0e3e9">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#20242e">lru_cache.py</span>
+            <span style="font-size:11px;font-weight:600;color:#5a6170;background:#eef0f3;border:1px solid #dfe2e8;border-radius:999px;padding:1px 8px">created</span>
+            <span style="margin-left:auto;display:inline-flex;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600"><span style="color:#27714a;background:#e4f1e8;border-radius:999px;padding:1px 8px">+54</span><span style="color:#a63d33;background:#f8eae7;border-radius:999px;padding:1px 8px">−0</span></span>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7">
+            <div style="display:flex;background:#f0f2f6;color:#868da0"><span style="width:44px;flex:none"></span><span style="padding:0 12px">@@ -0,0 +1,54 @@</span></div>
+            <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">1</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#7c8494"># rev 1</span></div>
+            <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">2</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">from dataclasses import dataclass</span></div>
+            <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">3</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">from typing import Any, Optional</span></div>
+            <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">4</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e"> </span></div>
+            <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">5</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">@dataclass</span></div>
+            <div style="display:flex"><span style="width:44px;flex:none;text-align:right;padding:0 8px;color:#2c7a4d;background:#d9e9de;font-size:11px">6</span><span style="width:18px;flex:none;text-align:center;color:#2c7a4d;background:#e7f2ea">+</span><span style="flex:1;background:#e7f2ea;padding:0 10px;white-space:pre;color:#20242e">class _Node:</span></div>
+            <div style="display:flex;border-top:1px solid #eef0f3;color:#a7adba;font-size:11px"><span style="width:44px;flex:none"></span><span style="padding:2px 12px">⋯ 48 more added lines</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1m REPORT ============ -->
+<div id="1m" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="#1m" style="text-decoration:none"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#20242e;color:#fff;padding:2px 9px;border-radius:999px">1m</span></a>
+    <span style="font-size:13px;color:#7c8494;font-weight:500">Report — Bradley-Terry ranking, CI bars, frontier + picks as accent chips</span>
+  </div>
+  <div style="width:1440px;background:#f4f5f7;border:1px solid #dfe2e8;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,18,26,.06)">
+    <div style="height:52px;background:#fff;border-bottom:1px solid #e0e3e9;display:flex;align-items:center;gap:24px;padding:0 24px">
+      <span style="display:inline-flex;align-items:center;gap:9px"><svg width="22" height="22" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#4e59c8"></rect><g transform="rotate(-45 13 12)"><rect x="6" y="6" width="5" height="12" rx="2.5" fill="#ffffff"></rect><rect x="9.5" y="10.9" width="11" height="2.2" rx="1.1" fill="#ffffff"></rect></g><rect x="13.5" y="21" width="9" height="2.6" rx="1.3" fill="#ffffff"></rect></svg><span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#20242e">gavel</span></span>
+      <span style="display:inline-flex;gap:2px;background:#eef0f3;border-radius:8px;padding:3px">
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Dashboard</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Grade</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Runs</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#4a5160">Browse</span>
+        <span style="padding:5px 14px;border-radius:6px;font-size:13px;font-weight:600;background:#fff;color:#4e59c8;box-shadow:0 1px 2px rgba(15,18,26,.08)">Report</span>
+      </span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px"><span style="font-size:12px;color:#7c8494">db</span><span style="display:inline-flex;align-items:center;gap:20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px">results-demo.db <span style="color:#7c8494;font-size:10px">▾</span></span></span>
+    </div>
+    <div style="padding:32px 48px 48px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.01em;color:#20242e">Report</h1>
+        <span style="font-size:12px;color:#7c8494">80 blind judgments across 6 sessions</span>
+      </div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:16px 24px;display:flex;align-items:flex-end;gap:24px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494">Comparison axis</span>
+          <span style="display:inline-flex;border:1px solid #c9cedb;border-radius:6px;overflow:hidden;font-size:13px;font-weight:500">
+            <span style="padding:6px 14px;background:#4e59c8;color:#fff;font-weight:600">Methodology</span>
+            <span style="padding:6px 14px;background:#fff;color:#4a5160;border-left:1px solid #c9cedb">Model</span>
+            <span style="padding:6px 14px;background:#fff;color:#4a5160;border-left:1px solid #c9cedb">Repo context</span>
+            <span style="padding:6px 14px;background:#fff;color:#4a5160;border-left:1px solid #c9cedb">Runner</span>
+          </span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494">Pin to task (optional)</span>
+          <span style="display:inline-flex;align-items:center;gap:20px;font-size:13px;color:#20242e;background:#fff;border:1px solid #c9cedb;border-radius:6px;padding:6px 12px;width:180px">(all tasks) <span style="margin-left:auto;color:#7c8494;font-size:10px">▾</span></span>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);overflow:hidden">
+        <div style="padding:16px 24px 12px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Methodology ranking — Bradley-Terry</div>
+        <div style="display:flex;padding:7px 24px;border-bottom:1px solid #e0e3e9;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7c8494"><span style="width:230px">Methodology</span><span style="width:110px"></span><span style="width:70px;text-align:right">Elo</span><span style="width:180px;padding-left:24px">95% CI</span><span style="width:60px;text-align:right">Comps</span><span style="width:60px;text-align:right">Build</span><span style="width:60px;text-align:right">Visible</span><span style="width:60px;text-align:right">Hidden</span><span style="width:56px;text-align:right">Trials</span><span style="width:80px;text-align:right">Mean $</span><span style="width:80px;text-align:right">Total $</span><span style="flex:1;text-align:right">Frontier</span></div>
+        <div style="display:flex;align-items:center;padding:10px 24px;border-bottom:1px solid #eef0f3">
+          <span style="width:230px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-tdd</span></span>
+          <span style="width:110px"><span style="font-size:11px;font-weight:600;color:#4e59c8;background:#eceef9;border:1px solid #c9cdf0;border-radius:999px;padding:1px 9px">quality pick</span></span>
+          <span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#20242e">1077</span>
+          <span style="width:180px;padding-left:24px;display:inline-flex;align-items:center;gap:8px"><span style="position:relative;width:90px;height:4px;border-radius:2px;background:#eef0f3;display:inline-block"><span style="position:absolute;left:58%;width:32%;height:100%;border-radius:2px;background:#c9cdf0"></span><span style="position:absolute;left:73%;width:3px;height:8px;top:-2px;border-radius:2px;background:#4e59c8"></span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494">1003–1160</span></span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">46</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+          <span style="width:56px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">3</span>
+          <span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.160</span>
+          <span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">$0.480</span>
+          <span style="flex:1;text-align:right"><span style="font-size:11px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:999px;padding:1px 9px">yes</span></span>
+        </div>
+        <div style="display:flex;align-items:center;padding:10px 24px;border-bottom:1px solid #eef0f3">
+          <span style="width:230px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-checklist</span></span>
+          <span style="width:110px"><span style="font-size:11px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:999px;padding:1px 9px">budget pick</span></span>
+          <span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#20242e">1044</span>
+          <span style="width:180px;padding-left:24px;display:inline-flex;align-items:center;gap:8px"><span style="position:relative;width:90px;height:4px;border-radius:2px;background:#eef0f3;display:inline-block"><span style="position:absolute;left:52%;width:31%;height:100%;border-radius:2px;background:#c9cdf0"></span><span style="position:absolute;left:66%;width:3px;height:8px;top:-2px;border-radius:2px;background:#4e59c8"></span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494">975–1123</span></span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">46</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+          <span style="width:56px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">3</span>
+          <span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.090</span>
+          <span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">$0.270</span>
+          <span style="flex:1;text-align:right"><span style="font-size:11px;font-weight:600;color:#27714a;background:#e4f1e8;border:1px solid #c2ddcc;border-radius:999px;padding:1px 9px">yes</span></span>
+        </div>
+        <div style="display:flex;align-items:center;padding:10px 24px;border-bottom:1px solid #eef0f3">
+          <span style="width:230px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-agentpack</span></span>
+          <span style="width:110px"></span>
+          <span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#20242e">1014</span>
+          <span style="width:180px;padding-left:24px;display:inline-flex;align-items:center;gap:8px"><span style="position:relative;width:90px;height:4px;border-radius:2px;background:#eef0f3;display:inline-block"><span style="position:absolute;left:44%;width:32%;height:100%;border-radius:2px;background:#dfe2e8"></span><span style="position:absolute;left:59%;width:3px;height:8px;top:-2px;border-radius:2px;background:#7c8494"></span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494">939–1091</span></span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">35</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a611a">67%</span>
+          <span style="width:56px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">3</span>
+          <span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.620</span>
+          <span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">$1.860</span>
+          <span style="flex:1;text-align:right"><span style="font-size:11px;font-weight:600;color:#5a6170;background:#eef0f3;border:1px solid #dfe2e8;border-radius:999px;padding:1px 9px">no</span></span>
+        </div>
+        <div style="display:flex;align-items:center;padding:10px 24px;border-bottom:1px solid #e0e3e9">
+          <span style="width:230px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160;background:#eef0f3;border:1px solid #e0e3e9;border-radius:999px;padding:1px 8px">demo-baseline</span></span>
+          <span style="width:110px"></span>
+          <span style="width:70px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;color:#20242e">865</span>
+          <span style="width:180px;padding-left:24px;display:inline-flex;align-items:center;gap:8px"><span style="position:relative;width:90px;height:4px;border-radius:2px;background:#eef0f3;display:inline-block"><span style="position:absolute;left:8%;width:38%;height:100%;border-radius:2px;background:#dfe2e8"></span><span style="position:absolute;left:26%;width:3px;height:8px;top:-2px;border-radius:2px;background:#7c8494"></span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8494">739–953</span></span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">33</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#27714a">100%</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a611a">83%</span>
+          <span style="width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a611a">83%</span>
+          <span style="width:56px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">6</span>
+          <span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#20242e">$0.140</span>
+          <span style="width:80px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8494">$0.843</span>
+          <span style="flex:1;text-align:right"><span style="font-size:11px;font-weight:600;color:#5a6170;background:#eef0f3;border:1px solid #dfe2e8;border-radius:999px;padding:1px 9px">no</span></span>
+        </div>
+        <div style="padding:12px 24px;font-size:13px;color:#4a5160"><strong style="color:#20242e">High-stakes pick:</strong> demo-tdd · <strong style="color:#20242e">Routine pick:</strong> demo-checklist <span style="color:#a7adba">(routine = cheapest value statistically indistinguishable from the winner)</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:20px 24px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Analyzer flags</div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;font-weight:600;color:#8a611a;background:#f6eeda;border:1px solid #e3d3a9;border-radius:999px;padding:1px 9px">flaky task</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4a5160">demo-lru-cache</span></div>
+        </div>
+        <div style="background:#fff;border:1px solid #e0e3e9;border-radius:10px;box-shadow:0 1px 2px rgba(15,18,26,.05);padding:20px 24px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7c8494">Generated HTML artifacts — reports/</div>
+          <div style="display:flex;align-items:baseline;gap:10px"><a href="#1m" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4e59c8;text-decoration:none;border-bottom:1px solid #c9cdf0">report-methodology-20260702-235729.html</a><span style="font-size:11px;color:#a7adba">UTC timestamp · newest first</span></div>
+          <div style="display:flex;align-items:baseline;gap:10px"><a href="#1m" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4e59c8;text-decoration:none;border-bottom:1px solid #c9cdf0">report-methodology-20260702-214343.html</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</section>
+</x-dc>
+</body>
+</html>

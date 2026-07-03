@@ -11,7 +11,7 @@ interface DbState {
 
 const DbContext = createContext<DbState>({ db: "", setDb: () => {} });
 
-const STORAGE_KEY = "tiltyard.db";
+const STORAGE_KEY = "gavel.db";
 
 export function DbProvider({ children }: { children: ReactNode }) {
   const [db, setDbState] = useState<string>(() => {

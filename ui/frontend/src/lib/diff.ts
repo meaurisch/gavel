@@ -205,7 +205,8 @@ function annotate(file: FileDiff | undefined): SideAnnotation {
  * (fills otherwise-invisible unchanged regions); null means unavailable —
  * regions not covered by either diff collapse into gap rows either way,
  * so the view works without it. `expanded` holds gapStart line numbers the
- * user has expanded (only honored when the original is available).
+ * user has expanded; `expandAll` opens every gap (only honored when the
+ * original is available).
  */
 export function buildThreeWay(
   displayPath: string,
@@ -213,6 +214,7 @@ export function buildThreeWay(
   bFile: FileDiff | undefined,
   originalLines: string[] | null,
   expanded: Set<number> = new Set(),
+  expandAll = false,
 ): ThreeWayFile {
   const a = annotate(aFile);
   const b = annotate(bFile);
@@ -272,7 +274,7 @@ export function buildThreeWay(
     // Small gaps render as plain context if we know their text; big or
     // unknown gaps collapse (expandable when the original is available).
     const canExpand = originalLines !== null;
-    if (canExpand && (gapRun.length <= 3 || expanded.has(gapRun[0]))) {
+    if (canExpand && (gapRun.length <= 3 || expandAll || expanded.has(gapRun[0]))) {
       for (const oldNo of gapRun) {
         const text = textOf(oldNo);
         rows.push({

@@ -78,7 +78,9 @@ function PlanPreview({ plan }: { plan: RunPlan }) {
       <div className="row wrap" style={{ marginBottom: "var(--space-2)" }}>
         <span className="badge accent">{plan.n_trials} trial{plan.n_trials === 1 ? "" : "s"}</span>
         {plan.paid ? (
-          <span className="badge warn">spends real API budget</span>
+          <span className="badge warn" style={{ textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
+            spends real API budget
+          </span>
         ) : (
           <span className="badge ok">free (no API spend)</span>
         )}
@@ -414,10 +416,10 @@ export function Runs() {
                   )}
                   <div className="row" style={{ marginTop: "var(--space-2)" }}>
                     <label className="xsmall">
-                      Type <strong>{plan.confirm_phrase}</strong> to enable launch:
+                      Type <strong className="mono">{plan.confirm_phrase}</strong> to arm the launch:
                     </label>
                     <input
-                      className="control"
+                      className="control mono"
                       style={{ minWidth: "8rem", width: "8rem" }}
                       value={confirmPhrase}
                       onChange={(e) => setConfirmPhrase(e.target.value)}
@@ -434,8 +436,11 @@ export function Runs() {
                   disabled={!plan.launchable || !phraseOk || plan.n_trials === 0}
                   data-testid="start-run"
                 >
-                  {plan.paid ? "Launch (spends money)" : "Launch (free)"}
+                  {plan.paid ? "Launch — spends money" : "Launch (free)"}
                 </button>
+                {!plan.paid && (
+                  <span className="xsmall muted">free runners launch instantly — no phrase, no amber</span>
+                )}
                 {!plan.launchable && <span className="small muted">{plan.launch_blocked_reason}</span>}
               </div>
               {startError && <div className="error-banner" style={{ marginTop: "var(--space-2)" }}>{startError}</div>}
@@ -454,8 +459,8 @@ export function Runs() {
           <div className="card-title">Runs this server session</div>
           {(runList ?? []).length === 0 ? (
             <p className="small muted" style={{ margin: 0 }}>
-              No runs launched from the browser yet. Terminal runs (python cli.py run) appear in Browse once
-              finished.
+              Nothing launched from the browser yet. Terminal runs (<code>python cli.py run</code>) appear in
+              Browse once finished.
             </p>
           ) : (
             <div className="table-wrap">

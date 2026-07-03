@@ -60,7 +60,8 @@ function SideHeader({ side, metricsHidden, hiddenReason }: {
             gd[tier].output ? (
               <details key={tier} className="logbox" style={{ flex: "1 1 10rem", maxWidth: "100%" }}>
                 <summary data-testid={`log-${side.label}-${tier}`}>
-                  {tier === "compile" ? "build" : tier} output{gd[tier].truncated ? " (truncated)" : ""}
+                  <span>{tier === "compile" ? "build" : tier} output{gd[tier].truncated ? " (truncated)" : ""}</span>
+                  <span className="logmeta">{gd[tier].output!.length.toLocaleString()} chars</span>
                 </summary>
                 <pre>{gd[tier].output}</pre>
               </details>
@@ -87,6 +88,7 @@ export function GradeSession() {
   const [choices, setChoices] = useState<Map<number, string>>(new Map());
   const [view, setView] = useState<"two" | "three">("two");
   const [sync, setSync] = useState(true);
+  const [expandGaps, setExpandGaps] = useState(false);
   const [originals, setOriginals] = useState<Map<number, OriginalsResponse>>(new Map());
   const [judging, setJudging] = useState(false);
   const [judgeError, setJudgeError] = useState<string | null>(null);
@@ -195,6 +197,9 @@ export function GradeSession() {
         case "v":
           setView((v) => (v === "two" ? "three" : "two"));
           break;
+        case "x":
+          setExpandGaps((e) => !e);
+          break;
         default:
           return;
       }
@@ -246,23 +251,25 @@ export function GradeSession() {
         <span className="small muted" data-testid="pair-progress">
           pair {index + 1} / {total} · {nJudged} judged
         </span>
-        <span className="row" style={{ gap: "var(--space-1)" }}>
-          <button
-            className={`btn sm ${view === "two" ? "primary" : ""}`}
-            onClick={() => setView("two")}
-            aria-pressed={view === "two"}
-            data-testid="view-two"
-          >
-            A | B
-          </button>
-          <button
-            className={`btn sm ${view === "three" ? "primary" : ""}`}
-            onClick={() => setView("three")}
-            aria-pressed={view === "three"}
-            data-testid="view-three"
-          >
-            Original | A | B
-          </button>
+        <span className="row" style={{ gap: "var(--space-2)" }}>
+          <span className="segmented" role="group" aria-label="Diff view mode">
+            <button
+              className={view === "two" ? "active" : ""}
+              onClick={() => setView("two")}
+              aria-pressed={view === "two"}
+              data-testid="view-two"
+            >
+              A | B
+            </button>
+            <button
+              className={view === "three" ? "active" : ""}
+              onClick={() => setView("three")}
+              aria-pressed={view === "three"}
+              data-testid="view-three"
+            >
+              Original | A | B
+            </button>
+          </span>
           {view === "two" && (
             <label className="row xsmall muted" style={{ gap: "var(--space-1)" }}>
               <input type="checkbox" checked={sync} onChange={(e) => setSync(e.target.checked)} />
@@ -287,6 +294,7 @@ export function GradeSession() {
             aDiff={pair.left.diff}
             bDiff={pair.right.diff}
             originals={originals.get(index) ?? null}
+            expandAll={expandGaps}
           />
         )}
       </div>
@@ -305,9 +313,9 @@ export function GradeSession() {
           }}
           data-testid="session-closed-bar"
         >
-          <span className="badge warn">session closed</span>
+          <span className="badge neutral">session closed</span>
           <span className="small muted">
-            This session was revealed — its pairs are no longer blind, so judging is disabled.
+            The gavel has struck — this session was revealed, so judging is disabled.
           </span>
           <Link className="btn primary sm" to={`/grade/session/${session.session_id}/reveal${db ? `?db=${db}` : ""}`}>
             View results
@@ -368,6 +376,11 @@ export function GradeSession() {
         <span className="xsmall faint">
           keys: <kbd className="key">A</kbd>/<kbd className="key">B</kbd>/<kbd className="key">T</kbd> judge ·{" "}
           <kbd className="key">←</kbd><kbd className="key">→</kbd> navigate · <kbd className="key">V</kbd> view
+          {view === "three" && (
+            <>
+              {" "}· <kbd className="key">X</kbd> expand
+            </>
+          )}
         </span>
       </div>
       )}

@@ -29,3 +29,34 @@ export function GateBadges({
     </span>
   );
 }
+
+/** Compact B/V/H triplet for table rows — one quiet cell, not three badges. */
+export function GateTriplet({
+  compilePassed,
+  visiblePassed,
+  hiddenPassed,
+}: {
+  compilePassed: boolean | null;
+  visiblePassed: boolean | null;
+  hiddenPassed: boolean | null;
+}) {
+  const tiers: [string, string, boolean | null][] = [
+    ["B", "build", compilePassed],
+    ["V", "visible tests", visiblePassed],
+    ["H", "hidden tests", hiddenPassed],
+  ];
+  return (
+    <span className="gate-triplet" data-testid="gate-triplet">
+      {tiers.map(([letter, name, passed]) => (
+        <span
+          key={letter}
+          className={`t ${passed === null ? "none" : passed ? "pass" : "fail"}`}
+          title={`${name}: ${passed === null ? "not run" : passed ? "passed" : "failed"}`}
+        >
+          {letter}
+          {passed === null ? "–" : passed ? "✓" : "✕"}
+        </span>
+      ))}
+    </span>
+  );
+}

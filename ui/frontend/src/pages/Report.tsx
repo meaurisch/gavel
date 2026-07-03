@@ -71,7 +71,7 @@ export function ReportPage() {
             <div className="card">
               <div className="spread" style={{ marginBottom: "var(--space-2)" }}>
                 <div className="card-title" style={{ margin: 0 }}>
-                  {AXIS_LABELS[axis]} ranking (Bradley-Terry)
+                  {AXIS_LABELS[axis]} ranking — Bradley-Terry
                 </div>
                 <span className="xsmall muted">
                   {data.n_judgments} blind judgment{data.n_judgments === 1 ? "" : "s"} across {data.n_sessions} session{data.n_sessions === 1 ? "" : "s"}
@@ -116,7 +116,7 @@ export function ReportPage() {
                         </td>
                         <td className="num">{s.elo !== null ? s.elo.toFixed(0) : "—"}</td>
                         <td className="num">
-                          {s.bt_ci_elo ? `${s.bt_ci_elo[0].toFixed(0)} to ${s.bt_ci_elo[1].toFixed(0)}` : "—"}
+                          {s.bt_ci_elo ? `${s.bt_ci_elo[0].toFixed(0)} – ${s.bt_ci_elo[1].toFixed(0)}` : "—"}
                         </td>
                         <td className="num">{s.n_comparisons}</td>
                         <td className="num">{fmtPct(s.tier_pass_rates["compile"] ?? null)}</td>

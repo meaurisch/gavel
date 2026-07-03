@@ -8,7 +8,7 @@ import { api, fmtSeconds, fmtTokens, fmtUsd } from "../api";
 import { useDb } from "../db";
 import { useCatalog, useFetch } from "../hooks";
 import type { TrialRow } from "../types";
-import { GateBadges } from "../components/GateBadges";
+import { GateTriplet } from "../components/GateBadges";
 import { IdChip } from "../components/previews";
 
 const FILTER_KEYS = ["task_id", "methodology_id", "repo_context_id", "model", "runner"] as const;
@@ -130,7 +130,7 @@ export function Browse() {
                     <td><IdChip catalog={catalog} kind="runner" id={t.runner} /></td>
                     <td className="num">{t.rep}</td>
                     <td>
-                      <GateBadges
+                      <GateTriplet
                         compilePassed={t.compile_passed}
                         visiblePassed={t.visible_passed}
                         hiddenPassed={t.hidden_passed}

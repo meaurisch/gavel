@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
 import { api } from "./api";
 import { useDb } from "./db";
 import { useFetch } from "./hooks";
+import { GavelMark } from "./components/GavelMark";
 import { Dashboard } from "./pages/Dashboard";
 import { GradePicker } from "./pages/GradePicker";
 import { GradeSession } from "./pages/GradeSession";
@@ -50,12 +51,34 @@ function DbSwitcher() {
   );
 }
 
+function ThemeToggle() {
+  const [theme, setTheme] = useState<string>(
+    () => localStorage.getItem("gavel.theme") ?? "light",
+  );
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("gavel.theme", theme);
+  }, [theme]);
+  return (
+    <button
+      className="btn ghost sm"
+      onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
+      title={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+      aria-label="Toggle color theme"
+      data-testid="theme-toggle"
+    >
+      {theme === "light" ? "☾" : "☀"}
+    </button>
+  );
+}
+
 export default function App() {
   return (
     <div className="app-shell">
       <nav className="app-nav">
         <NavLink to="/" className="wordmark">
-          Tiltyard
+          <GavelMark size={22} />
+          gavel
         </NavLink>
         <div className="nav-links">
           <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
@@ -76,6 +99,7 @@ export default function App() {
         </div>
         <div className="nav-spacer" />
         <DbSwitcher />
+        <ThemeToggle />
       </nav>
       <Routes>
         <Route path="/" element={<Dashboard />} />
