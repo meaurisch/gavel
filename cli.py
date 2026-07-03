@@ -166,13 +166,7 @@ def run(
     console.print(f"\n[bold]Done.[/] {passed} passed, {failed} failed, {errors} errors. Total cost: ${total_usd:.2f}")
 
 
-@app.command()
-def grade(
-    db: Path = typer.Option(Path("results.db"), help="Database path"),
-    port: int = typer.Option(8247, help="Server port"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Debug logging"),
-):
-    """Launch the pairwise grading UI."""
+def _serve_ui(db: Path, port: int, verbose: bool, landing: str = "") -> None:
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(levelname)s %(name)s: %(message)s",
@@ -181,13 +175,35 @@ def grade(
     from ui.server import app as fastapi_app, set_db_path
 
     set_db_path(db)
-    console.print(f"[bold]Grading UI[/] → http://localhost:{port}")
+    console.print(f"[bold]Tiltyard UI[/] → http://localhost:{port}{landing}")
+    console.print("[dim]Dashboard, grading, run launcher, browse, and reports all live there.[/]")
     uvicorn.run(
         fastapi_app,
         host="127.0.0.1",
         port=port,
         log_level="debug" if verbose else "warning",
     )
+
+
+@app.command()
+def ui(
+    db: Path = typer.Option(Path("results.db"), help="Default database (switchable in the UI)"),
+    port: int = typer.Option(8247, help="Server port"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Debug logging"),
+):
+    """Launch the web UI — the single entry point for grading, launching runs,
+    browsing results, and reports."""
+    _serve_ui(db, port, verbose)
+
+
+@app.command()
+def grade(
+    db: Path = typer.Option(Path("results.db"), help="Database path"),
+    port: int = typer.Option(8247, help="Server port"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Debug logging"),
+):
+    """Launch the web UI landing on the grading picker (alias of `ui`)."""
+    _serve_ui(db, port, verbose, landing="/grade")
 
 
 @app.command()
@@ -330,9 +346,10 @@ def report(
 def setup(
     check: bool = typer.Option(False, "--check", help="Report state without changing anything"),
     skip_vendor: bool = typer.Option(False, "--skip-vendor", help="Skip vendoring methodology packs"),
+    skip_frontend: bool = typer.Option(False, "--skip-frontend", help="Skip building the web UI"),
 ):
     """One-shot bootstrap: clone task repos, rebuild the deterministic
-    task-base commits, and vendor the methodology packs."""
+    task-base commits, vendor the methodology packs, and build the web UI."""
     sys.path.insert(0, str(Path(__file__).parent / "scripts"))
     from bootstrap_repos import bootstrap
 
@@ -363,9 +380,20 @@ def setup(
                 console.print(f"[red]vendor pack {mid}: {e}[/]")
                 failed = True
 
+    if not check and not skip_frontend:
+        from frontend_setup import build_frontend
+
+        console.print("[dim]building web UI (npm install + build)…[/]")
+        ok, detail = build_frontend()
+        if ok:
+            console.print(f"[green]web UI: {detail}[/]")
+        else:
+            console.print(f"[red]web UI: {detail}[/]")
+            failed = True
+
     if failed:
         raise typer.Exit(code=1)
-    console.print("[bold green]Setup complete.[/] Run [bold]python cli.py doctor[/] to verify toolchains.")
+    console.print("[bold green]Setup complete.[/] Run [bold]python cli.py doctor[/] to verify toolchains, then [bold]python cli.py ui[/].")
 
 
 @app.command()

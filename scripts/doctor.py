@@ -101,6 +101,26 @@ def check_vendor_packs() -> list[DoctorRow]:
     ]
 
 
+def check_node() -> DoctorRow:
+    from frontend_setup import node_version, npm_path
+
+    version = node_version()
+    npm = npm_path()
+    ok = version is not None and npm is not None
+    detail = f"node {version}, npm present" if ok else "node/npm not found on PATH"
+    return DoctorRow("node + npm", ok, True, detail,
+                     "Install Node.js 18+ (https://nodejs.org) — needed to build the web UI")
+
+
+def check_frontend_built() -> DoctorRow:
+    from frontend_setup import frontend_built
+
+    built = frontend_built()
+    return DoctorRow("web UI build", built, True,
+                     "ui/frontend/dist present" if built else "ui/frontend/dist missing",
+                     "Run `python cli.py setup` (or: cd ui/frontend && npm install && npm run build)")
+
+
 def check_pricing() -> DoctorRow:
     try:
         from cost.pricing import load_pricing
@@ -113,7 +133,8 @@ def check_pricing() -> DoctorRow:
 
 
 def run_all_checks() -> list[DoctorRow]:
-    rows = [check_git(), check_claude_cli(), check_dotnet(), check_wsl()]
+    rows = [check_git(), check_node(), check_frontend_built(),
+            check_claude_cli(), check_dotnet(), check_wsl()]
     rows.extend(check_task_bases())
     rows.extend(check_vendor_packs())
     rows.append(check_pricing())

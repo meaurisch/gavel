@@ -79,3 +79,20 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
   "after line N", not "at N-1"), so three-way tables rendered ZERO rows for
   created files. Fixed in lib/diff.ts annotate(); verified 29 aligned rows
   render for the demo pair afterward.
+- Setup/doctor integration: `cli.py setup` now builds the web UI (npm ci +
+  build via scripts/frontend_setup.py, --skip-frontend to opt out); doctor
+  gained required `node + npm` and `web UI build` rows (verified green
+  live); `cli.py ui` is the documented entry point (grade = alias landing on
+  /grade); tasks.ps1 gained `Ui`; README Quickstart rewritten around the
+  single-entry-point flow with the Node 18+ prerequisite.
+- Run launcher verified LIVE end-to-end in the browser: paid path
+  (claude-code) shows the spend banner with pricing rates + honest "no
+  historical data" note and a disabled launch until the SPEND phrase is
+  typed (never launched); free path ran a real nop trial on moreiter-A into
+  scratch-ui-live.db — SSE progress streamed to the table, status done,
+  gate FAIL (correct for nop: build ✓ visible ✓ hidden ✗), and the trial
+  browsable after switching the UI to the scratch DB via ?db=. Scratch DB
+  deleted afterward.
+- Note for automation: the run-launcher multi-pick buttons derive toggle
+  state from props, so same-tick programmatic clicks race React's rerender —
+  click sequentially with a settle delay in tests (humans are unaffected).

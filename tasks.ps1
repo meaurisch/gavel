@@ -36,6 +36,11 @@ function Watch {
     ptw . @args
 }
 
+function Ui {
+    Invoke-Venv
+    python cli.py ui @args
+}
+
 function Grade {
     Invoke-Venv
     python cli.py grade @args

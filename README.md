@@ -87,33 +87,44 @@ The full design — architecture, phasing, run protocol, decision rule — lives
 
 ## Quickstart
 
+Prerequisites: Python 3.12+, git, and Node.js 18+ (the web UI is built once
+during setup; `doctor` checks all three).
+
 ```powershell
 git clone <this-repo> setup-bench && cd setup-bench
-.\tasks.ps1 Setup     # venv + deps + clone task repos + rebuild task bases + doctor
+.\tasks.ps1 Setup     # venv + deps + clone task repos + rebuild task bases + build web UI + doctor
+.\tasks.ps1 Ui        # open the web UI → http://localhost:8247
 ```
 
 `Setup` runs `python cli.py setup`, which makes a fresh clone fully runnable:
 it clones the task repos, **deterministically rebuilds the synthesized task
 base commits** (see `tasks/_repo_setup/repos.lock.yaml` — same sha on every
-machine), and vendors the methodology packs. `python cli.py doctor` then
-prints a green/red readiness table (git, claude CLI, dotnet, WSL, bases,
-vendor packs, pricing).
+machine), vendors the methodology packs, and builds the web UI
+(`ui/frontend`, npm install + build — local only, no accounts or cloud).
+`python cli.py doctor` then prints a green/red readiness table (git,
+node/npm, web UI build, claude CLI, dotnet, WSL, bases, vendor packs,
+pricing).
+
+**The web UI is the single entry point**: a dashboard linking blind pairwise
+grading (with resume), a run launcher with live progress (free self-test
+runners by default; paid runs require an explicit typed confirmation plus a
+cost estimate), a trial browser with full gate logs and costs, and the
+Bradley-Terry ranking report. A database switcher in the top bar moves
+between `results.db`, the demo DB, and any scratch DBs.
 
 Want to see the tool before spending a cent? Seed the synthetic demo:
 
 ```powershell
-python cli.py demo                       # builds results-demo.db (zero API spend)
-python cli.py grade  --db results-demo.db    # blind pairwise grading UI
-python cli.py report --db results-demo.db    # ranking + Pareto frontier artifact
+python cli.py demo                    # builds results-demo.db (zero API spend)
+python cli.py ui --db results-demo.db # dashboard → grading, browse, report
 ```
-
-![Blind pairwise grading](docs/screenshots/grading-compare.png)
 
 ## How to run it
 
 ```powershell
-.\tasks.ps1 Run       # execute trials (passes args through to `cli.py run`)
-.\tasks.ps1 Grade     # launch the pairwise grading UI
+.\tasks.ps1 Ui        # web UI: dashboard, grading, run launcher, browse, report
+.\tasks.ps1 Run       # execute trials from the terminal (passes args to `cli.py run`)
+.\tasks.ps1 Grade     # web UI landing on the grading picker (alias)
 .\tasks.ps1 Report    # rank an axis: BT scores + CIs, cost, Pareto frontier
 .\tasks.ps1 Watch     # run tests on every file change
 ```

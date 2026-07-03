@@ -26,3 +26,21 @@ def test_check_pricing_ok():
     row = doctor.check_pricing()
     assert row.ok
     assert "models priced" in row.detail
+
+
+def test_check_node_and_frontend_rows_present():
+    rows = doctor.run_all_checks()
+    by_name = {r.name: r for r in rows}
+    assert "node + npm" in by_name
+    assert "web UI build" in by_name
+    # Both are hard requirements of the documented quickstart.
+    assert by_name["node + npm"].required
+    assert by_name["web UI build"].required
+
+
+def test_frontend_built_detects_dist():
+    from frontend_setup import DIST_INDEX, frontend_built
+
+    # In this repo the frontend is built during development; the check must
+    # simply agree with the filesystem either way.
+    assert frontend_built() == DIST_INDEX.is_file()
