@@ -332,3 +332,14 @@ billed trials are counted in the run-summary cost total.
 - [~] **Phase R (Copilot) — DEFERRED (2026-07-01)** — no Copilot account/plan on
       hand. Runner axis stays coverable via the `manual` runner. Revive prompts
       11–13 if a Copilot plan appears.
+- [ ] **UI/UX professionalization + rebrand** — the pipeline works but the
+      grading UI reads as a hobby project: hidden picker flow, no hover
+      previews, a broken diff screen (uneven split, line numbers that don't
+      track scroll, no three-way original/A/B view), only three pass/fail
+      badges where much more gate detail already exists in the DB, and no
+      unified entry point or consistent branding across surfaces. Full prompt,
+      with root causes already traced, in
+      `recalibration_prompts/28-U1-ui-ux-professionalization.md` — a two-phase
+      Fable session (phase 1: functional rebuild, plain styling; phase 2:
+      apply a real design) with a human-run Claude Design interlude between
+      the two, on a dedicated branch.
