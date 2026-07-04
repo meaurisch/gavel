@@ -361,18 +361,22 @@ def test_marathon_keyboard_session_with_reload(page, server):
                 f"() => document.querySelector('[data-testid=\"pair-progress\"]').textContent.includes('{i + 1} judged')"
             )
 
-    # After the last judgment the app moves to the reveal screen.
+    # After the last judgment the app moves to the reveal CONFIRM screen —
+    # revealing is irreversible, so it takes one explicit click.
     page.wait_for_url("**/reveal**", timeout=10000)
+    page.wait_for_selector('[data-testid="reveal-confirm"]')
+    page.get_by_test_id("confirm-reveal").click()
     page.wait_for_selector('[data-testid="reveal-pairs"]')
     reveal = page.locator('[data-testid="reveal-pairs"]').inner_text()
     for meth in METHS:  # now (and only now) values are revealed
         assert meth in reveal
 
 
-def test_reveal_closes_session_in_ui(page, server):
-    """Guessing the reveal URL mid-session must not turn into unblinded
-    grading: the reveal shows judged pairs only, and the session page then
-    refuses further judgments (critic finding #1)."""
+def test_reveal_needs_confirmation_then_closes_session(page, server):
+    """Landing on the reveal URL mid-session (URL autocomplete, a slipped
+    keystroke) must NOT close the session — it shows a confirmation step and
+    leaks nothing. Only the explicit confirm closes it, unblinds the judged
+    pairs, and disables further judging."""
     _start_session(page, server, "methodology")
     session_url = page.url
     page.keyboard.press("a")
@@ -380,12 +384,29 @@ def test_reveal_closes_session_in_ui(page, server):
         "() => document.querySelector('[data-testid=\"pair-progress\"]').textContent.includes('1 judged')"
     )
 
+    # Bare navigation → confirm screen; session stays open, nothing unblinded.
     page.goto(session_url.rstrip("/") + "/reveal")
+    page.wait_for_selector('[data-testid="reveal-confirm"]')
+    assert page.locator('[data-testid="reveal-pairs"]').count() == 0
+    html = page.content()
+    for meth in METHS:
+        assert meth not in html, "confirm screen must not leak axis values"
+
+    # Going back, the session is still judgeable.
+    page.goto(session_url)
+    page.wait_for_selector('[data-testid="judge-bar"]')
+    page.keyboard.press("b")
+    page.wait_for_function(
+        "() => document.querySelector('[data-testid=\"pair-progress\"]').textContent.includes('2 judged')"
+    )
+
+    # Explicit confirm closes the session and unblinds ONLY the judged pairs.
+    page.goto(session_url.rstrip("/") + "/reveal")
+    page.wait_for_selector('[data-testid="reveal-confirm"]')
+    page.get_by_test_id("confirm-reveal").click()
     page.wait_for_selector('[data-testid="session-closed-note"]')
-    note = page.get_by_test_id("session-closed-note").inner_text()
-    assert "stayed blind" in note
-    # Only the judged pair is unblinded.
-    assert page.locator('[data-testid="reveal-pairs"] tbody tr').count() == 1
+    assert "stayed blind" in page.get_by_test_id("session-closed-note").inner_text()
+    assert page.locator('[data-testid="reveal-pairs"] tbody tr').count() == 2
 
     page.goto(session_url)
     page.wait_for_selector('[data-testid="session-closed-bar"]')

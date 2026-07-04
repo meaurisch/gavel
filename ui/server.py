@@ -26,7 +26,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import Body, FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -207,8 +207,37 @@ def _axis_ids_for_blinding(trials) -> dict[str, list[str]]:
 
 app = FastAPI(title="gavel (formerly setup-bench)")
 app.mount("/reports", StaticFiles(directory=str(REPORTS_DIR), check_dir=False), name="reports")
-if (FRONTEND_DIST / "assets").is_dir():
-    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
+
+# Rescue script for browsers holding a STALE cached SPA shell: an old shell
+# requests hashed bundles that no longer exist after a rebuild, which would
+# render a dead blank page. Serving this in place of the missing bundle makes
+# the browser revalidate the shell (a reload always revalidates the top-level
+# document) and pick up the current bundle. sessionStorage guards against a
+# reload loop if the build itself is broken; the app clears the flag once it
+# mounts successfully (see main.tsx).
+_STALE_BUNDLE_RESCUE_JS = (
+    "console.warn('gavel: cached app shell references a bundle that no longer "
+    "exists - reloading to fetch the current version');"
+    "try{if(sessionStorage.getItem('gavel-bundle-reload')!=='1')"
+    "{sessionStorage.setItem('gavel-bundle-reload','1');location.reload();}}"
+    "catch(e){location.reload();}"
+)
+
+
+@app.get("/assets/{asset_path:path}", include_in_schema=False)
+async def assets(asset_path: str):
+    base = (FRONTEND_DIST / "assets").resolve()
+    target = (base / asset_path).resolve()
+    if target.is_file() and target.is_relative_to(base):
+        # Bundle names are content-hashed — safe to cache forever.
+        return FileResponse(target, headers={"Cache-Control": "public, max-age=31536000, immutable"})
+    if asset_path.endswith(".js"):
+        return PlainTextResponse(
+            _STALE_BUNDLE_RESCUE_JS,
+            media_type="application/javascript",
+            headers={"Cache-Control": "no-store"},
+        )
+    raise HTTPException(404, "Not found")
 
 # ---------------------------------------------------------------------------
 # Pydantic models
@@ -344,15 +373,23 @@ class AnalyzerFlagsModel(BaseModel):
 
 
 class RevealResponse(BaseModel):
+    revealed: bool                    # False = locked stub: no unblinded data
     pairs: list[RevealPair]           # judged pairs ONLY — unjudged stay blind
     summary: dict[str, AxisValueRecord]
     axis: str
     cell: dict[str, str]
+    n_judged: int = 0
     n_unjudged: int = 0
+    total_pairs: int = 0
     revealed_at: str | None = None
     bt_scores: list[BTScore] | None = None
     analyzer_flags: AnalyzerFlagsModel | None = None
     pass_rates: dict[str, float] | None = None
+
+
+class RevealRequest(BaseModel):
+    session_id: str
+    db: str = ""
 
 
 class AxisValueStats(BaseModel):
@@ -900,112 +937,147 @@ async def judge(req: JudgeRequest) -> JudgeResponse:
 
 @app.get("/api/reveal")
 async def reveal(session_id: str, db: str = "") -> RevealResponse:
+    """Read-only. An unrevealed session returns a LOCKED stub (counts only,
+    nothing unblinded) — a bare GET must never destroy blind judging. Closing
+    the session takes an explicit POST /api/reveal (the UI's confirm step)."""
     conn = _open(db)
     try:
         session = _get_session(conn, session_id)
         if session is None:
             raise HTTPException(404, "Session not found")
-
-        # Revealing closes the session for good (see /api/judge). The first
-        # reveal's timestamp sticks; later loads of the reveal page are reads.
         if session.revealed_at is None:
-            revealed_at = datetime.now(timezone.utc).isoformat()
-            mark_session_revealed(conn, session_id, revealed_at)
-            session.revealed_at = revealed_at
-
-        field = AXIS_FIELDS[session.axis]
-
-        judgments = list_judgments(conn, session_id)
-        judgment_by_pair: dict[tuple[str, str], Judgment] = {}
-        for j in judgments:
-            judgment_by_pair[(j.left_trial_id, j.right_trial_id)] = j
-
-        reveal_pairs: list[RevealPair] = []
-        summary: dict[str, AxisValueRecord] = defaultdict(lambda: AxisValueRecord(wins=0, losses=0, ties=0))
-        comparisons: list[tuple[str, str, str]] = []
-        n_unjudged = 0
-
-        for i, (left_id, right_id) in enumerate(session.pairs):
-            j = judgment_by_pair.get((left_id, right_id))
-            choice = j.choice if j else None
-
-            # Unjudged pairs stay blind forever: the session is closed now,
-            # but their assignments still say which trial (= which diff) maps
-            # to which axis value — knowledge that could deblind a future
-            # session over the same trials. Expose only what was judged.
-            if choice is None:
-                n_unjudged += 1
-                continue
-
-            left_trial = get_trial(conn, left_id)
-            right_trial = get_trial(conn, right_id)
-            left_value = getattr(left_trial, field)
-            right_value = getattr(right_trial, field)
-
-            reveal_pairs.append(RevealPair(
-                pair_index=i,
-                left_value=left_value,
-                right_value=right_value,
-                choice=choice,
-            ))
-
-            if choice == "A":
-                comparisons.append((left_value, right_value, "win"))
-            elif choice == "B":
-                comparisons.append((left_value, right_value, "loss"))
-            elif choice == "tie":
-                comparisons.append((left_value, right_value, "tie"))
-
-            if choice == "A":
-                rec = summary[left_value]
-                summary[left_value] = AxisValueRecord(wins=rec.wins + 1, losses=rec.losses, ties=rec.ties)
-                rec = summary[right_value]
-                summary[right_value] = AxisValueRecord(wins=rec.wins, losses=rec.losses + 1, ties=rec.ties)
-            elif choice == "B":
-                rec = summary[right_value]
-                summary[right_value] = AxisValueRecord(wins=rec.wins + 1, losses=rec.losses, ties=rec.ties)
-                rec = summary[left_value]
-                summary[left_value] = AxisValueRecord(wins=rec.wins, losses=rec.losses + 1, ties=rec.ties)
-            elif choice == "tie":
-                rec = summary[left_value]
-                summary[left_value] = AxisValueRecord(wins=rec.wins, losses=rec.losses, ties=rec.ties + 1)
-                rec = summary[right_value]
-                summary[right_value] = AxisValueRecord(wins=rec.wins, losses=rec.losses, ties=rec.ties + 1)
-
-        # Bradley-Terry ranking — only when there's enough signal.
-        bt_scores: list[BTScore] | None = None
-        if len(comparisons) >= 3:
-            strengths = fit_bradley_terry(comparisons)
-            elos = bt_scores_to_elo(strengths)
-            cis = bootstrap_ci(comparisons, seed=0)
-            scale = 400.0 / math.log(10)
-            rows: list[BTScore] = []
-            for value, elo in elos.items():
-                lo, _med, hi = cis.get(value, (strengths[value], strengths[value], strengths[value]))
-                rows.append(BTScore(
-                    axis_value=value,
-                    elo=elo,
-                    ci_lower=1000.0 + scale * lo,
-                    ci_upper=1000.0 + scale * hi,
-                ))
-            bt_scores = sorted(rows, key=lambda r: r.elo, reverse=True)
-
-        # Objective stats over the whole cell (passing + failing reps).
-        pass_rates, flags = _cell_pass_rates_and_flags(conn, session.axis, session.cell)
-
-        return RevealResponse(
-            pairs=reveal_pairs,
-            summary=dict(summary),
-            axis=session.axis,
-            cell=session.cell,
-            n_unjudged=n_unjudged,
-            revealed_at=session.revealed_at,
-            bt_scores=bt_scores,
-            analyzer_flags=flags,
-            pass_rates=pass_rates,
-        )
+            n_judged = len(session.judgments_made)
+            return RevealResponse(
+                revealed=False,
+                pairs=[],
+                summary={},
+                axis=session.axis,
+                cell=session.cell,
+                n_judged=n_judged,
+                n_unjudged=len(session.pairs) - n_judged,
+                total_pairs=len(session.pairs),
+            )
+        return _reveal_payload(conn, session)
     finally:
         conn.close()
+
+
+@app.post("/api/reveal")
+async def reveal_confirm(req: RevealRequest) -> RevealResponse:
+    """Permanently close the session and unblind its judged pairs. Idempotent:
+    the first reveal's timestamp sticks."""
+    conn = _open(req.db)
+    try:
+        session = _get_session(conn, req.session_id)
+        if session is None:
+            raise HTTPException(404, "Session not found")
+        if session.revealed_at is None:
+            revealed_at = datetime.now(timezone.utc).isoformat()
+            mark_session_revealed(conn, req.session_id, revealed_at)
+            session.revealed_at = revealed_at
+        return _reveal_payload(conn, session)
+    finally:
+        conn.close()
+
+
+def _reveal_payload(conn: sqlite3.Connection, session: SessionState) -> RevealResponse:
+    """The unblinded reveal data for a session that IS revealed. Callers own
+    the connection."""
+    field = AXIS_FIELDS[session.axis]
+    session_id = session.session_id
+
+    judgments = list_judgments(conn, session_id)
+    judgment_by_pair: dict[tuple[str, str], Judgment] = {}
+    for j in judgments:
+        judgment_by_pair[(j.left_trial_id, j.right_trial_id)] = j
+
+    reveal_pairs: list[RevealPair] = []
+    summary: dict[str, AxisValueRecord] = defaultdict(lambda: AxisValueRecord(wins=0, losses=0, ties=0))
+    comparisons: list[tuple[str, str, str]] = []
+    n_unjudged = 0
+
+    for i, (left_id, right_id) in enumerate(session.pairs):
+        j = judgment_by_pair.get((left_id, right_id))
+        choice = j.choice if j else None
+
+        # Unjudged pairs stay blind forever: the session is closed now,
+        # but their assignments still say which trial (= which diff) maps
+        # to which axis value — knowledge that could deblind a future
+        # session over the same trials. Expose only what was judged.
+        if choice is None:
+            n_unjudged += 1
+            continue
+
+        left_trial = get_trial(conn, left_id)
+        right_trial = get_trial(conn, right_id)
+        left_value = getattr(left_trial, field)
+        right_value = getattr(right_trial, field)
+
+        reveal_pairs.append(RevealPair(
+            pair_index=i,
+            left_value=left_value,
+            right_value=right_value,
+            choice=choice,
+        ))
+
+        if choice == "A":
+            comparisons.append((left_value, right_value, "win"))
+        elif choice == "B":
+            comparisons.append((left_value, right_value, "loss"))
+        elif choice == "tie":
+            comparisons.append((left_value, right_value, "tie"))
+
+        if choice == "A":
+            rec = summary[left_value]
+            summary[left_value] = AxisValueRecord(wins=rec.wins + 1, losses=rec.losses, ties=rec.ties)
+            rec = summary[right_value]
+            summary[right_value] = AxisValueRecord(wins=rec.wins, losses=rec.losses + 1, ties=rec.ties)
+        elif choice == "B":
+            rec = summary[right_value]
+            summary[right_value] = AxisValueRecord(wins=rec.wins + 1, losses=rec.losses, ties=rec.ties)
+            rec = summary[left_value]
+            summary[left_value] = AxisValueRecord(wins=rec.wins, losses=rec.losses + 1, ties=rec.ties)
+        elif choice == "tie":
+            rec = summary[left_value]
+            summary[left_value] = AxisValueRecord(wins=rec.wins, losses=rec.losses, ties=rec.ties + 1)
+            rec = summary[right_value]
+            summary[right_value] = AxisValueRecord(wins=rec.wins, losses=rec.losses, ties=rec.ties + 1)
+
+    # Bradley-Terry ranking — only when there's enough signal.
+    bt_scores: list[BTScore] | None = None
+    if len(comparisons) >= 3:
+        strengths = fit_bradley_terry(comparisons)
+        elos = bt_scores_to_elo(strengths)
+        cis = bootstrap_ci(comparisons, seed=0)
+        scale = 400.0 / math.log(10)
+        rows: list[BTScore] = []
+        for value, elo in elos.items():
+            lo, _med, hi = cis.get(value, (strengths[value], strengths[value], strengths[value]))
+            rows.append(BTScore(
+                axis_value=value,
+                elo=elo,
+                ci_lower=1000.0 + scale * lo,
+                ci_upper=1000.0 + scale * hi,
+            ))
+        bt_scores = sorted(rows, key=lambda r: r.elo, reverse=True)
+
+    # Objective stats over the whole cell (passing + failing reps).
+    pass_rates, flags = _cell_pass_rates_and_flags(conn, session.axis, session.cell)
+
+    return RevealResponse(
+        revealed=True,
+        pairs=reveal_pairs,
+        summary=dict(summary),
+        axis=session.axis,
+        cell=session.cell,
+        n_judged=len(reveal_pairs),
+        n_unjudged=n_unjudged,
+        total_pairs=len(session.pairs),
+        revealed_at=session.revealed_at,
+        bt_scores=bt_scores,
+        analyzer_flags=flags,
+        pass_rates=pass_rates,
+    )
 
 
 def _cell_trials(conn: sqlite3.Connection, cell: dict[str, str]):

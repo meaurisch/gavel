@@ -80,6 +80,13 @@ export const api = {
   reveal: (db: string, sessionId: string) =>
     request<RevealResponse>("/api/reveal", { db, session_id: sessionId }),
 
+  revealConfirm: (db: string, sessionId: string) =>
+    request<RevealResponse>("/api/reveal", {}, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ db, session_id: sessionId }),
+    }),
+
   trials: (db: string) => request<TrialRow[]>("/api/trials", { db }),
 
   trialDetail: (db: string, trialId: string) =>

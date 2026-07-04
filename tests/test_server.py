@@ -193,9 +193,15 @@ def test_reveal_includes_bt_scores_and_flags(client):
 
     _judge_n(client, session_id, pairs, len(pairs))
 
-    rev = client.get("/api/reveal", params={"session_id": session_id})
+    # GET is read-only: an unrevealed session returns a locked stub.
+    locked = client.get("/api/reveal", params={"session_id": session_id}).json()
+    assert locked["revealed"] is False
+    assert locked["pairs"] == []
+
+    rev = client.post("/api/reveal", json={"session_id": session_id})
     assert rev.status_code == 200
     body = rev.json()
+    assert body["revealed"] is True
 
     assert body["bt_scores"] is not None
     values = {s["axis_value"] for s in body["bt_scores"]}
@@ -212,7 +218,7 @@ def test_reveal_skips_bt_with_few_judgments(client):
     data = resp.json()
     _judge_n(client, data["session_id"], data["pairs"], 2)
 
-    rev = client.get("/api/reveal", params={"session_id": data["session_id"]})
+    rev = client.post("/api/reveal", json={"session_id": data["session_id"]})
     body = rev.json()
     assert body["bt_scores"] is None
 
@@ -314,7 +320,7 @@ def test_session_survives_server_restart(client):
     server._sessions.clear()
 
     # Judging and revealing must still work off the persisted session.
-    reveal = client.get("/api/reveal", params={"session_id": sid})
+    reveal = client.post("/api/reveal", json={"session_id": sid})
     assert reveal.status_code == 200
     judged = [p for p in reveal.json()["pairs"] if p["choice"] == "A"]
     assert len(judged) == 1

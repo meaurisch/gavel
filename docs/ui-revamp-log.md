@@ -195,6 +195,32 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
     idempotency, mid-session reload), SPEND gate exactness, dark-theme
     sweep, hostile localStorage/deep-link/back-forward probes.
 
+- Fresh critic pass 2: 0 blockers, 1 major, 1 minor, 3 nits.
+  - MAJOR: preview cards clipped at the viewport bottom on table-cell
+    anchors at 1100×800. Two compounding causes found: (a) one-shot
+    placement — a fixed-position card goes stale when its anchor scrolls or
+    its height settles after first layout; (b) the SPA shell (index.html)
+    was served without Cache-Control, so browsers heuristically cached it
+    and kept loading OLD bundles after rebuilds (this also explains the
+    "stale pre-redesign bundle" console crash both critics noticed).
+    Fixes: cards now reposition continuously while open (capture-phase
+    scroll + resize listeners + ResizeObserver), and the shell ships
+    `Cache-Control: no-cache` (hashed assets still cache). Re-measured the
+    exact repro: card flips above (618–717 vs anchor 723, fully visible)
+    and tracks a 120px container scroll 1:1.
+  - Minor/nits: picker resume banner adds "+N more — the dashboard lists
+    them all" past 4 rows (dashboard now lists all); unknown routes get a
+    back-to-dashboard link; artifacts caption renders once per section.
+    The wrong-DB 404 console entry stays: browsers always log failed
+    requests, and the UI recovers with the helpful error + back link —
+    accepted as cosmetic devtools noise.
+  - Critic-2 confirmed clean: blinding at DOM AND network layer, reveal
+    closure incl. direct API 409 probe, diff geometry (equal panes with a
+    500-char injected line, 0.5px row alignment), keyboard + reload
+    persistence, SPEND gate exactness (case-sensitive arm/disarm), zero
+    page overflow on every screen at both widths, dark theme + fonts +
+    branding sweep (zero Tiltyard/setup-bench in the bundle).
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green

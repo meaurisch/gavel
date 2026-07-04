@@ -12,12 +12,20 @@ interface DbState {
 const DbContext = createContext<DbState>({ db: "", setDb: () => {} });
 
 const STORAGE_KEY = "gavel.db";
+const LEGACY_KEY = "tiltyard.db"; // pre-rename builds — migrate, then drop
 
 export function DbProvider({ children }: { children: ReactNode }) {
   const [db, setDbState] = useState<string>(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("db");
     if (fromUrl !== null) return fromUrl;
-    return localStorage.getItem(STORAGE_KEY) ?? "";
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored !== null) return stored;
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy !== null) {
+      localStorage.removeItem(LEGACY_KEY);
+      return legacy;
+    }
+    return "";
   });
 
   useEffect(() => {

@@ -1,12 +1,19 @@
 // Post-session reveal: which axis values were behind A/B, win/loss/tie
 // records, Bradley-Terry ranking (when enough judgments exist), objective
 // pass rates, and analyzer flags.
+//
+// Revealing is IRREVERSIBLE (it closes the session), so an unrevealed
+// session shows an explicit confirmation step first — a bare page load
+// (URL autocomplete, a slipped keystroke on the last pair) must never
+// destroy blind judging on its own.
 
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, fmtPct } from "../api";
 import { useDb } from "../db";
 import { useCatalog, useFetch } from "../hooks";
 import { AXIS_LABELS } from "../types";
+import type { RevealResponse } from "../types";
 import { IdChip } from "../components/previews";
 
 const AXIS_TO_KIND: Record<string, "methodology" | "model" | "repo_context" | "runner"> = {
@@ -20,11 +27,62 @@ export function RevealPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const { db } = useDb();
   const { catalog } = useCatalog();
-  const { data, error, loading } = useFetch(() => api.reveal(db, sessionId!), [db, sessionId]);
+  const { data: fetched, error, loading } = useFetch(() => api.reveal(db, sessionId!), [db, sessionId]);
+  const [confirmed, setConfirmed] = useState<RevealResponse | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  const data = confirmed ?? fetched;
+
+  const confirm = async () => {
+    setConfirming(true);
+    setConfirmError(null);
+    try {
+      setConfirmed(await api.revealConfirm(db, sessionId!));
+    } catch (e) {
+      setConfirmError(String((e as Error).message ?? e));
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   if (loading) return <main className="app-main"><div className="empty-state">Loading…</div></main>;
   if (error) return <main className="app-main"><div className="error-banner">{error}</div></main>;
   if (!data) return null;
+
+  if (!data.revealed) {
+    return (
+      <main className="app-main">
+        <div className="page" style={{ maxWidth: "44rem" }}>
+          <h1>Reveal the verdict?</h1>
+          <div className="card" data-testid="reveal-confirm">
+            <p className="small" style={{ marginTop: 0 }}>
+              Revealing unblinds the <strong>{data.n_judged}</strong> judged pair
+              {data.n_judged === 1 ? "" : "s"} of this {AXIS_LABELS[data.axis] ?? data.axis} session and{" "}
+              <strong>permanently closes it</strong> — no further blind judging is possible afterward.
+            </p>
+            {data.n_unjudged > 0 && (
+              <p className="small muted">
+                {data.n_unjudged} of {data.total_pairs} pairs are still unjudged. They will stay blind
+                forever and never enter the ranking. Consider resuming the session first.
+              </p>
+            )}
+            <div className="row" style={{ marginTop: "var(--space-3)" }}>
+              <button className="btn primary" onClick={() => void confirm()} disabled={confirming} data-testid="confirm-reveal">
+                {confirming ? "Striking…" : "Strike the gavel — reveal"}
+              </button>
+              {data.n_unjudged > 0 && (
+                <Link className="btn" to={`/grade/session/${sessionId}${db ? `?db=${db}` : ""}`}>
+                  Keep judging ({data.n_unjudged} left)
+                </Link>
+              )}
+            </div>
+            {confirmError && <div className="error-banner" style={{ marginTop: "var(--space-2)" }}>{confirmError}</div>}
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   const kind = AXIS_TO_KIND[data.axis] ?? "methodology";
 

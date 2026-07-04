@@ -187,11 +187,14 @@ export interface OriginalsResponse {
 }
 
 export interface RevealResponse {
+  revealed: boolean;
   pairs: { pair_index: number; left_value: string; right_value: string; choice: string | null }[];
   summary: Record<string, { wins: number; losses: number; ties: number }>;
   axis: Axis;
   cell: Record<string, string>;
+  n_judged: number;
   n_unjudged: number;
+  total_pairs: number;
   revealed_at: string | null;
   bt_scores: { axis_value: string; elo: number; ci_lower: number; ci_upper: number }[] | null;
   analyzer_flags: {

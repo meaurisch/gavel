@@ -141,9 +141,9 @@ export function ReportPage() {
               </div>
               {data.picks.high_stakes && (
                 <p className="small" style={{ marginBottom: 0 }}>
-                  <strong>High-stakes pick:</strong> {data.picks.high_stakes} · <strong>Routine pick:</strong>{" "}
-                  {data.picks.routine}
-                  <span className="xsmall muted"> (routine = cheapest value statistically indistinguishable from the winner)</span>
+                  <strong>Quality pick</strong> (high-stakes work): {data.picks.high_stakes} ·{" "}
+                  <strong>Budget pick</strong> (routine work): {data.picks.routine}
+                  <span className="xsmall muted"> — budget = cheapest value statistically indistinguishable from the winner</span>
                 </p>
               )}
             </div>

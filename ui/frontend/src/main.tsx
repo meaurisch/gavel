@@ -20,6 +20,13 @@ document.documentElement.setAttribute(
   localStorage.getItem("gavel.theme") === "dark" ? "dark" : "light",
 );
 
+// The app mounted — clear the stale-bundle rescue guard (see ui/server.py).
+try {
+  sessionStorage.removeItem("gavel-bundle-reload");
+} catch {
+  /* storage may be unavailable */
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>

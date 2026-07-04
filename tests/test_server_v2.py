@@ -210,20 +210,34 @@ def test_reveal_closes_session_and_hides_unjudged_pairs(client):
     total = data["total_pairs"]
     client.post("/api/judge", json={"session_id": sid, "pair_index": 0, "choice": "A"})
 
-    rev = client.get("/api/reveal", params={"session_id": sid})
+    # A bare GET must NOT close the session and must not unblind anything —
+    # it returns a locked stub, and judging still works afterward.
+    locked = client.get("/api/reveal", params={"session_id": sid})
+    assert locked.status_code == 200
+    stub = locked.json()
+    assert stub["revealed"] is False
+    assert stub["pairs"] == []
+    assert stub["n_judged"] == 1
+    assert "methalpha" not in locked.text and "methbeta" not in locked.text
+    # Re-judging (upsert) still works — the GET did not close the session.
+    still_open = client.post("/api/judge", json={"session_id": sid, "pair_index": 0, "choice": "tie"})
+    assert still_open.status_code == 200, "GET /api/reveal must not close the session"
+
+    # The explicit POST is what closes it.
+    rev = client.post("/api/reveal", json={"session_id": sid})
     assert rev.status_code == 200
     body = rev.json()
-    # Only the judged pair is unblinded; the rest stay blind forever.
+    assert body["revealed"] is True
+    # Only judged pairs are unblinded (latest judgment wins).
     assert len(body["pairs"]) == 1
-    assert body["pairs"][0]["choice"] == "A"
+    assert body["pairs"][0]["choice"] == "tie"
     assert body["n_unjudged"] == total - 1
     assert body["revealed_at"] is not None
 
     # Judging after reveal is refused — including re-judging the judged pair.
-    for idx in (0, 1):
-        resp = client.post("/api/judge", json={"session_id": sid, "pair_index": idx, "choice": "B"})
-        assert resp.status_code == 409, f"judgment accepted after reveal (pair {idx})"
-        assert "closed" in resp.json()["detail"]
+    resp = client.post("/api/judge", json={"session_id": sid, "pair_index": 0, "choice": "B"})
+    assert resp.status_code == 409, "judgment accepted after reveal"
+    assert "closed" in resp.json()["detail"]
 
     # The closure is persisted, not in-memory: survive a "restart".
     server._sessions.clear()
@@ -240,9 +254,11 @@ def test_reveal_timestamp_stable_across_loads(client):
     data = _start_session(client, axis="methodology")
     sid = data["session_id"]
     client.post("/api/judge", json={"session_id": sid, "pair_index": 0, "choice": "tie"})
-    first = client.get("/api/reveal", params={"session_id": sid}).json()["revealed_at"]
-    second = client.get("/api/reveal", params={"session_id": sid}).json()["revealed_at"]
-    assert first == second
+    first = client.post("/api/reveal", json={"session_id": sid}).json()["revealed_at"]
+    # Re-POST is idempotent, and a later GET reads the same closed state.
+    second = client.post("/api/reveal", json={"session_id": sid}).json()["revealed_at"]
+    third = client.get("/api/reveal", params={"session_id": sid}).json()["revealed_at"]
+    assert first == second == third
 
 
 # ---------------------------------------------------------------------------
@@ -496,3 +512,31 @@ def test_spa_fallback_when_not_built_or_index(client):
 def test_api_paths_never_fall_through_to_spa(client):
     resp = client.get("/api/definitely-not-a-thing")
     assert resp.status_code == 404
+
+
+def test_stale_bundle_request_gets_rescue_script(client):
+    """A browser holding a stale cached shell requests a hashed bundle that no
+    longer exists — it must receive a reload script, not a 404 blank page."""
+    resp = client.get("/assets/index-DEADBEEF.js")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("application/javascript")
+    assert resp.headers["cache-control"] == "no-store"
+    assert "location.reload" in resp.text
+    assert "gavel-bundle-reload" in resp.text  # loop guard
+
+    # Non-JS assets don't get the rescue treatment.
+    assert client.get("/assets/missing.css").status_code == 404
+
+
+def test_existing_bundle_served_immutable(client):
+    from ui.server import FRONTEND_DIST
+
+    assets = FRONTEND_DIST / "assets"
+    if not assets.is_dir():
+        import pytest as _pytest
+        _pytest.skip("frontend not built")
+    js = next(assets.glob("index-*.js"), None)
+    assert js is not None, "built frontend has no entry bundle"
+    resp = client.get(f"/assets/{js.name}")
+    assert resp.status_code == 200
+    assert "immutable" in resp.headers["cache-control"]
