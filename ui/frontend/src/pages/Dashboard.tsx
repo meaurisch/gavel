@@ -134,7 +134,9 @@ export function Dashboard() {
 
           <div className="card">
             <div className="card-title">Resume a session</div>
-            {unfinished.length === 0 ? (
+            {sessions === null ? (
+              <p className="small muted" style={{ margin: 0 }}>Loading…</p>
+            ) : unfinished.length === 0 ? (
               <p className="small muted" style={{ margin: 0 }}>
                 No unfinished grading sessions in this database.
               </p>

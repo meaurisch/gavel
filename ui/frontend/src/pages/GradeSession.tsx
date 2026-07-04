@@ -252,6 +252,11 @@ export function GradeSession() {
           ))}
         </span>
         <span className="nav-spacer" style={{ flex: 1 }} />
+        {pair.left.diff === pair.right.diff && (
+          <span className="badge neutral" title="Both sides contain exactly the same changes — a tie by construction." data-testid="identical-note">
+            sides are identical
+          </span>
+        )}
         <span className="small muted" data-testid="pair-progress">
           pair {index + 1} / {total} · {nJudged} judged
         </span>
@@ -348,6 +353,7 @@ export function GradeSession() {
           className={`btn ${currentChoice === "A" ? "primary" : ""}`}
           onClick={() => void judge("A")}
           disabled={judging}
+          aria-pressed={currentChoice === "A"}
           data-testid="judge-a"
         >
           <kbd className="key">A</kbd> A wins
@@ -356,6 +362,7 @@ export function GradeSession() {
           className={`btn ${currentChoice === "tie" ? "primary" : ""}`}
           onClick={() => void judge("tie")}
           disabled={judging}
+          aria-pressed={currentChoice === "tie"}
           data-testid="judge-tie"
         >
           <kbd className="key">T</kbd> Tie
@@ -364,6 +371,7 @@ export function GradeSession() {
           className={`btn ${currentChoice === "B" ? "primary" : ""}`}
           onClick={() => void judge("B")}
           disabled={judging}
+          aria-pressed={currentChoice === "B"}
           data-testid="judge-b"
         >
           <kbd className="key">B</kbd> B wins

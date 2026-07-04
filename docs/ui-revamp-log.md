@@ -260,6 +260,36 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
   script, exact hover-card anchor tracking (120px scroll → 120px card
   move), and that the raw /api/session JSON is blind at the wire level.
 
+- Fresh critic pass 5: 0 blockers, 1 major, 3 minors, 2 nits — streak
+  reset. All addressed:
+  - MAJOR: gutters (line numbers + markers) were static table cells, so
+    horizontal scrolling of long lines pushed them off-screen (measured
+    −315px). Now sticky with stacked exact offsets (3.6em + 3.6em + marker
+    at 7.2em) and opaque per-row backgrounds; locked by a new Playwright
+    regression (scroll 400px right → gutter pinned at pane edge); the
+    fixture now has a long line in every diff so any sampled pair
+    exercises overflow.
+  - Reveal with zero judgments is refused (server 409 + disabled strike +
+    honest copy) — reveal isn't an abandon-session mechanism; the confirm
+    screen always offers a way back (Keep judging / Back to the pairs /
+    Start judging).
+  - The two pre-redesign report artifacts (regenerable outputs, still
+    setup-bench-branded) deleted — everything the Report page links is now
+    on-brand.
+  - Cost-visibility on the methodology axis re-flagged (critic 3 raised it
+    too): kept AS DESIGNED — the phase-1 spec requires metrics during
+    comparison, the decision rule breaks quality ties on cost, and
+    Design's own session mockup shows them; values stay coarsened and the
+    readout now carries an explanatory tooltip so the choice is visible in
+    the product, not just the docs. Model/runner axes keep withholding
+    them entirely.
+  - Accepted: judge keys ignored while a judgment POST is in flight
+    (idempotency guard — critic confirmed UI/API stay consistent).
+  - Pass 5 also confirmed clean: wire-level blinding, the reveal
+    lifecycle incl. double-strike idempotency and all four
+    singular/plural copy states, sticky hover-card behavior through theme
+    toggles, 900x600 overflow, the rescue script, API abuse tolerance.
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green

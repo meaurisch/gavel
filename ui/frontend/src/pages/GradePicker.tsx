@@ -274,7 +274,8 @@ export function GradePicker() {
           <div className="card-title">Comparison axis</div>
           <div className="row wrap" data-testid="axis-picker">
             {AXES.map((a) => {
-              const n = gradeable.get(a) ?? 0;
+              // axes not loaded yet -> show a placeholder, not a false "0"
+              const n = axes === null ? null : gradeable.get(a) ?? 0;
               return (
                 <button
                   key={a}
@@ -284,7 +285,9 @@ export function GradePicker() {
                   data-testid={`axis-${a}`}
                 >
                   {AXIS_LABELS[a]}
-                  <span className={`badge ${n > 0 ? (axis === a ? "neutral" : "accent") : "neutral"}`}>{n}</span>
+                  <span className={`badge ${(n ?? 0) > 0 ? (axis === a ? "neutral" : "accent") : "neutral"}`}>
+                    {n ?? "…"}
+                  </span>
                 </button>
               );
             })}
