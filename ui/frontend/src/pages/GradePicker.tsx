@@ -240,6 +240,12 @@ function ResumeCard() {
             </Link>
           </div>
         ))}
+        {unfinished.length > 4 && (
+          <span className="xsmall muted">
+            +{unfinished.length - 4} more — the <Link to={`/${db ? `?db=${db}` : ""}`}>dashboard</Link> lists
+            them all.
+          </span>
+        )}
       </div>
     </div>
   );

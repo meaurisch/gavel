@@ -42,22 +42,42 @@ export function HoverPreview({
     closeTimer.current = window.setTimeout(() => setOpen(false), 120);
   };
 
+  // Position on open and KEEP positioning while open: the card is
+  // position:fixed, so any scroll (page or an inner container) or a late
+  // card-size change would otherwise leave it stranded where the anchor
+  // used to be — exactly how a card ends up clipped at the viewport edge.
   useLayoutEffect(() => {
-    if (!open || !anchorRef.current || !cardRef.current) return;
-    const a = anchorRef.current.getBoundingClientRect();
-    const cardH = cardRef.current.getBoundingClientRect().height;
+    if (!open) return;
 
-    const left = Math.max(MARGIN, Math.min(a.left, window.innerWidth - CARD_WIDTH - MARGIN));
-    const spaceBelow = window.innerHeight - a.bottom - GAP - MARGIN;
-    const spaceAbove = a.top - GAP - MARGIN;
+    const update = () => {
+      if (!anchorRef.current || !cardRef.current) return;
+      const a = anchorRef.current.getBoundingClientRect();
+      const cardH = cardRef.current.getBoundingClientRect().height;
 
-    let top: number;
-    if (cardH <= spaceBelow || spaceBelow >= spaceAbove) {
-      top = Math.min(a.bottom + GAP, window.innerHeight - Math.min(cardH, spaceBelow) - MARGIN);
-    } else {
-      top = Math.max(MARGIN, a.top - GAP - cardH);
-    }
-    setStyle({ position: "fixed", top, left, zIndex: 100 });
+      const left = Math.max(MARGIN, Math.min(a.left, window.innerWidth - CARD_WIDTH - MARGIN));
+      const spaceBelow = window.innerHeight - a.bottom - GAP - MARGIN;
+      const spaceAbove = a.top - GAP - MARGIN;
+
+      let top: number;
+      if (cardH <= spaceBelow || spaceBelow >= spaceAbove) {
+        top = Math.min(a.bottom + GAP, window.innerHeight - Math.min(cardH, spaceBelow) - MARGIN);
+      } else {
+        top = Math.max(MARGIN, a.top - GAP - cardH);
+      }
+      setStyle({ position: "fixed", top, left, zIndex: 100 });
+    };
+
+    update();
+    // capture-phase scroll catches inner scroll containers (table wraps, panes)
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    const ro = new ResizeObserver(update);
+    if (cardRef.current) ro.observe(cardRef.current);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+      ro.disconnect();
+    };
   }, [open]);
 
   return (

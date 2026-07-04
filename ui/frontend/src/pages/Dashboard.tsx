@@ -36,9 +36,10 @@ export function Dashboard() {
   const { data: runs } = useFetch(() => api.runs(), [db]);
 
   const active = dbs?.find((d) => (db === "" ? d.is_default : d.name === db));
-  const unfinished = (sessions ?? [])
-    .filter((s) => s.n_judged < s.total_pairs && s.revealed_at === null)
-    .slice(0, 5);
+  // The dashboard is the canonical resume surface — list them all.
+  const unfinished = (sessions ?? []).filter(
+    (s) => s.n_judged < s.total_pairs && s.revealed_at === null,
+  );
   const activeRun = (runs ?? []).find((r) => r.status === "running");
   const empty = active !== undefined && active.n_trials === 0;
 

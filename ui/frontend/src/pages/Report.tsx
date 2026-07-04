@@ -167,14 +167,18 @@ export function ReportPage() {
                   Pareto frontier chart.
                 </p>
               ) : (
-                <div className="stack" style={{ gap: "var(--space-1)" }}>
-                  {data.artifacts.map((a) => (
-                    <div key={a.name} className="row small">
-                      <a href={a.url} target="_blank" rel="noreferrer">{a.name}</a>
-                      <span className="xsmall faint">(timestamp in the name is UTC; newest first)</span>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className="stack" style={{ gap: "var(--space-1)" }}>
+                    {data.artifacts.map((a) => (
+                      <div key={a.name} className="row small">
+                        <a href={a.url} target="_blank" rel="noreferrer">{a.name}</a>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="xsmall faint" style={{ marginBottom: 0 }}>
+                    Newest first; the timestamp in the filename is UTC.
+                  </p>
+                </>
               )}
             </div>
           </>

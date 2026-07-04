@@ -114,7 +114,10 @@ export default function App() {
           path="*"
           element={
             <main className="app-main">
-              <div className="empty-state">Page not found.</div>
+              <div className="empty-state">
+                <p style={{ marginTop: 0 }}>Page not found.</p>
+                <NavLink className="btn" to="/">← Back to the dashboard</NavLink>
+              </div>
             </main>
           }
         />

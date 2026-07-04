@@ -1349,5 +1349,8 @@ async def spa(full_path: str):
         raise HTTPException(404, "Not found")
     index = FRONTEND_DIST / "index.html"
     if index.is_file():
-        return FileResponse(index)
+        # no-cache (i.e. revalidate every load): the shell references hashed
+        # bundle names, and a heuristically-cached shell keeps serving a stale
+        # bundle after a rebuild. The hashed assets themselves cache fine.
+        return FileResponse(index, headers={"Cache-Control": "no-cache"})
     return HTMLResponse(_NOT_BUILT_PAGE, status_code=503)
