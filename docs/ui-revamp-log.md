@@ -221,6 +221,35 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
     page overflow on every screen at both widths, dark theme + fonts +
     branding sweep (zero Tiltyard/setup-bench in the bundle).
 
+- Fresh critic pass 3: 1 blocker, 1 major, 2 minors, 2 nits (it also
+  retracted two of its own earlier findings after discovering they only
+  reproduced on stale cached bundles — the same cache pathology as below).
+  - BLOCKER: browsers that cached the SPA shell BEFORE the no-cache fix
+    keep loading hashed bundles that no longer exist after a rebuild →
+    dead blank page, no recovery. Fix: missing `/assets/*.js` now serves a
+    tiny no-store rescue script that reloads once (sessionStorage loop
+    guard, cleared on successful mount) — a reload always revalidates the
+    top-level document, which then carries no-cache forever after. Hashed
+    assets serve as immutable. Verified live against the critic's exact
+    stale bundle name; fast tests cover rescue + immutable paths.
+  - MAJOR: revealing was reachable by bare GET (URL autocomplete!) and
+    auto-fired after the final judgment — one slip irreversibly closed an
+    in-progress session. Fix: GET /api/reveal is read-only (locked stub
+    with counts, NOTHING unblinded); closing takes an explicit POST behind
+    a UI confirmation ("Strike the gavel — reveal", with a keep-judging
+    escape hatch showing how many pairs remain). Verified live: bare
+    navigation leaks nothing and the session stays judgeable; the
+    confirmed strike closes it with only judged pairs unblinded. Fast +
+    Playwright tests updated to the new flow.
+  - Minors/nits: legacy `tiltyard.db` localStorage key migrates to
+    `gavel.db`; Report page summary now uses the same quality-pick /
+    budget-pick vocabulary as the row chips. ACCEPTED as designed: coarse
+    cost/tokens/time stay visible on methodology/repo-context axes (cost
+    is part of the judgment per the decision rule; already coarsened to 2
+    significant figures against exact-join fingerprinting) and
+    expected-flow 404/409s appearing in devtools (browsers always log
+    failed requests; every case recovers gracefully in the UI).
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green

@@ -63,8 +63,9 @@ export function RevealPage() {
             </p>
             {data.n_unjudged > 0 && (
               <p className="small muted">
-                {data.n_unjudged} of {data.total_pairs} pairs are still unjudged. They will stay blind
-                forever and never enter the ranking. Consider resuming the session first.
+                {data.n_unjudged} of {data.total_pairs} pairs {data.n_unjudged === 1 ? "is" : "are"} still
+                unjudged — {data.n_unjudged === 1 ? "it" : "they"} will stay blind forever and never enter
+                the ranking. Consider resuming the session first.
               </p>
             )}
             <div className="row" style={{ marginTop: "var(--space-3)" }}>
@@ -102,8 +103,11 @@ export function RevealPage() {
           {data.n_unjudged > 0 && (
             <>
               {" "}
-              <strong>{data.n_unjudged} unjudged pair{data.n_unjudged === 1 ? "" : "s"} stayed blind</strong>{" "}
-              and are not shown — start a new session to grade this cell further.
+              <strong>
+                {data.n_unjudged} unjudged pair{data.n_unjudged === 1 ? "" : "s"} stayed blind
+              </strong>{" "}
+              and {data.n_unjudged === 1 ? "is" : "are"} not shown — start a new session to grade this cell
+              further.
             </>
           )}
         </div>
