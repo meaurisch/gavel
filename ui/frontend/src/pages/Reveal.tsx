@@ -51,17 +51,25 @@ export function RevealPage() {
   if (!data) return null;
 
   if (!data.revealed) {
+    const nothingJudged = data.n_judged === 0;
     return (
       <main className="app-main">
         <div className="page" style={{ maxWidth: "44rem" }}>
           <h1>Reveal the verdict?</h1>
           <div className="card" data-testid="reveal-confirm">
-            <p className="small" style={{ marginTop: 0 }}>
-              Revealing unblinds the <strong>{data.n_judged}</strong> judged pair
-              {data.n_judged === 1 ? "" : "s"} of this {AXIS_LABELS[data.axis] ?? data.axis} session and{" "}
-              <strong>permanently closes it</strong> — no further blind judging is possible afterward.
-            </p>
-            {data.n_unjudged > 0 && (
+            {nothingJudged ? (
+              <p className="small" style={{ marginTop: 0 }}>
+                Nothing has been judged in this session yet — there is no verdict to reveal. Judge some
+                pairs first.
+              </p>
+            ) : (
+              <p className="small" style={{ marginTop: 0 }}>
+                Revealing unblinds the <strong>{data.n_judged}</strong> judged pair
+                {data.n_judged === 1 ? "" : "s"} of this {AXIS_LABELS[data.axis] ?? data.axis} session and{" "}
+                <strong>permanently closes it</strong> — no further blind judging is possible afterward.
+              </p>
+            )}
+            {data.n_unjudged > 0 && !nothingJudged && (
               <p className="small muted">
                 {data.n_unjudged} of {data.total_pairs} pairs {data.n_unjudged === 1 ? "is" : "are"} still
                 unjudged — {data.n_unjudged === 1 ? "it" : "they"} will stay blind forever and never enter
@@ -69,14 +77,21 @@ export function RevealPage() {
               </p>
             )}
             <div className="row" style={{ marginTop: "var(--space-3)" }}>
-              <button className="btn primary" onClick={() => void confirm()} disabled={confirming} data-testid="confirm-reveal">
+              <button
+                className="btn primary"
+                onClick={() => void confirm()}
+                disabled={confirming || nothingJudged}
+                data-testid="confirm-reveal"
+              >
                 {confirming ? "Striking…" : "Strike the gavel — reveal"}
               </button>
-              {data.n_unjudged > 0 && (
-                <Link className="btn" to={`/grade/session/${sessionId}${db ? `?db=${db}` : ""}`}>
-                  Keep judging ({data.n_unjudged} left)
-                </Link>
-              )}
+              <Link className="btn" to={`/grade/session/${sessionId}${db ? `?db=${db}` : ""}`}>
+                {data.n_unjudged > 0
+                  ? nothingJudged
+                    ? "Start judging"
+                    : `Keep judging (${data.n_unjudged} left)`
+                  : "Back to the pairs"}
+              </Link>
             </div>
             {confirmError && <div className="error-banner" style={{ marginTop: "var(--space-2)" }}>{confirmError}</div>}
           </div>

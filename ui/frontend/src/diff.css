@@ -70,15 +70,29 @@ table.diff td {
   vertical-align: top;
 }
 
+/* The gutter (line numbers + change marker) stays pinned while long lines
+   scroll horizontally inside the pane — sticky cells with opaque
+   backgrounds; fixed widths make the stacked left offsets exact. */
 table.diff td.lineno {
-  width: 1%;
-  min-width: 2.6em;
+  position: sticky;
+  z-index: 1;
+  width: 3.6em;
+  min-width: 3.6em;
+  max-width: 3.6em;
   padding: 0 10px 0 0;
   text-align: right;
   color: var(--diff-gutter-text);
   user-select: none;
   background: var(--diff-gutter-bg);
   font-variant-numeric: tabular-nums;
+}
+
+table.diff td.lineno:first-child {
+  left: 0;
+}
+
+table.diff td.lineno + td.lineno {
+  left: 3.6em;
 }
 
 table.diff td.code {
@@ -100,16 +114,24 @@ table.diff tr.hunk td {
 }
 
 table.diff td.marker {
+  position: sticky;
+  left: 7.2em; /* after the two 3.6em gutter columns */
+  z-index: 1;
   width: 1.2em;
+  min-width: 1.2em;
+  max-width: 1.2em;
   padding: 0;
   text-align: center;
   user-select: none;
   font-weight: 600;
+  background: var(--diff-ctx-bg);
 }
 
 table.diff tr.add td.marker { color: var(--diff-add-sign); background: var(--diff-add-bg); }
 table.diff tr.del td.marker { color: var(--diff-del-sign); background: var(--diff-del-bg); }
 table.diff tr.context td.marker { color: transparent; }
+table.diff tr.hunk td.marker,
+table.diff tr.hunk td.lineno { background: var(--diff-hunk-bg); }
 
 /* --- three-way ------------------------------------------------------------ */
 

@@ -89,11 +89,13 @@ def _seed(conn, trial_id, *, task, meth, ctx, model, runner, rep, diff):
 def _build_test_db(path: Path) -> None:
     conn = connect(path)
     # Methodology-axis cell: 4 methodologies x 3 reps -> 18 pairs (marathon).
+    # Every diff carries a 600-char unwrapped line so any sampled pair
+    # exercises horizontal overflow (pane equality + sticky gutters).
     for meth in METHS:
         for rep in range(3):
             _seed(conn, f"{TASK}-{meth}-r{rep}", task=TASK, meth=meth, ctx=PINNED_CTX,
                   model=PINNED_MODEL, runner=PINNED_RUNNER, rep=rep,
-                  diff=_long_diff(meth, with_long_line=(meth == METHS[0])))
+                  diff=_long_diff(meth, with_long_line=True))
     # Model-axis cell on a second task.
     for model in MODELS:
         _seed(conn, f"{TASK2}-{model}", task=TASK2, meth=PINNED_METH, ctx=PINNED_CTX,
@@ -196,6 +198,38 @@ def test_line_numbers_track_scroll(page, server):
             f"content line {probe['contentNo']}"
         )
         assert probe["dy"] < 2, "line-number cell not on the same row as its code"
+
+
+def test_gutter_stays_pinned_under_horizontal_scroll(page, server):
+    """Line numbers and change markers must stay visible while long lines
+    scroll horizontally inside a pane (sticky gutter)."""
+    _start_session(page, server, "methodology")
+    probe = page.evaluate(
+        """() => {
+          // find whichever pane actually has horizontal overflow (the
+          // side with the 600-char line is randomized between A and B)
+          const panes = [...document.querySelectorAll('[data-testid="pane-a"],[data-testid="pane-b"]')];
+          const pane = panes.find(p => p.scrollWidth > p.clientWidth + 10);
+          if (!pane) return { error: 'no pane with horizontal overflow' };
+          pane.scrollLeft = 400;
+          const paneRect = pane.getBoundingClientRect();
+          const rows = [...pane.querySelectorAll('table.diff tr.add, table.diff tr.context')];
+          const mid = rows[Math.floor(rows.length / 2)];
+          const lineno = mid.querySelector('td.lineno');
+          const marker = mid.querySelector('td.marker');
+          return {
+            scrolled: pane.scrollLeft,
+            linenoLeft: lineno.getBoundingClientRect().left - paneRect.left,
+            markerRight: marker.getBoundingClientRect().right - paneRect.left,
+            paneWidth: paneRect.width,
+          };
+        }"""
+    )
+    assert "error" not in probe, str(probe)
+    assert probe["scrolled"] > 100, "pane did not scroll horizontally"
+    # Gutter pinned at the pane's left edge, fully inside the pane.
+    assert -1 <= probe["linenoLeft"] <= 3, f"line numbers scrolled away: {probe}"
+    assert 0 < probe["markerRight"] < probe["paneWidth"], f"marker off-screen: {probe}"
 
 
 def test_sync_scroll_locks_panes(page, server):

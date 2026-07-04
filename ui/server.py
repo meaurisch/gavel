@@ -965,13 +965,19 @@ async def reveal(session_id: str, db: str = "") -> RevealResponse:
 @app.post("/api/reveal")
 async def reveal_confirm(req: RevealRequest) -> RevealResponse:
     """Permanently close the session and unblind its judged pairs. Idempotent:
-    the first reveal's timestamp sticks."""
+    the first reveal's timestamp sticks. A session with no judgments has no
+    verdict to reveal — refusing keeps 'reveal' from doubling as a
+    pointless-destruction endpoint."""
     conn = _open(req.db)
     try:
         session = _get_session(conn, req.session_id)
         if session is None:
             raise HTTPException(404, "Session not found")
         if session.revealed_at is None:
+            if not session.judgments_made:
+                raise HTTPException(
+                    409, "Nothing has been judged in this session yet — there is no verdict to reveal"
+                )
             revealed_at = datetime.now(timezone.utc).isoformat()
             mark_session_revealed(conn, req.session_id, revealed_at)
             session.revealed_at = revealed_at

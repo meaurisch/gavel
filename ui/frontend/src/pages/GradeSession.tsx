@@ -45,7 +45,11 @@ function SideHeader({ side, metricsHidden, hiddenReason }: {
           {side.proxy.new_deps.length > 0 && ` · new deps: ${side.proxy.new_deps.join(", ")}`}
         </span>
         {side.metrics ? (
-          <span className="xsmall muted" data-testid={`metrics-${side.label}`}>
+          <span
+            className="xsmall muted"
+            data-testid={`metrics-${side.label}`}
+            title="Shown by design on this axis: cost is part of the merge judgment (the decision rule breaks quality ties on cost). Values are rounded to ~2 significant figures. On the model/runner axes these are withheld entirely."
+          >
             {fmtUsd(side.metrics.usd)} · {fmtTokens(side.metrics.input_tokens)} in / {fmtTokens(side.metrics.output_tokens)} out · {fmtSeconds(side.metrics.wall_seconds)}
           </span>
         ) : metricsHidden ? (

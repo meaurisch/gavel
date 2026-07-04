@@ -250,6 +250,16 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
     expected-flow 404/409s appearing in devtools (browsers always log
     failed requests; every case recovers gracefully in the UI).
 
+- Fresh critic pass 4: **0 blockers, 0 majors**, 1 minor, 2 nits — the
+  first clean pass. The minor (subject-verb agreement when exactly one
+  unjudged pair stays blind) is fixed in both reveal banners; the nits are
+  the already-accepted expected-flow 404 console entries and a React crash
+  found only in console HISTORY from a pre-fix bundle (not reproducible on
+  the current build after three targeted attempts). Pass 4 also verified
+  the new reveal-confirmation flow end to end, the stale-bundle rescue
+  script, exact hover-card anchor tracking (120px scroll → 120px card
+  move), and that the raw /api/session JSON is blind at the wire level.
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green

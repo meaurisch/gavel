@@ -250,6 +250,19 @@ def test_reveal_closes_session_and_hides_unjudged_pairs(client):
     assert listed[sid]["revealed_at"] is not None
 
 
+def test_reveal_refused_with_zero_judgments(client):
+    """Reveal must not double as a pointless-destruction endpoint: a session
+    with nothing judged has no verdict to reveal."""
+    data = _start_session(client, axis="methodology")
+    sid = data["session_id"]
+    resp = client.post("/api/reveal", json={"session_id": sid})
+    assert resp.status_code == 409
+    assert "no verdict" in resp.json()["detail"].lower() or "nothing" in resp.json()["detail"].lower()
+    # The session is untouched and still judgeable.
+    ok = client.post("/api/judge", json={"session_id": sid, "pair_index": 0, "choice": "A"})
+    assert ok.status_code == 200
+
+
 def test_reveal_timestamp_stable_across_loads(client):
     data = _start_session(client, axis="methodology")
     sid = data["session_id"]
