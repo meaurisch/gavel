@@ -104,24 +104,55 @@ def test_gate_detail_logs_served_and_redacted(client):
     assert "[methodology]" in all_logs
 
 
-def test_metrics_visible_on_methodology_axis_and_coarsened(client):
-    data = _start_session(client, axis="methodology")
-    pair = data["pairs"][0]
-    assert pair["metrics_hidden"] is False
-    # Values are rounded to ~2 significant figures so they can't be joined
-    # 1:1 against the unblinded Browse table (fingerprinting).
-    assert pair["left"]["metrics"]["usd"] == 0.5
-    assert pair["left"]["metrics"]["wall_seconds"] == 12.0  # exact value is 12.5
-    assert pair["left"]["metrics"]["input_tokens"] == 1000
+@pytest.mark.parametrize("axis,task", [("methodology", "taskx"), ("model", "tasky")])
+def test_no_spend_metrics_during_blind_judging(client, axis, task):
+    """Cost/tokens/time bias blind judgment (user decision 2026-07-05):
+    pair payloads carry no metrics on ANY axis — they belong to Reveal,
+    Browse, and Report."""
+    data = _start_session(client, axis=axis, task=task)
+    for pair in data["pairs"]:
+        for side in ("left", "right"):
+            assert "metrics" not in pair[side]
+        blob = str(pair)
+        assert "usd" not in blob
+        assert "wall_seconds" not in blob
 
 
-def test_metrics_withheld_on_model_axis(client):
-    data = _start_session(client, axis="model", task="tasky")
-    pair = data["pairs"][0]
-    assert pair["metrics_hidden"] is True
-    assert pair["metrics_hidden_reason"]
-    assert pair["left"]["metrics"] is None
-    assert pair["right"]["metrics"] is None
+def test_proxy_computed_on_anonymized_diff(tmp_path):
+    """The diff-shape proxy (file list, counts) must describe what the grader
+    SEES: instruction files stripped, axis ids in filenames redacted."""
+    db_path = tmp_path / "proxy.db"
+    conn = connect(db_path)
+    for tid, meth in (("p1", "methredone"), ("p2", "methredtwo")):
+        diff = (
+            f"diff --git a/{meth}_helper.py b/{meth}_helper.py\n"
+            f"--- a/{meth}_helper.py\n"
+            f"+++ b/{meth}_helper.py\n"
+            "@@ -1,1 +1,2 @@\n"
+            " x = 1\n"
+            "+y = 2\n"
+            "diff --git a/CLAUDE.md b/CLAUDE.md\n"
+            "--- /dev/null\n"
+            "+++ b/CLAUDE.md\n"
+            "@@ -0,0 +1,1 @@\n"
+            "+instructions here\n"
+        )
+        _seed(conn, tid, task="tp", methodology=meth, diff=diff)
+    conn.close()
+    server.set_db_path(db_path)
+    server._sessions.clear()
+    with TestClient(server.app) as c:
+        data = c.get("/api/pairs", params={
+            "axis": "methodology", "task": "tp", "repo_context": "ctxx",
+            "model": "modelx", "runner": "runnerx",
+        }).json()
+        for pair in data["pairs"]:
+            for side in ("left", "right"):
+                proxy = pair[side]["proxy"]
+                assert "CLAUDE.md" not in proxy["file_list"], "instruction file leaked into proxy"
+                for f in proxy["file_list"]:
+                    assert "methredone" not in f and "methredtwo" not in f, "axis id leaked via filename"
+                assert proxy["files_touched"] == 1  # only the visible file counts
 
 
 def test_gate_detail_redacts_model_ids_on_model_axis(client):

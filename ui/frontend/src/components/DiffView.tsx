@@ -10,7 +10,7 @@ import "../diff.css";
 
 function FileTable({ file }: { file: FileDiff }) {
   return (
-    <div data-testid="diff-file">
+    <div data-testid="diff-file" data-file={file.displayPath}>
       <div className="diff-file-header">
         <span className="path">{file.displayPath}</span>
         {file.status !== "modified" && <span className="badge neutral">{file.status}</span>}

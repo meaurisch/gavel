@@ -63,7 +63,7 @@ function ThreeWayFileTable({
   }, [path, aDiff, bDiff, original, expanded, expandAll]);
 
   return (
-    <table className="threeway" data-testid="threeway-file">
+    <table className="threeway" data-testid="threeway-file" data-file={path}>
       <colgroup>
         <col className="lineno-col" />
         <col />

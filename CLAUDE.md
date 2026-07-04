@@ -28,8 +28,11 @@
   scanner + provenance-aware collision handling in `grading/gate.py`); nothing
   served during blind comparison may reveal the varying axis — one redaction
   implementation (`grading/pairwise.redact_axis_ids`) covers diffs, gate logs,
-  and reconstructed originals, comparison metrics are coarsened and withheld on
-  the model/runner axes, and revealing a session closes it permanently
+  and reconstructed originals, the diff-shape proxy is computed on the
+  anonymized diff, cost/tokens/time are NEVER served during blind judging on
+  any axis (user decision 2026-07-05 — they bias the judgment; they live in
+  Reveal/Browse/Report), and revealing a session requires an explicit
+  confirmation and then closes it permanently
   (`grading_session.revealed_at`); frozen golden tasks only change with an
   explicit human OK.
 - Running real trials with the `claude-code` runner spends real API budget —

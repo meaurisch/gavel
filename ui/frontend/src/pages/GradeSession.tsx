@@ -11,7 +11,6 @@ import { useDb } from "../db";
 import { useCatalog, useFetch } from "../hooks";
 import { AXIS_LABELS } from "../types";
 import type { BlindSide, OriginalsResponse, Session } from "../types";
-import { fmtSeconds, fmtTokens, fmtUsd } from "../api";
 import { TwoWayDiff } from "../components/DiffView";
 import { ThreeWayDiff } from "../components/ThreeWayView";
 import { GateBadges } from "../components/GateBadges";
@@ -25,14 +24,22 @@ const CELL_KIND: Record<string, "task" | "methodology" | "repo_context" | "model
   runner: "runner",
 };
 
-function SideHeader({ side, metricsHidden, hiddenReason }: {
-  side: BlindSide;
-  metricsHidden: boolean;
-  hiddenReason: string | null;
-}) {
+function SideHeader({ side }: { side: BlindSide }) {
   const gd = side.gate_detail;
   return (
-    <div className="card" style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-1)" }} data-testid={`side-header-${side.label}`}>
+    <div
+      className="card"
+      style={{
+        padding: "var(--space-2) var(--space-3)",
+        borderRadius: "var(--radius-1)",
+        // Bottom-anchor the expander row: when one side's top row wraps and
+        // the other's doesn't, the two cards' interior rows stay aligned
+        // (grid stretch already equalizes the card heights themselves).
+        display: "flex",
+        flexDirection: "column",
+      }}
+      data-testid={`side-header-${side.label}`}
+    >
       <div className="row wrap" style={{ gap: "var(--space-2)" }}>
         <strong style={{ fontSize: "var(--text-lg)" }}>{side.label}</strong>
         <GateBadges
@@ -44,22 +51,16 @@ function SideHeader({ side, metricsHidden, hiddenReason }: {
           {side.proxy.files_touched} file{side.proxy.files_touched === 1 ? "" : "s"} · +{side.proxy.lines_added} −{side.proxy.lines_removed}
           {side.proxy.new_deps.length > 0 && ` · new deps: ${side.proxy.new_deps.join(", ")}`}
         </span>
-        {side.metrics ? (
-          <span
-            className="xsmall muted"
-            data-testid={`metrics-${side.label}`}
-            title="Shown by design on this axis: cost is part of the merge judgment (the decision rule breaks quality ties on cost). Values are rounded to ~2 significant figures. On the model/runner axes these are withheld entirely."
-          >
-            {fmtUsd(side.metrics.usd)} · {fmtTokens(side.metrics.input_tokens)} in / {fmtTokens(side.metrics.output_tokens)} out · {fmtSeconds(side.metrics.wall_seconds)}
-          </span>
-        ) : metricsHidden ? (
-          <span className="xsmall faint" title={hiddenReason ?? undefined} data-testid={`metrics-hidden-${side.label}`}>
-            cost/time hidden (blind)
-          </span>
-        ) : null}
+        <span
+          className="xsmall faint"
+          title="Cost, tokens, and time are withheld during blind judging to avoid bias. They appear after reveal, and anytime in Browse and Report."
+          data-testid={`metrics-hidden-${side.label}`}
+        >
+          cost/time hidden (blind)
+        </span>
       </div>
       {gd && (
-        <div className="row wrap" style={{ gap: "var(--space-2)", marginTop: "var(--space-1)" }}>
+        <div className="row wrap" style={{ gap: "var(--space-2)", marginTop: "auto", paddingTop: "var(--space-1)" }}>
           {(["compile", "visible", "hidden"] as const).map((tier) =>
             gd[tier].output ? (
               <details key={tier} className="logbox" style={{ flex: "1 1 10rem", maxWidth: "100%" }}>
@@ -132,6 +133,21 @@ export function GradeSession() {
   const total = session?.total_pairs ?? 0;
   const nJudged = choices.size;
   const allJudged = total > 0 && nJudged >= total;
+
+  // Union of files touched by either side (paths as rendered, i.e. redacted).
+  const fileList = pair
+    ? Array.from(new Set([...pair.left.proxy.file_list, ...pair.right.proxy.file_list])).sort()
+    : [];
+
+  const jumpToFile = useCallback((path: string) => {
+    for (const paneId of ["pane-a", "pane-b", "threeway-pane"]) {
+      const pane = document.querySelector<HTMLElement>(`[data-testid="${paneId}"]`);
+      if (!pane) continue;
+      const target = pane.querySelector<HTMLElement>(`[data-file="${CSS.escape(path)}"]`);
+      if (!target) continue;
+      pane.scrollTop += target.getBoundingClientRect().top - pane.getBoundingClientRect().top;
+    }
+  }, []);
 
   const goto = useCallback(
     (next: number) => {
@@ -290,9 +306,25 @@ export function GradeSession() {
 
       {/* side headers */}
       <div className="grid-2" style={{ padding: "var(--space-2) var(--space-4)", gap: "var(--space-3)", flex: "none" }}>
-        <SideHeader side={pair.left} metricsHidden={pair.metrics_hidden} hiddenReason={pair.metrics_hidden_reason} />
-        <SideHeader side={pair.right} metricsHidden={pair.metrics_hidden} hiddenReason={pair.metrics_hidden_reason} />
+        <SideHeader side={pair.left} />
+        <SideHeader side={pair.right} />
       </div>
+
+      {/* file navigator — jump to a file in both panes at once */}
+      {fileList.length > 1 && (
+        <div
+          className="row wrap"
+          style={{ padding: "0 var(--space-4) var(--space-2)", gap: "var(--space-1)", flex: "none" }}
+          data-testid="file-nav"
+        >
+          <span className="xsmall muted" style={{ marginRight: "var(--space-1)" }}>Files:</span>
+          {fileList.map((f) => (
+            <button key={f} className="btn sm ghost mono" onClick={() => jumpToFile(f)} title={f} data-testid="file-nav-item">
+              {f.split("/").pop()}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* diff area */}
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "0 var(--space-4)" }}>

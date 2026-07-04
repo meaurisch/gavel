@@ -121,14 +121,9 @@ export interface GateDetail {
   hidden: TierDetail;
 }
 
-export interface SideMetrics {
-  usd: number | null;
-  input_tokens: number | null;
-  output_tokens: number | null;
-  cache_read_tokens: number | null;
-  wall_seconds: number | null;
-}
-
+// Blind sides deliberately carry NO cost/token/time fields — spend metrics
+// bias blind judgment (user decision 2026-07-05); they live in Reveal,
+// Browse, and Report instead.
 export interface BlindSide {
   label: "A" | "B";
   diff: string;
@@ -139,7 +134,6 @@ export interface BlindSide {
     hidden_passed: boolean | null;
   };
   gate_detail: GateDetail | null;
-  metrics: SideMetrics | null;
 }
 
 export interface Pair {
@@ -147,8 +141,6 @@ export interface Pair {
   total_pairs: number;
   left: BlindSide;
   right: BlindSide;
-  metrics_hidden: boolean;
-  metrics_hidden_reason: string | null;
 }
 
 export interface Session {

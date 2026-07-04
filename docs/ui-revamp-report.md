@@ -43,12 +43,17 @@ served by the existing FastAPI backend (`ui/server.py`), engine untouched.
   estimate; `manual` is terminal-only by design (blocks on stdin).
 - **Blinding hardened** — one redaction implementation
   (`grading.pairwise.redact_axis_ids`) covers diffs, gate logs, and
-  originals; comparison metrics are rounded to ~2 significant figures (not
-  joinable against the unblinded Browse table) and withheld entirely on the
-  model/runner axes; **revealing a session closes it permanently**
+  originals; the diff-shape stats are computed on the anonymized diff (raw
+  file paths could carry axis ids); cost/tokens/time are **never** served
+  during blind judging on any axis (a user decision, confirming two critic
+  flags — spend metrics bias the judgment; cost enters the decision after
+  grading, in the Pareto step, and stays visible in Reveal/Browse/Report);
+  **revealing a session requires an explicit "Strike the gavel"
+  confirmation and then closes it permanently**
   (`grading_session.revealed_at`, judgments refused with 409 afterward,
-  only judged pairs ever unblinded) — this last one was a real
-  invariant hole found by a fresh-context critic agent.
+  only judged pairs ever unblinded, zero-judgment sessions refused) — the
+  original silently-closing GET was a real invariant hole found by a
+  fresh-context critic agent.
 - **Bootstrap** — `cli.py setup` builds the frontend (npm ci + build);
   `doctor` checks node/npm and the built UI. Clone-and-go stays one
   command.

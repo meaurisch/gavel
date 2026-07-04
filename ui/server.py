@@ -76,11 +76,6 @@ REPORTS_DIR = ROOT / "reports"
 # Cap on a single gate-tier log served to the browser (chars, after redaction).
 TIER_OUTPUT_CAP = 100_000
 
-# Axes whose value a cost/token/wall-time readout would fingerprint during
-# blind comparison. For methodology/repo_context, cost is a legitimate part of
-# the judgment ("same quality, 4x the tokens"); for model/runner it IS the id.
-METRICS_HIDDEN_AXES = {"model", "runner"}
-
 # ---------------------------------------------------------------------------
 # DB path management
 # ---------------------------------------------------------------------------
@@ -278,21 +273,16 @@ class GateDetail(BaseModel):
     hidden: TierDetail
 
 
-class SideMetrics(BaseModel):
-    usd: float | None = None
-    input_tokens: int | None = None
-    output_tokens: int | None = None
-    cache_read_tokens: int | None = None
-    wall_seconds: float | None = None
-
-
 class BlindDiffResponse(BaseModel):
+    """One blind side. Deliberately NO cost/token/time fields: the user
+    decided (2026-07-05, confirming two critic flags) that spend metrics bias
+    blind judgment on every axis — cost enters the decision AFTER grading,
+    via the Pareto/frontier step. Metrics live in Reveal, Browse, and Report."""
     label: str
     diff: str
     proxy: DiffProxy
     gate: GateScorecard
     gate_detail: GateDetail | None = None
-    metrics: SideMetrics | None = None
 
 
 class PairResponse(BaseModel):
@@ -300,8 +290,6 @@ class PairResponse(BaseModel):
     total_pairs: int
     left: BlindDiffResponse
     right: BlindDiffResponse
-    metrics_hidden: bool = False
-    metrics_hidden_reason: str | None = None
 
 
 class JudgedPair(BaseModel):
@@ -543,21 +531,6 @@ async def get_catalog(db: str = "") -> dict:
         conn.close()
 
 
-def _coarse(v: float | int | None) -> float | int | None:
-    """Round to ~2 significant figures. Metrics shown during comparison must
-    stay useful for judgment ("4x the tokens for the same quality") but not
-    be joinable 1:1 against the unblinded Browse table — a unique exact cost
-    identifies the trial and would deblind the pair."""
-    if v is None or v == 0:
-        return v
-    exp = math.floor(math.log10(abs(v)))
-    factor = 10.0 ** (exp - 1)
-    out = round(v / factor) * factor
-    if isinstance(v, int):
-        return int(out)
-    return round(out, max(0, -(exp - 1)))
-
-
 def _tier_detail(passed: bool | None, output: str | None,
                  axis_ids: dict[str, list[str]]) -> TierDetail:
     if output is None:
@@ -576,11 +549,7 @@ def _build_pair_responses(
     run_results: dict,
     axis_ids: dict[str, list[str]],
 ) -> list[PairResponse]:
-    metrics_hidden = axis in METRICS_HIDDEN_AXES
-    hidden_reason = (
-        f"cost/tokens/time are withheld while comparing the {axis} axis — they would fingerprint the value"
-        if metrics_hidden else None
-    )
+    del axis  # kept in the signature for call-site clarity; payloads are axis-uniform
     _default_gate = GateScorecard(compile_passed=None, visible_passed=None, hidden_passed=None)
 
     responses: list[PairResponse] = []
@@ -589,7 +558,6 @@ def _build_pair_responses(
         for label, trial in (("A", left), ("B", right)):
             rr = run_results[trial.id]
             gr = get_gate_result(conn, trial.id)
-            cr = get_cost_record(conn, trial.id)
 
             gate = GateScorecard(
                 compile_passed=gr.compile_passed,
@@ -604,23 +572,19 @@ def _build_pair_responses(
                 hidden=_tier_detail(gr.hidden_passed, gr.hidden_output, axis_ids),
             ) if gr else None
 
-            metrics = None
-            if not metrics_hidden:
-                metrics = SideMetrics(
-                    usd=_coarse(cr.usd_equiv) if cr else None,
-                    input_tokens=_coarse(cr.input_tokens) if cr else None,
-                    output_tokens=_coarse(cr.output_tokens) if cr else None,
-                    cache_read_tokens=_coarse(cr.cache_read_tokens) if cr else None,
-                    wall_seconds=_coarse(rr.wall_seconds),
-                )
+            # The proxy (file list, line counts) is computed on the ANONYMIZED
+            # diff, not the raw one: raw paths would name instruction files
+            # and could carry axis ids in filenames (e.g. an agent writing
+            # tdd_utils.py) — the shape stats must describe exactly what the
+            # grader sees.
+            anon = anonymize_diff(rr.diff, axis_ids)
 
             sides.append(BlindDiffResponse(
                 label=label,
-                diff=anonymize_diff(rr.diff, axis_ids),
-                proxy=compute_proxy(rr.diff),
+                diff=anon,
+                proxy=compute_proxy(anon),
                 gate=gate,
                 gate_detail=gate_detail,
-                metrics=metrics,
             ))
 
         responses.append(PairResponse(
@@ -628,8 +592,6 @@ def _build_pair_responses(
             total_pairs=len(trial_pairs),
             left=sides[0],
             right=sides[1],
-            metrics_hidden=metrics_hidden,
-            metrics_hidden_reason=hidden_reason,
         ))
     return responses
 

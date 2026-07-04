@@ -50,8 +50,9 @@ VERY_LONG_LINE = "x" * 600
 
 
 def _long_diff(marker: str, with_long_line: bool = False) -> str:
-    """A single-file diff over a 150-line module: full context, two insertion
-    points, so line numbers and three-way alignment are fully checkable."""
+    """A two-file diff: a 150-line module with full context and two insertion
+    points (line numbers + three-way alignment checkable), plus a small
+    second file so the file navigator has something to jump to."""
     lines = [
         "diff --git a/src/app.py b/src/app.py",
         "--- a/src/app.py",
@@ -66,6 +67,15 @@ def _long_diff(marker: str, with_long_line: bool = False) -> str:
                 lines.append(f"+{VERY_LONG_LINE}")
         if i == 100:
             lines.append(f"+second insertion by {marker}")
+    lines += [
+        "diff --git a/src/zz_extra.py b/src/zz_extra.py",
+        "new file mode 100644",
+        "--- /dev/null",
+        "+++ b/src/zz_extra.py",
+        "@@ -0,0 +1,2 @@",
+        "+# the second file",
+        "+EXTRA = True",
+    ]
     return "\n".join(lines) + "\n"
 
 
@@ -279,24 +289,67 @@ def test_three_way_view_renders_aligned_rows(page, server):
 # Gate detail + metrics during comparison
 # ---------------------------------------------------------------------------
 
-def test_gate_detail_and_metrics_visible_during_comparison(page, server):
-    """'far more info than only the check marks' — tier logs + cost/tokens/
-    wall-time are on the comparison screen (methodology axis)."""
+def test_gate_detail_visible_but_no_spend_metrics(page, server):
+    """'far more info than only the check marks' — tier logs are on the
+    comparison screen; cost/tokens/time are NOT (they bias blind judgment —
+    user decision 2026-07-05) on any axis."""
     _start_session(page, server, "methodology")
-    assert page.get_by_test_id("metrics-A").inner_text() != ""
-    assert "$" in page.get_by_test_id("metrics-A").inner_text()
     page.get_by_test_id("log-A-hidden").click()
     log_text = page.locator('[data-testid="side-header-A"] details pre').last.inner_text()
     assert "hidden: 7 passed" in log_text
     # ids in logs are redacted
     for forbidden in METHS:
         assert forbidden not in log_text
+    # no dollar/token readouts anywhere in the side headers, on either axis
+    for axis in ("methodology", "model"):
+        _start_session(page, server, axis)
+        for label in ("A", "B"):
+            header = page.get_by_test_id(f"side-header-{label}").inner_text()
+            assert "$" not in header, f"spend metric leaked into {axis} side header"
+            assert page.get_by_test_id(f"metrics-hidden-{label}").count() == 1
 
 
-def test_metrics_hidden_on_model_axis(page, server):
-    _start_session(page, server, "model")
-    assert page.get_by_test_id("metrics-hidden-A").count() == 1
-    assert page.get_by_test_id("metrics-A").count() == 0
+def test_file_navigator_jumps_both_panes(page, server):
+    """Multi-file diffs get a file navigator that scrolls every pane to the
+    chosen file."""
+    _start_session(page, server, "methodology")
+    page.wait_for_selector('[data-testid="file-nav"]')
+    items = page.locator('[data-testid="file-nav-item"]')
+    assert items.count() == 2
+
+    # Jump to the last file (below 150 lines of app.py): panes must scroll and
+    # the file header must be visible in the pane viewport. The pane may clamp
+    # at max scroll for a short trailing file — visibility is the contract.
+    items.last.click()
+    page.wait_for_timeout(150)
+    probe = page.evaluate(
+        """() => {
+          const out = {};
+          for (const id of ['pane-a', 'pane-b']) {
+            const pane = document.querySelector(`[data-testid="${id}"]`);
+            const paneRect = pane.getBoundingClientRect();
+            const t = pane.querySelector('[data-file="src/zz_extra.py"]').getBoundingClientRect();
+            out[id] = { scrolled: pane.scrollTop,
+                        visible: t.top >= paneRect.top - 2 && t.top < paneRect.bottom - 40 };
+          }
+          return out;
+        }"""
+    )
+    for pane_id, r in probe.items():
+        assert r["scrolled"] > 100, f"{pane_id} did not scroll: {r}"
+        assert r["visible"], f"{pane_id} target file not visible after jump: {r}"
+
+    # Jump back to the first file: this one CAN reach the pane top exactly.
+    items.first.click()
+    page.wait_for_timeout(150)
+    back = page.evaluate(
+        """() => {
+          const pane = document.querySelector('[data-testid="pane-a"]');
+          const t = pane.querySelector('[data-file="src/app.py"]').getBoundingClientRect();
+          return Math.abs(t.top - pane.getBoundingClientRect().top);
+        }"""
+    )
+    assert back < 5, f"first-file jump not at pane top: {back}"
 
 
 # ---------------------------------------------------------------------------

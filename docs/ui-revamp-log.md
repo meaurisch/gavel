@@ -290,6 +290,44 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
     singular/plural copy states, sticky hover-card behavior through theme
     toggles, 900x600 overflow, the rescue script, API abuse tolerance.
 
+- Fresh critic pass 6: **0 blockers, 0 majors**, 1 minor, 2 nits — clean
+  pass #1 of the convergence streak. It verified the sticky gutter fix by
+  measurement (gutter held x=357.0 exactly through a 400px horizontal
+  scroll while code moved 400px), the 0-judged reveal refusal, wire-level
+  blinding, and zero horizontal overflow across 7 routes × 3 viewport
+  sizes. The three small items were fixed anyway: loading no longer
+  flashes definitive empty-state copy (resume card shows "Loading…",
+  picker axis badges show "…" until the fetch resolves); judge buttons
+  expose the recorded verdict via aria-pressed; byte-identical A/B sides
+  (possible in seeded demo cells) get a neutral "sides are identical"
+  chip with a tie-by-construction tooltip.
+
+- Live user review (2026-07-05, watching alongside critic pass 7):
+  - **Spend metrics during blind judging: now hidden on EVERY axis** (user
+    decision via AskUserQuestion, confirming what critics 3 and 5 flagged).
+    The user's Opus-vs-Sonnet example was already covered (model axis), but
+    they chose the strict policy over the spec's original
+    show-during-comparison wording: pair payloads carry no cost/token/time
+    fields at all; the side header shows "cost/time hidden (blind)" with a
+    pointer to Reveal/Browse/Report. The `_coarse` machinery is gone.
+  - While implementing that, found and fixed a real phase-1-era leak vector:
+    the diff-shape proxy (`file_list`, counts) was computed on the RAW diff,
+    so instruction files appeared in the file list and an agent-created
+    filename carrying an axis id (e.g. `tdd_utils.py`) would have leaked
+    unredacted. The proxy is now computed on the anonymized diff (new fast
+    test seeds exactly that scenario).
+  - **File navigator added** (user ask: "where can I select the file?"):
+    multi-file pairs show a Files: row of chips; clicking scrolls BOTH panes
+    (and the three-way table) to that file. Playwright test seeds a
+    two-file diff and asserts both panes land on the target.
+  - **A/B header alignment** (user-reported visual bug): side-header cards
+    are now flex columns with the log-expander row bottom-anchored, so
+    differing text wrap between A and B can't stagger the interior rows;
+    to be verified live after the running critic pass releases the browser.
+  - Also explained to the user: the dark dead space around the page in the
+    shared browser is Playwright viewport emulation (fixed 1100×800/900×600
+    test sizes inside a large window), not an app layout issue.
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green

@@ -154,6 +154,14 @@ h3 { font-size: var(--text-sm); font-weight: 600; margin: 0 0 var(--space-2); }
   margin-top: var(--space-4);
 }
 
+/* The stacking margin is for vertical page flow only — inside a grid it
+   shoves the second card 16px below its row-mates (the "A and B blocks are
+   not on the same horizontal line" bug). Grid gaps own the spacing there. */
+.grid-2 > .card + .card,
+.grid-3 > .card + .card {
+  margin-top: 0;
+}
+
 .card-title {
   font-size: var(--text-2xs);
   font-weight: 600;
