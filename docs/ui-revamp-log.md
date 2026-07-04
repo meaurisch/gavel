@@ -172,6 +172,28 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
 - Verified after restyle: full fast suite 299 green; all 15 Playwright
   integration tests green (pane equality, line-number tracking, blinding,
   marathon, spend gate — the exact phase-1 assertions).
+- Fresh critic pass 1 (skeptical senior engineer, no session context):
+  0 blockers, 2 majors, 3 minors, 3 nits. All addressed:
+  - MAJOR preview clipping: cards now render in a body portal with fixed
+    positioning + viewport-bottom flip + a hover grace timer (measured:
+    99px card fully visible inside the cells table; bottom-of-catalog card
+    flips above its anchor and stays on-screen).
+  - MAJOR /grade page overflow: grid items default to min-width:auto —
+    `.grid-2/3 > * { min-width: 0 }` (same bug class as the phase-1 diff
+    panes, one level up). Measured 0px overflow at 1440 and 1100.
+  - Stale pre-redesign report artifacts: a fresh on-brand artifact now
+    tops the newest-first list; legacy artifacts stay (immutable outputs).
+  - Trial-detail dead end on DB switch → back-link + wrong-DB hint;
+    "4 methodologys" → per-axis plural nouns; dark scrollbars →
+    `color-scheme` follows the theme; theme toggle → labeled secondary
+    button ("☾ dark"/"☀ light"); empty-model claude-code preview
+    re-verified with a fetch spy — no request fires (critic's 400 was
+    stale console state, validation is client-side).
+  - Critic confirmed clean: blinding in both view modes (DOM sweep),
+    reveal-closes-session, diff mechanics (equal panes incl. injected
+    400-char line, line-number tracking, sync scroll, double-click
+    idempotency, mid-session reload), SPEND gate exactness, dark-theme
+    sweep, hostile localStorage/deep-link/back-forward probes.
 
 ## End of phase 1
 
