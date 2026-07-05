@@ -112,7 +112,9 @@ grading (with resume), a run launcher with live progress (free self-test
 runners by default; paid runs require an explicit typed confirmation plus a
 cost estimate), a trial browser with full gate logs and costs, and the
 Bradley-Terry ranking report. A database switcher in the top bar moves
-between `results.db`, the demo DB, and any scratch DBs.
+between `results.db`, the demo DB, and any scratch DBs. Light and dark
+themes ship, all assets are local (no network at runtime), and the design
+system (the "Gavel" tokens) lives in `ui/frontend/src/tokens.css`.
 
 Want to see the tool before spending a cent? Seed the synthetic demo:
 
@@ -245,7 +247,7 @@ guessed the same test path. The overwritten agent file is restored after the run
 
 ## Current state
 
-The full pipeline is built and tested (297 fast tests green plus a 14-test
+The full pipeline is built and tested (305 fast tests green plus an 18-test
 Playwright UI suite behind the `integration` marker, 1 env-gated test
 deselected) — engine, 5-axis matrix, three-tier gate, axis-general blind
 grading, Bradley-Terry ranking, API-rate cost, the report command with the

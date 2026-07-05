@@ -105,19 +105,31 @@ means paid/spend only.
 
 ## Verification
 
-- Full fast suite: **299 passed** (`pytest`; 1 env-gated test deselected).
-- Browser regression suite: **15 passed**
+- Full fast suite: **305 passed** (`pytest`; 1 env-gated test deselected).
+- Browser regression suite: **18 passed**
   (`pytest -m integration tests/test_ui_playwright.py`) — measured pane
   equality with 600-char lines, line-number tracking at four scroll
-  offsets, three-way alignment, per-axis blinding on the full rendered
-  DOM, an 18-pair keyboard marathon with a mid-session reload, the
-  reveal-closes-session rule, and the spend gate.
-- Convergence: fresh-context critic agents (no session memory, Playwright
-  access, the full definition of done) reviewed the live app after each
-  phase. Phase-2 pass 1 found 2 majors (portal-clipped hover cards; a
-  grid `min-width:auto` page overflow) — both fixed and re-measured.
-  Iteration continued until two consecutive passes found nothing above
-  minor polish.
+  offsets, sticky gutters AND file/hunk headers under horizontal scroll,
+  full-width open log expanders with three logs per side, three-way
+  alignment, per-axis blinding on the full rendered DOM, worktree-hash and
+  timing scrubbing in blind logs, the file navigator landing both panes
+  exactly, an 18-pair keyboard marathon with a mid-session reload, the
+  reveal-confirmation rule, plan invalidation, and the spend gate.
+- Convergence: **14 fresh-context critic rounds** (no session memory,
+  Playwright access, the full definition of done, later rounds with an
+  explicit human-eyeball mandate and real-database usage) reviewed the
+  live app. Every finding was fixed or explicitly accepted with reasoning;
+  iteration stopped when two consecutive rounds (13 and 14) found nothing
+  above minor polish. Highlights of what the rounds caught: a bare GET
+  that irreversibly closed sessions, browser-cached shells serving deleted
+  bundles, a log-expander fix that demo data had masked, and two
+  deliberate-join deblinding channels (worktree hashes, machine-timing
+  lines) — all closed.
+- A mid-effort live review by the project owner redirected two policies:
+  spend metrics are hidden during blind judging on every axis (not just
+  model/runner), and testing must exercise real measurement data, not just
+  the synthetic demo — which immediately surfaced bugs the demo had
+  hidden.
 
 ## Explicitly deferred (and why)
 

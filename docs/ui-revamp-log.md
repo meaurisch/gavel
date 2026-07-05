@@ -465,6 +465,36 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
     keyboard path armed with mismatched db/session — stale data is now
     treated as no-session.
 
+- Fresh critic pass 14: **0 blockers, 0 majors**, 1 minor, 1 nit — clean
+  pass #2. **CONVERGENCE REACHED** (passes 13 + 14 both at minor-polish
+  level; nothing structural; its novel hostile probes — blind-bypass query
+  params, focus-trapped hotkeys, degenerate BT stats, judge-then-inspect,
+  HTML injection via real C# XML-doc tags — all came back clean). Its two
+  items patched anyway: the dotnet "Duration: < 1 ms" form now redacts
+  (leaving it raw next to redacted durations was itself a distinguishing
+  pattern), and Report shows "—" for both mean AND total cost when no cost
+  records exist (was em-dash next to "$0.000").
+- Convergence summary: 14 fresh-context critic rounds total across both
+  phases. Verdicts (blockers/majors): P1-crit 1/1 → 2 majors phase-2 r1 →
+  1 → 1 blocker + 1 → 0/0 → 1 → 0/0(+user round: 3 findings) → 2 → 1 → 1 →
+  1 → 0/0 → 0/0. Every finding fixed or explicitly accepted with
+  reasoning; every fix verified live (real data where the demo could mask
+  it) and locked by a regression test where measurable.
+
+## End of phase 2
+
+- Final state: **305 fast tests + 18 Playwright integration tests green**
+  (1 env-gated deselected). Tree clean on `ui-ux-revamp`.
+- Final screenshots (Gavel design, 1440×900) refreshed in
+  `docs/design/screenshots/`: dashboard, picker with open hover preview,
+  two-way session on REAL cosmos-B data (open redacted gate log, file
+  navigator, blind metrics chip), three-way on real originals, dark-mode
+  session, reveal with BT ranking, runs with the SPEND gate, browse (real
+  26-trial table), trial detail (raw logs), report. README images updated:
+  `grading-compare.png` (real-data session) and `report-pareto.png` (the
+  restyled gavel artifact).
+- Cold-reader final report: `docs/ui-revamp-report.md`.
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green
