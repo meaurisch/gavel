@@ -76,6 +76,13 @@ REPORTS_DIR = ROOT / "reports"
 # Cap on a single gate-tier log served to the browser (chars, after redaction).
 TIER_OUTPUT_CAP = 100_000
 
+# Per-trial worktree temp paths (sb-wt-<hex>, see core.worktree) appear in
+# gate logs. The hash is opaque but JOINABLE: the same hash shows in the
+# unblinded Browse/trial-detail surfaces whose ids name the axis value, so a
+# grader could deliberately cross-reference it pre-reveal. Scrub it from
+# blind-served logs — it carries zero judgment value anyway.
+_WORKTREE_RE = re.compile(r"sb-wt-[0-9a-f]+", re.IGNORECASE)
+
 # ---------------------------------------------------------------------------
 # DB path management
 # ---------------------------------------------------------------------------
@@ -546,6 +553,7 @@ def _tier_detail(passed: bool | None, output: str | None,
     if output is None:
         return TierDetail(passed=passed, output=None)
     redacted = redact_axis_ids(output, axis_ids)
+    redacted = _WORKTREE_RE.sub("sb-wt-[redacted]", redacted)
     truncated = len(redacted) > TIER_OUTPUT_CAP
     if truncated:
         redacted = redacted[:TIER_OUTPUT_CAP] + f"\n… [truncated {len(redacted) - TIER_OUTPUT_CAP} chars]"

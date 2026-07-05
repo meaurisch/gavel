@@ -104,6 +104,39 @@ def test_gate_detail_logs_served_and_redacted(client):
     assert "[methodology]" in all_logs
 
 
+def test_blind_logs_scrub_worktree_hashes(tmp_path):
+    """Worktree temp hashes are per-trial identifiers joinable against the
+    unblinded Browse surface — blind-served logs must scrub them (the raw
+    trial-detail endpoint keeps them)."""
+    db_path = tmp_path / "wt.db"
+    conn = connect(db_path)
+    for tid, meth, wt in (("w1", "methone", "sb-wt-aabbcc112233"), ("w2", "methtwo", "sb-wt-ddeeff445566")):
+        insert_trial(conn, Trial(id=tid, task_id="t", methodology_id=meth,
+                                 repo_context_id="c", model="m", runner="r", rep=0))
+        insert_run_result(conn, RunResult(trial_id=tid, diff=_make_diff(meth),
+                                          exit_status=0, wall_seconds=1.0))
+        insert_gate_result(conn, GateResult(
+            trial_id=tid, passed=True, hidden_passed=True,
+            hidden_output=f"building in C:\\Temp\\{wt}\\src ... ok",
+        ))
+    conn.close()
+    server.set_db_path(db_path)
+    server._sessions.clear()
+    with TestClient(server.app) as c:
+        data = c.get("/api/pairs", params={
+            "axis": "methodology", "task": "t", "repo_context": "c",
+            "model": "m", "runner": "r",
+        }).json()
+        for pair in data["pairs"]:
+            for side in ("left", "right"):
+                log = pair[side]["gate_detail"]["hidden"]["output"]
+                assert "aabbcc112233" not in log and "ddeeff445566" not in log
+                assert "sb-wt-[redacted]" in log
+        # The unblinded trial detail keeps the raw path.
+        raw = c.get("/api/trials/w1").json()["gate_result"]["hidden_output"]
+        assert "sb-wt-aabbcc112233" in raw
+
+
 @pytest.mark.parametrize("axis,task", [("methodology", "taskx"), ("model", "tasky")])
 def test_no_spend_metrics_during_blind_judging(client, axis, task):
     """Cost/tokens/time bias blind judgment (user decision 2026-07-05):

@@ -414,6 +414,26 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
   - Nits: ?db= in the URL now tracks the switcher via replaceState;
     hover-card task text re-flows YAML hard wraps.
 
+- Fresh critic pass 11: 0 blockers, 1 major, 3 minors, 3 nits. It
+  confirmed every pass-10 fix on the real session ("genuinely fixed this
+  time"), then found the next layer:
+  - MAJOR: nav clicks dropped ?db= while the page kept showing the
+    non-default DB (the pass-10 fix only covered selector switches) — the
+    provider now re-asserts the param on EVERY route change
+    (useLocation-keyed replaceState).
+  - The "cost/time appear after reveal" tooltip promise is now honored:
+    revealed sessions carry real per-side metrics in the payload and show
+    them in the side headers (blind sessions still carry metrics: null;
+    both states fast-tested).
+  - Switching to a free runner clears a model id typed for a paid preview
+    (accidental real-model labels on oracle rows); exact-tie reveals show
+    a neutral "tied" chip instead of crowning a winner; hovercards lose
+    the nested scrollbar; the Files jump goes through a sync-suppressing
+    TwoWayDiff handle so pane B lands exactly (was ~60px off; Playwright
+    now asserts both panes <5px).
+  - Accepted (already documented): two-way scrolls long lines while
+    three-way wraps them — the price of aligned rows.
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green
