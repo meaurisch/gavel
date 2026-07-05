@@ -380,6 +380,19 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
     real $22.34 estimate. No sessions created on results.db (it resumed
     the pre-existing one read-only, 0 judgments).
 
+- Fresh critic pass 9: **0 blockers, 0 majors**, 1 minor, 1 nit — clean
+  pass #1 of the final streak. It confirmed every pass-8 fix by
+  observation (full-width open logs on the real 6,046-char dotnet log,
+  the two-step free confirm naming the DB, stacked preview cards, blurb
+  ellipses, the under-powered-BT note, the bogus-?db= banner, minute
+  formatting, slash-only path breaks) plus the standing invariants, XSS
+  and path-traversal probes included. Fixes: the armed free confirm went
+  stale when the SELECTION changed after arming (button offered the old
+  trial count) — any parameter change now kills the whole plan preview,
+  forcing a re-preview (target-DB edits only re-disarm); Playwright
+  regression arms, flips a chip, asserts the plan dies. The legacy
+  tiltyard.db localStorage key is now always removed.
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green

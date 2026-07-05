@@ -27,6 +27,15 @@ export function DbProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, db);
+    // Keep the URL truthful: a stale ?db= param while the switcher shows a
+    // different database misleads on reload and when sharing links.
+    const url = new URL(window.location.href);
+    const current = url.searchParams.get("db") ?? "";
+    if (current !== db) {
+      if (db) url.searchParams.set("db", db);
+      else url.searchParams.delete("db");
+      window.history.replaceState(null, "", url);
+    }
   }, [db]);
 
   return <DbContext.Provider value={{ db, setDb: setDbState }}>{children}</DbContext.Provider>;

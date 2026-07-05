@@ -27,12 +27,17 @@ export function BreakablePath({ path }: { path: string }) {
 
 function FileTable({ file }: { file: FileDiff }) {
   return (
-    <div data-testid="diff-file" data-file={file.displayPath}>
+    <div className="diff-file" data-testid="diff-file" data-file={file.displayPath}>
+      {/* outer band spans the full (possibly overflowing) content width;
+          the inner sticky span keeps the label readable while the pane
+          scrolls horizontally */}
       <div className="diff-file-header">
-        <span className="path"><BreakablePath path={file.displayPath} /></span>
-        {file.status !== "modified" && <span className="badge neutral">{file.status}</span>}
-        <span className="badge ok">+{file.linesAdded}</span>
-        <span className="badge fail">−{file.linesRemoved}</span>
+        <span className="diff-file-inner">
+          <span className="path"><BreakablePath path={file.displayPath} /></span>
+          {file.status !== "modified" && <span className="badge neutral">{file.status}</span>}
+          <span className="badge ok">+{file.linesAdded}</span>
+          <span className="badge fail">−{file.linesRemoved}</span>
+        </span>
       </div>
       {file.binary ? (
         <div className="diff-empty">Binary file — no text diff.</div>
@@ -56,7 +61,7 @@ function HunkRows({ header, lines }: { header: string; lines: FileDiff["hunks"][
         <td className="lineno" />
         <td className="lineno" />
         <td className="marker" />
-        <td className="code">{header}</td>
+        <td className="code"><span className="hunk-inner">{header}</span></td>
       </tr>
       {lines.map((line, i) => (
         <tr key={i} className={line.kind} data-old={line.oldLine ?? ""} data-new={line.newLine ?? ""}>
@@ -87,7 +92,12 @@ export function UnifiedDiffPane({
       {files.length === 0 ? (
         <div className="diff-empty">Empty diff — no changes outside instruction files.</div>
       ) : (
-        files.map((f) => <FileTable key={f.displayPath} file={f} />)
+        // One shared inner container spanning max-content: every file
+        // section (and its header band) is as wide as the widest line in
+        // ANY file, so sticky header labels have slack in every section.
+        <div className="diff-pane-inner">
+          {files.map((f) => <FileTable key={f.displayPath} file={f} />)}
+        </div>
       )}
     </div>
   );

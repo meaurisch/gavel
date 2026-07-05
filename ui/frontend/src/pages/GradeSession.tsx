@@ -63,7 +63,9 @@ function SideHeader({ side }: { side: BlindSide }) {
         <div className="row wrap" style={{ gap: "var(--space-2)", marginTop: "auto", paddingTop: "var(--space-1)" }}>
           {(["compile", "visible", "hidden"] as const).map((tier) =>
             gd[tier].output ? (
-              <details key={tier} className="logbox" style={{ flex: "1 1 10rem", maxWidth: "100%" }}>
+              // Layout lives in CSS only: an inline flex style here would beat
+              // the stylesheet's [open] full-width rule (the pass-10 bug).
+              <details key={tier} className="logbox">
                 <summary data-testid={`log-${side.label}-${tier}`}>
                   <span>{tier === "compile" ? "build" : tier} output{gd[tier].truncated ? " (truncated)" : ""}</span>
                   <span className="logmeta">{gd[tier].output!.length.toLocaleString()} chars</span>

@@ -30,24 +30,34 @@
   border-radius: var(--radius-lg);
 }
 
+/* the shared inner container spans the widest content line, so every file
+   section — as a normal block child — stretches to the full scroll width
+   and sticky header labels always have slack to stick within */
+.diff-pane-inner {
+  width: max-content;
+  min-width: 100%;
+}
+
 .diff-file-header {
   position: sticky;
   top: 0;
-  left: 0;
   z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   background: var(--color-surface-inset);
   border-bottom: 1px solid var(--color-border);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--color-text);
-  max-width: 100%;
-  /* stays visible while the pane scrolls horizontally */
-  width: fit-content;
-  min-width: 100%;
+}
+
+/* …while the label itself sticks to the visible left edge */
+.diff-file-header .diff-file-inner {
+  position: sticky;
+  left: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: calc(100vw - 8rem);
 }
 
 .diff-file-header .path {
@@ -114,6 +124,17 @@ table.diff tr.hunk td {
   font-size: var(--text-xs);
   padding: 3px var(--space-3);
   user-select: none;
+}
+
+/* the @@ header text stays readable under horizontal scroll. The sticky
+   must sit on the inner span: the cell itself is the LAST column, so its
+   right edge already touches the row edge — a sticky cell has no slack to
+   move into. The span (text-width) does. Pinned just past the pinned
+   gutter columns (3.6em + 3.6em + 1.2em marker + cell padding). */
+table.diff tr.hunk .hunk-inner {
+  position: sticky;
+  left: calc(8.4em + var(--space-3));
+  display: inline-block;
 }
 
 table.diff td.marker {

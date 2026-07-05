@@ -650,8 +650,16 @@ details.logbox {
   overflow: hidden;
 }
 
-/* An OPEN log must claim the full row width — a 6,000-char build log
-   wrapped inside a third-width flex column is unreadable. */
+/* In a row of expanders, closed ones share the line; an OPEN log must claim
+   the FULL row width — a 6,000-char build log wrapped inside a third-width
+   flex column is unreadable. No inline flex styles on logboxes: they would
+   out-rank the [open] rule (found the hard way in review pass 10). */
+.row > details.logbox {
+  flex: 1 1 10rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .row > details.logbox[open] {
   flex-basis: 100%;
 }

@@ -241,6 +241,22 @@ def test_gutter_stays_pinned_under_horizontal_scroll(page, server):
     assert -1 <= probe["linenoLeft"] <= 3, f"line numbers scrolled away: {probe}"
     assert 0 < probe["markerRight"] < probe["paneWidth"], f"marker off-screen: {probe}"
 
+    # File-header label and @@ hunk text stay readable too (pass-10 finding).
+    headers = page.evaluate(
+        """() => {
+          const panes = [...document.querySelectorAll('[data-testid="pane-a"],[data-testid="pane-b"]')];
+          const pane = panes.find(p => p.scrollWidth > p.clientWidth + 10);
+          const paneL = pane.getBoundingClientRect().left;
+          return {
+            header: pane.querySelector('.diff-file-inner').getBoundingClientRect().left - paneL,
+            hunk: pane.querySelector('tr.hunk .hunk-inner').getBoundingClientRect().left - paneL,
+            paneW: pane.clientWidth,
+          };
+        }"""
+    )
+    assert 0 <= headers["header"] < headers["paneW"] / 2, f"file header scrolled away: {headers}"
+    assert 0 <= headers["hunk"] < headers["paneW"] / 2, f"hunk header scrolled away: {headers}"
+
 
 def test_sync_scroll_locks_panes(page, server):
     _start_session(page, server, "methodology")
@@ -350,6 +366,29 @@ def test_file_navigator_jumps_both_panes(page, server):
         }"""
     )
     assert back < 5, f"first-file jump not at pane top: {back}"
+
+
+def test_open_log_expander_takes_full_row(page, server):
+    """With THREE logboxes per side (the real-trial case that demo data
+    hides), an opened one must claim the full card width — pass 10 found an
+    inline flex style silently defeating the stylesheet rule."""
+    _start_session(page, server, "methodology")
+    page.get_by_test_id("log-A-compile").click()
+    page.wait_for_timeout(150)
+    probe = page.evaluate(
+        """() => {
+          const card = document.querySelector('[data-testid="side-header-A"]');
+          const open = card.querySelector('details.logbox[open]');
+          const boxes = card.querySelectorAll('details.logbox').length;
+          return {
+            boxes,
+            cardW: card.getBoundingClientRect().width,
+            openW: open.getBoundingClientRect().width,
+          };
+        }"""
+    )
+    assert probe["boxes"] == 3, f"fixture must have 3 logboxes, got {probe['boxes']}"
+    assert probe["openW"] > probe["cardW"] * 0.9, f"open log not full-width: {probe}"
 
 
 # ---------------------------------------------------------------------------

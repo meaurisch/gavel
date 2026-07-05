@@ -6,6 +6,26 @@ import type { Catalog, ModelEntry, RunnerEntry, SpecEntry, TaskEntry } from "../
 import { fmtUsd } from "../api";
 import { HoverPreview } from "./HoverPreview";
 
+/** Task specs are YAML-folded at ~75 columns; re-flow the hard wraps so the
+ * card wraps at its own width, keeping paragraph breaks and list items. */
+function flowText(text: string): string {
+  return text
+    .split(/\n\s*\n/)
+    .map((para) =>
+      para
+        .split("\n")
+        .reduce<string[]>((acc, line) => {
+          const trimmed = line.trim();
+          if (!trimmed) return acc;
+          if (trimmed.startsWith("-") || acc.length === 0) acc.push(trimmed);
+          else acc[acc.length - 1] += ` ${trimmed}`;
+          return acc;
+        }, [])
+        .join("\n"),
+    )
+    .join("\n\n");
+}
+
 function TaskPreviewBody({ t }: { t: TaskEntry }) {
   return (
     <>
@@ -15,7 +35,7 @@ function TaskPreviewBody({ t }: { t: TaskEntry }) {
         {t.difficulty && <span className="badge neutral" style={{ marginLeft: "0.5em" }}>{t.difficulty}</span>}
       </span>
       {t.instruction ? (
-        <span className="preview-body">{t.instruction}</span>
+        <span className="preview-body">{flowText(t.instruction)}</span>
       ) : (
         <span className="preview-body faint">
           No local task spec (id exists only in this DB — e.g. synthetic demo data).
