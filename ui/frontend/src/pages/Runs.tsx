@@ -275,6 +275,19 @@ export function Runs() {
     .map((id) => (catalog?.runners ?? []).find((r) => r.id === id))
     .filter((r): r is NonNullable<typeof r> => r !== undefined);
 
+  // ANY parameter change invalidates the previewed plan — the plan is a
+  // promise of exactly what will run; a stale one offering the old trial
+  // count while the form says otherwise is a footgun.
+  const invalidatePlan = () => {
+    setPlan(null);
+    setArmedFree(false);
+    setStartError(null);
+  };
+
+  const changeTask = (v: string) => { setTask(v); invalidatePlan(); };
+  const changeMethodology = (v: string) => { setMethodology(v); invalidatePlan(); };
+  const changeRepoContext = (v: string) => { setRepoContext(v); invalidatePlan(); };
+
   const doPlan = async () => {
     setPlanError(null);
     setPlan(null);
@@ -337,13 +350,13 @@ export function Runs() {
         <div className="card">
           <div className="card-title">Launch trials</div>
           <div className="stack">
-            <MultiPicker label="Tasks" ids={localTasks} value={task} onChange={setTask} kind="task" />
-            <MultiPicker label="Methodologies" ids={localMeths} value={methodology} onChange={setMethodology} kind="methodology" />
-            <MultiPicker label="Repo contexts" ids={localCtxs} value={repoContext} onChange={setRepoContext} kind="repo_context" />
+            <MultiPicker label="Tasks" ids={localTasks} value={task} onChange={changeTask} kind="task" />
+            <MultiPicker label="Methodologies" ids={localMeths} value={methodology} onChange={changeMethodology} kind="methodology" />
+            <MultiPicker label="Repo contexts" ids={localCtxs} value={repoContext} onChange={changeRepoContext} kind="repo_context" />
             <div className="row wrap" style={{ alignItems: "flex-end" }}>
               <div className="field">
                 <label>Runner</label>
-                <select className="control" value={runner} onChange={(e) => { setRunner(e.target.value); setPlan(null); }} data-testid="runner-select">
+                <select className="control" value={runner} onChange={(e) => { setRunner(e.target.value); invalidatePlan(); }} data-testid="runner-select">
                   {runners.map((r) => (
                     <option key={r.id} value={r.id} disabled={!r.browser_launchable}>
                       {r.id}
@@ -359,7 +372,7 @@ export function Runs() {
                   className="control"
                   value={model}
                   placeholder={runner === "claude-code" ? "e.g. claude-haiku-4-5" : "self-test"}
-                  onChange={(e) => setModel(e.target.value)}
+                  onChange={(e) => { setModel(e.target.value); invalidatePlan(); }}
                   data-testid="model-input"
                 />
               </div>
@@ -372,7 +385,7 @@ export function Runs() {
                   min={1}
                   max={20}
                   value={reps}
-                  onChange={(e) => setReps(parseInt(e.target.value || "1", 10))}
+                  onChange={(e) => { setReps(parseInt(e.target.value || "1", 10)); invalidatePlan(); }}
                 />
               </div>
               <div className="field">
@@ -383,7 +396,7 @@ export function Runs() {
                   placeholder={`${activeDbName} (active)`}
                   onChange={(e) => {
                     setTargetDb(e.target.value);
-                    setArmedFree(false); // target changed — re-confirm
+                    setArmedFree(false); // same plan, new target — re-confirm only
                   }}
                   data-testid="target-db"
                 />

@@ -16,16 +16,13 @@ const LEGACY_KEY = "tiltyard.db"; // pre-rename builds — migrate, then drop
 
 export function DbProvider({ children }: { children: ReactNode }) {
   const [db, setDbState] = useState<string>(() => {
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    localStorage.removeItem(LEGACY_KEY); // always drop the stale key
     const fromUrl = new URLSearchParams(window.location.search).get("db");
     if (fromUrl !== null) return fromUrl;
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored !== null) return stored;
-    const legacy = localStorage.getItem(LEGACY_KEY);
-    if (legacy !== null) {
-      localStorage.removeItem(LEGACY_KEY);
-      return legacy;
-    }
-    return "";
+    return legacy ?? "";
   });
 
   useEffect(() => {

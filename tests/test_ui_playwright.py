@@ -526,6 +526,28 @@ def test_spend_gate_blocks_paid_runner(page, server):
     # refusal path (409 without the phrase) is covered by fast API tests.
 
 
+def test_plan_invalidated_when_selection_changes(page, server):
+    """An armed (or merely previewed) plan must die when any parameter
+    changes — a stale plan offering the old trial count is a footgun."""
+    page.goto(f"{server}/runs")
+    page.wait_for_selector('[data-testid="runner-select"]')
+    page.get_by_test_id("runner-select").select_option("nop")
+    page.get_by_test_id("model-input").fill("self-test")
+    page.get_by_test_id("plan-run").click()
+    page.wait_for_selector('[data-testid="plan-preview"]')
+
+    # First click arms the free confirm (does NOT launch).
+    page.get_by_test_id("start-run").click()
+    page.wait_for_timeout(150)
+    assert "Confirm — write" in page.get_by_test_id("start-run").inner_text()
+
+    # Change the selection: the whole plan (and the armed confirm) must go.
+    page.locator('[data-testid^="pick-task-"]').first.click()
+    page.wait_for_timeout(200)
+    assert page.get_by_test_id("plan-preview").count() == 0, "stale plan survived a selection change"
+    assert page.get_by_test_id("start-run").count() == 0
+
+
 def test_free_runner_needs_no_gate(page, server):
     page.goto(f"{server}/runs")
     page.wait_for_selector('[data-testid="runner-select"]')
