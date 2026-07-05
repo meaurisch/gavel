@@ -3,6 +3,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 
 interface DbState {
   db: string; // "" = server default
@@ -25,10 +26,17 @@ export function DbProvider({ children }: { children: ReactNode }) {
     return legacy ?? "";
   });
 
+  const location = useLocation();
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, db);
-    // Keep the URL truthful: a stale ?db= param while the switcher shows a
-    // different database misleads on reload and when sharing links.
+  }, [db]);
+
+  // Keep the URL truthful on EVERY navigation, not just selector switches:
+  // nav links carry bare hrefs, so without this a click on "Grade" would
+  // drop ?db= while the page keeps showing the non-default database — a
+  // copied URL would then silently open a different DB elsewhere.
+  useEffect(() => {
     const url = new URL(window.location.href);
     const current = url.searchParams.get("db") ?? "";
     if (current !== db) {
@@ -36,7 +44,7 @@ export function DbProvider({ children }: { children: ReactNode }) {
       else url.searchParams.delete("db");
       window.history.replaceState(null, "", url);
     }
-  }, [db]);
+  }, [db, location]);
 
   return <DbContext.Provider value={{ db, setDb: setDbState }}>{children}</DbContext.Provider>;
 }

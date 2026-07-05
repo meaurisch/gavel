@@ -355,17 +355,24 @@ def test_file_navigator_jumps_both_panes(page, server):
         assert r["scrolled"] > 100, f"{pane_id} did not scroll: {r}"
         assert r["visible"], f"{pane_id} target file not visible after jump: {r}"
 
-    # Jump back to the first file: this one CAN reach the pane top exactly.
+    # Jump back to the first file: this one CAN reach the pane top exactly —
+    # in BOTH panes (pixel-sync mirroring must not clobber either pane's own
+    # target offset; wait past the 60ms sync-suppression window).
     items.first.click()
-    page.wait_for_timeout(150)
+    page.wait_for_timeout(250)
     back = page.evaluate(
         """() => {
-          const pane = document.querySelector('[data-testid="pane-a"]');
-          const t = pane.querySelector('[data-file="src/app.py"]').getBoundingClientRect();
-          return Math.abs(t.top - pane.getBoundingClientRect().top);
+          const out = {};
+          for (const id of ['pane-a', 'pane-b']) {
+            const pane = document.querySelector(`[data-testid="${id}"]`);
+            const t = pane.querySelector('[data-file="src/app.py"]').getBoundingClientRect();
+            out[id] = Math.abs(t.top - pane.getBoundingClientRect().top);
+          }
+          return out;
         }"""
     )
-    assert back < 5, f"first-file jump not at pane top: {back}"
+    for pane_id, delta in back.items():
+        assert delta < 5, f"{pane_id} first-file jump not at pane top: {back}"
 
 
 def test_open_log_expander_takes_full_row(page, server):

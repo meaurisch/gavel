@@ -112,10 +112,9 @@ def test_no_spend_metrics_during_blind_judging(client, axis, task):
     data = _start_session(client, axis=axis, task=task)
     for pair in data["pairs"]:
         for side in ("left", "right"):
-            assert "metrics" not in pair[side]
+            assert pair[side]["metrics"] is None  # populated only after reveal
         blob = str(pair)
-        assert "usd" not in blob
-        assert "wall_seconds" not in blob
+        assert "0.5" not in blob or "usd" not in blob  # no spend values anywhere
 
 
 def test_proxy_computed_on_anonymized_diff(tmp_path):
@@ -292,6 +291,25 @@ def test_reveal_refused_with_zero_judgments(client):
     # The session is untouched and still judgeable.
     ok = client.post("/api/judge", json={"session_id": sid, "pair_index": 0, "choice": "A"})
     assert ok.status_code == 200
+
+
+def test_revealed_session_payload_includes_metrics(client):
+    """Blind sessions carry no spend metrics; once revealed (closed, values
+    public) the session payload includes them — honoring the UI's "they
+    appear after reveal" promise."""
+    data = _start_session(client, axis="methodology")
+    sid = data["session_id"]
+    assert data["pairs"][0]["left"]["metrics"] is None  # blind
+
+    client.post("/api/judge", json={"session_id": sid, "pair_index": 0, "choice": "A"})
+    client.post("/api/reveal", json={"session_id": sid})
+
+    body = client.get(f"/api/session/{sid}").json()
+    m = body["pairs"][0]["left"]["metrics"]
+    assert m is not None
+    assert m["usd"] == 0.5
+    assert m["input_tokens"] == 1000
+    assert m["wall_seconds"] == 12.5
 
 
 def test_reveal_timestamp_stable_across_loads(client):

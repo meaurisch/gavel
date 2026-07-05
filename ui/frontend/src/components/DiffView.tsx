@@ -2,7 +2,7 @@
 // per-file tables with inline line numbers, inside independently scrollable
 // panes that can optionally scroll in lockstep.
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { UIEvent } from "react";
 import { parseUnifiedDiff } from "../lib/diff";
 import type { FileDiff } from "../lib/diff";
@@ -103,18 +103,49 @@ export function UnifiedDiffPane({
   );
 }
 
+export interface TwoWayDiffHandle {
+  /** Scroll BOTH panes to a file, each to its own copy — with sync
+   * mirroring suppressed, so the panes don't clobber each other's
+   * (differently-offset) target positions. */
+  jumpToFile(path: string): void;
+}
+
 /** Two panes with optional lockstep scrolling. */
 export function TwoWayDiff({
   aDiff,
   bDiff,
   sync,
+  apiRef,
 }: {
   aDiff: string;
   bDiff: string;
   sync: boolean;
+  apiRef?: { current: TwoWayDiffHandle | null };
 }) {
   const panes = useRef<(HTMLDivElement | null)[]>([null, null]);
   const syncing = useRef(false);
+
+  useEffect(() => {
+    if (!apiRef) return;
+    apiRef.current = {
+      jumpToFile(path: string) {
+        syncing.current = true;
+        for (const pane of panes.current) {
+          if (!pane) continue;
+          const target = pane.querySelector<HTMLElement>(`[data-file="${CSS.escape(path)}"]`);
+          if (!target) continue;
+          pane.scrollTop += target.getBoundingClientRect().top - pane.getBoundingClientRect().top;
+        }
+        // scroll events dispatch on the next frame — release the guard after
+        window.setTimeout(() => {
+          syncing.current = false;
+        }, 60);
+      },
+    };
+    return () => {
+      apiRef.current = null;
+    };
+  }, [apiRef]);
 
   const mirror = (from: number) => () => {
     if (!sync || syncing.current) return;

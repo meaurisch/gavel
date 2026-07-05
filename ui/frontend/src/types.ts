@@ -121,9 +121,9 @@ export interface GateDetail {
   hidden: TierDetail;
 }
 
-// Blind sides deliberately carry NO cost/token/time fields — spend metrics
-// bias blind judgment (user decision 2026-07-05); they live in Reveal,
-// Browse, and Report instead.
+// During blind judging sides carry NO cost/token/time fields — spend
+// metrics bias judgment (user decision 2026-07-05). `metrics` is populated
+// only once the session has been revealed (closed + values public).
 export interface BlindSide {
   label: "A" | "B";
   diff: string;
@@ -134,6 +134,12 @@ export interface BlindSide {
     hidden_passed: boolean | null;
   };
   gate_detail: GateDetail | null;
+  metrics: {
+    usd: number | null;
+    input_tokens: number | null;
+    output_tokens: number | null;
+    wall_seconds: number | null;
+  } | null;
 }
 
 export interface Pair {

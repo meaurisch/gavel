@@ -393,6 +393,27 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
   regression arms, flips a chip, asserts the plan dies. The legacy
   tiltyard.db localStorage key is now always removed.
 
+- Fresh critic pass 10: 0 blockers, **1 major**, 2 minors, 2 nits — streak
+  reset, and a humbling one: the pass-8 log-expander "fix" NEVER worked on
+  real trials. The inline flex style on the details element out-ranked the
+  stylesheet's [open] rule; demo trials (one log per pane) masked it, and
+  even pass 9's "verified on the real log" was wrong. Fixes, all verified
+  live on the real cosmos-B session this time:
+  - Open logs: layout entirely in CSS (no inline flex), measured 672px of
+    a 698px card with all three logboxes present; three-logbox Playwright
+    regression added (the fixture already had three tiers — the earlier
+    test just never asserted width).
+  - Diff headers under horizontal scroll: file sections now share one
+    max-content inner container (a plain block wrapper stopped at the
+    scrollport → sticky labels had zero slack, and narrow sections
+    scrolled off entirely when a wide sibling drove the scroll width);
+    file-header labels are inner sticky spans; @@ hunk text sticks past
+    the gutters via the span, NOT the cell (the code cell is the last
+    column — a sticky cell has no slack to move into). Measured at
+    scrollLeft 400: header 13px, hunks 114px, gutters 1px.
+  - Nits: ?db= in the URL now tracks the switcher via replaceState;
+    hover-card task text re-flows YAML hard wraps.
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green

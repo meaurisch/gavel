@@ -148,7 +148,14 @@ export function RevealPage() {
                       <td>
                         <span className="row" style={{ gap: "var(--space-2)" }}>
                           <IdChip catalog={catalog} kind={kind} id={s.axis_value} />
-                          {i === 0 && <span className="badge accent">session winner</span>}
+                          {/* only crown a STRICT winner — an exact tie must not
+                              invent a ranking the data doesn't support */}
+                          {i === 0 && data.bt_scores!.length > 1 && s.elo - data.bt_scores![1].elo > 0.5 && (
+                            <span className="badge accent">session winner</span>
+                          )}
+                          {i === 0 && data.bt_scores!.length > 1 && Math.abs(s.elo - data.bt_scores![1].elo) <= 0.5 && (
+                            <span className="badge neutral">tied</span>
+                          )}
                         </span>
                       </td>
                       <td className="num">{s.elo.toFixed(0)}</td>

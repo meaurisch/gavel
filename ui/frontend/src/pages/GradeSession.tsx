@@ -4,14 +4,16 @@
 // than three checkmarks: per-tier gate logs, cost/tokens/wall-time (when the
 // comparison axis allows it), and diff shape proxies.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { useDb } from "../db";
 import { useCatalog, useFetch } from "../hooks";
 import { AXIS_LABELS } from "../types";
 import type { BlindSide, OriginalsResponse, Session } from "../types";
+import { fmtSeconds, fmtTokens, fmtUsd } from "../api";
 import { TwoWayDiff } from "../components/DiffView";
+import type { TwoWayDiffHandle } from "../components/DiffView";
 import { ThreeWayDiff } from "../components/ThreeWayView";
 import { GateBadges } from "../components/GateBadges";
 import { IdChip } from "../components/previews";
@@ -51,13 +53,19 @@ function SideHeader({ side }: { side: BlindSide }) {
           {side.proxy.files_touched} file{side.proxy.files_touched === 1 ? "" : "s"} · +{side.proxy.lines_added} −{side.proxy.lines_removed}
           {side.proxy.new_deps.length > 0 && ` · new deps: ${side.proxy.new_deps.join(", ")}`}
         </span>
-        <span
-          className="xsmall faint"
-          title="Cost, tokens, and time are withheld during blind judging to avoid bias. They appear after reveal, and anytime in Browse and Report."
-          data-testid={`metrics-hidden-${side.label}`}
-        >
-          cost/time hidden (blind)
-        </span>
+        {side.metrics ? (
+          <span className="xsmall muted" data-testid={`metrics-${side.label}`}>
+            {fmtUsd(side.metrics.usd)} · {fmtTokens(side.metrics.input_tokens)} in / {fmtTokens(side.metrics.output_tokens)} out · {fmtSeconds(side.metrics.wall_seconds)}
+          </span>
+        ) : (
+          <span
+            className="xsmall faint"
+            title="Cost, tokens, and time are withheld during blind judging to avoid bias. They appear here after reveal, and anytime in Browse and Report."
+            data-testid={`metrics-hidden-${side.label}`}
+          >
+            cost/time hidden (blind)
+          </span>
+        )}
       </div>
       {gd && (
         <div className="row wrap" style={{ gap: "var(--space-2)", marginTop: "auto", paddingTop: "var(--space-1)" }}>
@@ -141,12 +149,15 @@ export function GradeSession() {
     ? Array.from(new Set([...pair.left.proxy.file_list, ...pair.right.proxy.file_list])).sort()
     : [];
 
+  const twoWayRef = useRef<TwoWayDiffHandle | null>(null);
+
   const jumpToFile = useCallback((path: string) => {
-    for (const paneId of ["pane-a", "pane-b", "threeway-pane"]) {
-      const pane = document.querySelector<HTMLElement>(`[data-testid="${paneId}"]`);
-      if (!pane) continue;
-      const target = pane.querySelector<HTMLElement>(`[data-file="${CSS.escape(path)}"]`);
-      if (!target) continue;
+    // Two-way panes jump through the component's handle so pixel-sync
+    // mirroring can't clobber each pane's own target offset.
+    twoWayRef.current?.jumpToFile(path);
+    const pane = document.querySelector<HTMLElement>('[data-testid="threeway-pane"]');
+    const target = pane?.querySelector<HTMLElement>(`[data-file="${CSS.escape(path)}"]`);
+    if (pane && target) {
       pane.scrollTop += target.getBoundingClientRect().top - pane.getBoundingClientRect().top;
     }
   }, []);
@@ -331,7 +342,7 @@ export function GradeSession() {
       {/* diff area */}
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "0 var(--space-4)" }}>
         {view === "two" ? (
-          <TwoWayDiff aDiff={pair.left.diff} bDiff={pair.right.diff} sync={sync} />
+          <TwoWayDiff aDiff={pair.left.diff} bDiff={pair.right.diff} sync={sync} apiRef={twoWayRef} />
         ) : (
           <ThreeWayDiff
             aDiff={pair.left.diff}

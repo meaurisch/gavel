@@ -356,7 +356,19 @@ export function Runs() {
             <div className="row wrap" style={{ alignItems: "flex-end" }}>
               <div className="field">
                 <label>Runner</label>
-                <select className="control" value={runner} onChange={(e) => { setRunner(e.target.value); invalidatePlan(); }} data-testid="runner-select">
+                <select
+                  className="control"
+                  value={runner}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setRunner(next);
+                    // a real model id typed for a paid preview must not
+                    // silently label free self-test trials
+                    if (next === "oracle" || next === "nop") setModel("");
+                    invalidatePlan();
+                  }}
+                  data-testid="runner-select"
+                >
                   {runners.map((r) => (
                     <option key={r.id} value={r.id} disabled={!r.browser_launchable}>
                       {r.id}

@@ -273,16 +273,26 @@ class GateDetail(BaseModel):
     hidden: TierDetail
 
 
+class SideMetrics(BaseModel):
+    usd: float | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    wall_seconds: float | None = None
+
+
 class BlindDiffResponse(BaseModel):
-    """One blind side. Deliberately NO cost/token/time fields: the user
-    decided (2026-07-05, confirming two critic flags) that spend metrics bias
-    blind judgment on every axis — cost enters the decision AFTER grading,
-    via the Pareto/frontier step. Metrics live in Reveal, Browse, and Report."""
+    """One blind side. During blind judging there are NO cost/token/time
+    fields: the user decided (2026-07-05, confirming two critic flags) that
+    spend metrics bias judgment on every axis — cost enters the decision
+    AFTER grading, via the Pareto/frontier step. `metrics` is populated
+    ONLY when the session has been revealed (the session is closed and its
+    values are public, so the numbers are no longer sensitive)."""
     label: str
     diff: str
     proxy: DiffProxy
     gate: GateScorecard
     gate_detail: GateDetail | None = None
+    metrics: SideMetrics | None = None
 
 
 class PairResponse(BaseModel):
@@ -548,6 +558,7 @@ def _build_pair_responses(
     trial_pairs: list[tuple[Trial, Trial]],
     run_results: dict,
     axis_ids: dict[str, list[str]],
+    revealed: bool = False,
 ) -> list[PairResponse]:
     del axis  # kept in the signature for call-site clarity; payloads are axis-uniform
     _default_gate = GateScorecard(compile_passed=None, visible_passed=None, hidden_passed=None)
@@ -579,12 +590,23 @@ def _build_pair_responses(
             # grader sees.
             anon = anonymize_diff(rr.diff, axis_ids)
 
+            metrics = None
+            if revealed:
+                cr = get_cost_record(conn, trial.id)
+                metrics = SideMetrics(
+                    usd=cr.usd_equiv if cr else None,
+                    input_tokens=cr.input_tokens if cr else None,
+                    output_tokens=cr.output_tokens if cr else None,
+                    wall_seconds=rr.wall_seconds,
+                )
+
             sides.append(BlindDiffResponse(
                 label=label,
                 diff=anon,
                 proxy=compute_proxy(anon),
                 gate=gate,
                 gate_detail=gate_detail,
+                metrics=metrics,
             ))
 
         responses.append(PairResponse(
@@ -744,7 +766,10 @@ async def get_session(session_id: str, db: str = "") -> SessionResponse:
                 by_id.setdefault(t.id, t)
         axis_ids = _axis_ids_for_blinding(list(by_id.values()))
 
-        pair_responses = _build_pair_responses(conn, stored.axis, trial_pairs, run_results, axis_ids)
+        pair_responses = _build_pair_responses(
+            conn, stored.axis, trial_pairs, run_results, axis_ids,
+            revealed=stored.revealed_at is not None,
+        )
 
         index_by_pair = {pair: i for i, pair in enumerate(stored.pairs)}
         judged = [
