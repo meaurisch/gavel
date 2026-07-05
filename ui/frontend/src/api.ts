@@ -129,7 +129,7 @@ export function fmtTokens(v: number | null | undefined): string {
 
 export function fmtSeconds(v: number | null | undefined): string {
   if (v === null || v === undefined) return "—";
-  if (v >= 90) return `${Math.round(v / 60)}m ${Math.round(v % 60)}s`;
+  if (v >= 60) return `${Math.floor(v / 60)}m ${Math.round(v % 60)}s`;
   return `${v.toFixed(1)}s`;
 }
 

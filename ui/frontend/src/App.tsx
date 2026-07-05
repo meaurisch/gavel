@@ -13,7 +13,7 @@ import { Browse } from "./pages/Browse";
 import { TrialDetailPage } from "./pages/TrialDetail";
 import { ReportPage } from "./pages/Report";
 
-function DbSwitcher() {
+function DbSwitcher({ onReset }: { onReset: (badName: string) => void }) {
   const { db, setDb } = useDb();
   const { data: dbs } = useFetch(() => api.dbs(), []);
 
@@ -21,13 +21,15 @@ function DbSwitcher() {
   const defaultName = options.find((d) => d.is_default)?.name;
 
   // Self-heal a stale selection (e.g. a scratch DB that was deleted, left
-  // behind in localStorage): fall back to the server default instead of
-  // silently 404ing every request while the switcher shows the default.
+  // behind in localStorage, or a typo'd ?db= link): fall back to the server
+  // default — and TELL the user, because silently showing the synthetic demo
+  // DB where they expected real data is a trap.
   useEffect(() => {
     if (dbs && db !== "" && !dbs.some((d) => d.name === db)) {
+      onReset(db);
       setDb("");
     }
-  }, [dbs, db, setDb]);
+  }, [dbs, db, setDb, onReset]);
 
   return (
     <label className="row" style={{ gap: "var(--space-2)" }} data-testid="db-switcher">
@@ -73,6 +75,7 @@ function ThemeToggle() {
 }
 
 export default function App() {
+  const [dbResetNotice, setDbResetNotice] = useState<string | null>(null);
   return (
     <div className="app-shell">
       <nav className="app-nav">
@@ -98,9 +101,23 @@ export default function App() {
           </NavLink>
         </div>
         <div className="nav-spacer" />
-        <DbSwitcher />
+        <DbSwitcher onReset={setDbResetNotice} />
         <ThemeToggle />
       </nav>
+      {dbResetNotice && (
+        <div
+          className="info-banner spread"
+          style={{ borderRadius: 0, borderLeft: "none", borderRight: "none", flex: "none" }}
+          data-testid="db-reset-notice"
+        >
+          <span>
+            Database <code>{dbResetNotice}</code> was not found — switched to the default database.
+          </span>
+          <button className="btn sm ghost" onClick={() => setDbResetNotice(null)}>
+            dismiss
+          </button>
+        </div>
+      )}
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/grade" element={<GradePicker />} />

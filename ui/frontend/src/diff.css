@@ -52,7 +52,10 @@
 
 .diff-file-header .path {
   font-weight: 600;
-  overflow-wrap: anywhere;
+  /* break only at the <wbr> separators the renderer inserts after each
+     path segment — never mid-word ("…AggregationSpec/ification.cs") */
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 table.diff {

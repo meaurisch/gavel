@@ -8,11 +8,28 @@ import { parseUnifiedDiff } from "../lib/diff";
 import type { FileDiff } from "../lib/diff";
 import "../diff.css";
 
+/** Path with soft break opportunities after each separator — long .NET
+ * namespaces wrap between segments, never mid-word. */
+export function BreakablePath({ path }: { path: string }) {
+  const segs = path.split("/");
+  return (
+    <>
+      {segs.map((seg, i) => (
+        <span key={i}>
+          {i > 0 && "/"}
+          {i > 0 && <wbr />}
+          {seg}
+        </span>
+      ))}
+    </>
+  );
+}
+
 function FileTable({ file }: { file: FileDiff }) {
   return (
     <div data-testid="diff-file" data-file={file.displayPath}>
       <div className="diff-file-header">
-        <span className="path">{file.displayPath}</span>
+        <span className="path"><BreakablePath path={file.displayPath} /></span>
         {file.status !== "modified" && <span className="badge neutral">{file.status}</span>}
         <span className="badge ok">+{file.linesAdded}</span>
         <span className="badge fail">−{file.linesRemoved}</span>

@@ -493,13 +493,17 @@ table.table td.num {
   white-space: normal;
 }
 
+/* kicker/title/body are <span>s — force block so they stack instead of
+   running together inline ("TASKdemo-lru-cacheNo local task spec…") */
 .preview-card .preview-title {
+  display: block;
   font-weight: 600;
   font-family: var(--font-mono);
   margin-bottom: var(--space-1);
 }
 
 .preview-card .preview-kicker {
+  display: block;
   font-size: var(--text-2xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -509,6 +513,7 @@ table.table td.num {
 }
 
 .preview-card .preview-body {
+  display: block;
   color: var(--color-text-secondary);
   white-space: pre-wrap;
   font-size: var(--text-xs);
@@ -643,6 +648,12 @@ details.logbox {
   border-radius: var(--radius-md);
   background: var(--color-surface-inset);
   overflow: hidden;
+}
+
+/* An OPEN log must claim the full row width — a 6,000-char build log
+   wrapped inside a third-width flex column is unreadable. */
+.row > details.logbox[open] {
+  flex-basis: 100%;
 }
 
 details.logbox > summary {

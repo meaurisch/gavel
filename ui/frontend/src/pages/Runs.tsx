@@ -249,6 +249,10 @@ export function Runs() {
   const [plan, setPlan] = useState<RunPlan | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
   const [confirmPhrase, setConfirmPhrase] = useState("");
+  // Free runs cost no money but still WRITE TRIALS into a database — a
+  // two-click confirm keeps one stray click from polluting real
+  // measurement data with self-test rows.
+  const [armedFree, setArmedFree] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const { data: runList, reload: reloadRuns } = useFetch(() => api.runs(), []);
@@ -274,6 +278,7 @@ export function Runs() {
   const doPlan = async () => {
     setPlanError(null);
     setPlan(null);
+    setArmedFree(false);
     if (runner === "claude-code" && !model.trim()) {
       setPlanError("Model is required for claude-code (e.g. claude-haiku-4-5) — see the Models list on the Grade page for priced ids.");
       return;
@@ -296,6 +301,10 @@ export function Runs() {
   const doStart = async () => {
     if (!plan) return;
     setStartError(null);
+    if (!plan.paid && !armedFree) {
+      setArmedFree(true); // second click actually launches
+      return;
+    }
     try {
       const resp = await api.runsStart({
         task,
@@ -372,7 +381,10 @@ export function Runs() {
                   className="control"
                   value={targetDb}
                   placeholder={`${activeDbName} (active)`}
-                  onChange={(e) => setTargetDb(e.target.value)}
+                  onChange={(e) => {
+                    setTargetDb(e.target.value);
+                    setArmedFree(false); // target changed — re-confirm
+                  }}
                   data-testid="target-db"
                 />
               </div>
@@ -436,10 +448,16 @@ export function Runs() {
                   disabled={!plan.launchable || !phraseOk || plan.n_trials === 0}
                   data-testid="start-run"
                 >
-                  {plan.paid ? "Launch — spends money" : "Launch (free)"}
+                  {plan.paid
+                    ? "Launch — spends money"
+                    : armedFree
+                      ? `Confirm — write ${plan.n_trials} trial${plan.n_trials === 1 ? "" : "s"} into ${targetDb || activeDbName}`
+                      : "Launch (free)"}
                 </button>
-                {!plan.paid && (
-                  <span className="xsmall muted">free runners launch instantly — no phrase, no amber</span>
+                {!plan.paid && !armedFree && (
+                  <span className="xsmall muted">
+                    free — no API spend; a second click confirms the target database
+                  </span>
                 )}
                 {!plan.launchable && <span className="small muted">{plan.launch_blocked_reason}</span>}
               </div>

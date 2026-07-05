@@ -15,6 +15,12 @@ import type { Axis, Cell } from "../types";
 import { IdChip, PreviewBody } from "../components/previews";
 import { HoverPreview } from "../components/HoverPreview";
 
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), max - 20))}…`;
+}
+
 const CELL_KIND: Record<string, "task" | "methodology" | "repo_context" | "model" | "runner"> = {
   task_id: "task",
   methodology_id: "methodology",
@@ -155,7 +161,11 @@ function CatalogReference() {
       kind: "task",
       entries: catalog.tasks.map((t) => ({
         id: t.id,
-        blurb: t.instruction ? `${t.difficulty ? `[${t.difficulty}] ` : ""}${t.instruction.split("\n")[0]}` : null,
+        // Normalize the YAML line folds, then truncate on a word boundary
+        // with a real ellipsis — never a mid-sentence hard cut.
+        blurb: t.instruction
+          ? `${t.difficulty ? `[${t.difficulty}] ` : ""}${truncate(t.instruction.replace(/\s+/g, " "), 110)}`
+          : null,
       })),
     },
     {

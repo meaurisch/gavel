@@ -78,8 +78,15 @@ export function ReportPage() {
                 </span>
               </div>
               {data.n_judgments === 0 && (
-                <div className="notice-banner" style={{ marginBottom: "var(--space-3)" }}>
+                <div className="info-banner" style={{ marginBottom: "var(--space-3)" }}>
                   No blind judgments for this axis yet — the ranking columns stay empty until you grade.
+                </div>
+              )}
+              {data.n_judgments > 0 && ranked.every((s) => s.elo === null) && (
+                <div className="info-banner" style={{ marginBottom: "var(--space-3)" }} data-testid="bt-underpowered-note">
+                  {data.n_judgments} blind judgment{data.n_judgments === 1 ? "" : "s"} recorded — the
+                  Bradley-Terry fit needs at least 3, so Elo, CI, and frontier stay “—” until you grade more
+                  pairs.
                 </div>
               )}
               {data.orphan_judgments > 0 && (
@@ -176,7 +183,8 @@ export function ReportPage() {
                     ))}
                   </div>
                   <p className="xsmall faint" style={{ marginBottom: 0 }}>
-                    Newest first; the timestamp in the filename is UTC.
+                    Newest first; the timestamp in the filename is UTC. Artifacts are files under
+                    <code> reports/</code> — the list is not scoped to the selected database.
                   </p>
                 </>
               )}

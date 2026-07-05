@@ -45,7 +45,7 @@ RUNNERS = [
         "paid": False,
         "browser_launchable": False,
         "description": "Human-in-IDE: the tool prepares the worktree and waits at the terminal. "
-                       "Launch via `python cli.py run --runner manual` (needs interactive stdin).",
+                       "Launch with: python cli.py run --runner manual (needs interactive stdin).",
     },
     {
         "id": "copilot-cli",

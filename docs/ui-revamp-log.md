@@ -327,6 +327,58 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
   - Also explained to the user: the dark dead space around the page in the
     shared browser is Playwright viewport emulation (fixed 1100×800/900×600
     test sizes inside a large window), not an app layout issue.
+- Root cause of the user's misalignment report, found via the FIRST real-data
+  session (results.db cosmos-B, 7 real .NET files): the global
+  `.card + .card` stacking margin leaked into grid cells, shifting the
+  second card of every grid row 16px down — session side headers, dashboard
+  rows, trial detail. `.grid-2/3 > .card + .card { margin-top: 0 }`.
+  Measured after: side headers topDelta 0; dashboard card tops 202/202 and
+  474/474. Lesson logged: measurement-first review missed what a human
+  eyeballing the screen saw immediately — later critic briefs now mandate
+  reading full-size screenshots, and real-DB sessions are part of every
+  verification pass.
+- Real-data verification (previously only synthetic demo data was ever
+  exercised): three-way view reconstructs REAL originals via git show from
+  repos/cosmos (expandable gap rows work); file navigator drives 7 real
+  files across both panes; gate logs are real dotnet output (identical
+  lengths on both sides turned out to be deterministic builds differing
+  only in equal-length worktree hashes — checked, not assumed); blinding
+  holds on the real cell (no baseline/karpathy anywhere); mid-session DB
+  switch errors helpfully and recovers on switch-back; paid-run estimate
+  uses real history (mean of 6 cosmos-B×haiku trials ⇒ $0.22 for 2 reps,
+  cross-consistent with the README's ~$0.11/trial); report on results.db
+  is honest about 2 judgments < the BT minimum. Test session deleted from
+  results.db afterward (no judgments were created).
+
+- Fresh critic pass 8 (first with the explicit human-eyeball mandate +
+  real-DB usage): 0 blockers, 2 majors, 4 minors, 8 nits — it found what
+  the measurement-heavy passes missed, validating the user's push.
+  - MAJOR: an open gate-log expander rendered a 6,000-char dotnet log in a
+    third-width flex column (unreadable) → an open logbox now claims its
+    full row (`.row > details.logbox[open] { flex-basis: 100% }`).
+  - MAJOR: one stray click could write 55 free oracle trials into
+    results.db — the SPEND gate protected money, not data. Free launches
+    now take a two-click confirm whose second label names the target
+    ("Confirm — write N trials into results.db"), re-arming on any target
+    change.
+  - Minors: preview-card sections were inline spans running together →
+    display:block; catalog blurbs were raw YAML first-lines cut
+    mid-sentence → normalized + word-boundary ellipsis; Report explains
+    all-dash Elo/CI when 0 < judgments < 3; invalid/stale ?db= now shows
+    a dismissible "switched to the default database" banner instead of
+    silently rendering synthetic demo data (the real-vs-synthetic
+    distinction is load-bearing).
+  - Nits fixed: minutes formatting from 60s up; "(reported by the CLI)"
+    instead of raw usd_self_reported; paths in diff headers break only at
+    slashes via <wbr>; backticks removed from the manual-runner blurb;
+    artifacts caption notes the list isn't DB-scoped. Accepted: theme
+    toggle labels the action (standard pattern); three-way wraps deep
+    indents (the price of aligned rows; two-way offers horizontal scroll).
+  - Confirmed clean on real data: blinding in DOM + 59.5KB session JSON,
+    file navigator (1433/1433 scroll lockstep), real originals with
+    X-expandable gaps, sticky gutters, reveal lifecycle, spend gate with
+    real $22.34 estimate. No sessions created on results.db (it resumed
+    the pre-existing one read-only, 0 judgments).
 
 ## End of phase 1
 

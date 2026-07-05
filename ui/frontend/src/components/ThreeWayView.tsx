@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { buildThreeWay, parseUnifiedDiff } from "../lib/diff";
 import type { ThreeWayCell } from "../lib/diff";
 import type { OriginalsResponse } from "../types";
+import { BreakablePath } from "./DiffView";
 import "../diff.css";
 
 function splitLines(content: string): string[] {
@@ -75,7 +76,7 @@ function ThreeWayFileTable({
       <thead>
         <tr>
           <th colSpan={6} className="file-path">
-            {model.displayPath}
+            <BreakablePath path={model.displayPath} />
             {model.status && <span className="muted" style={{ marginLeft: "1em", fontWeight: 400 }}>{model.status}</span>}
             {originalNote && <span className="muted" style={{ marginLeft: "1em", fontWeight: 400 }}>{originalNote}</span>}
           </th>

@@ -103,7 +103,13 @@ export function TrialDetailPage() {
                   <tr><td className="muted">Cost (API-rate)</td><td>{fmtUsd(cost_record?.usd_equiv ?? null)}</td></tr>
                   <tr>
                     <td className="muted">Self-reported</td>
-                    <td>{cost_record ? `${fmtUsd(cost_record.native_amount)} (${cost_record.native_unit})` : "—"}</td>
+                    <td>
+                      {cost_record
+                        ? cost_record.native_unit === "usd_self_reported"
+                          ? `${fmtUsd(cost_record.native_amount)} (reported by the CLI)`
+                          : `${fmtUsd(cost_record.native_amount)} (${cost_record.native_unit})`
+                        : "—"}
+                    </td>
                   </tr>
                   <tr>
                     <td className="muted">Tokens</td>
