@@ -447,6 +447,24 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
   all six pass-11 fixes PASS and the compact sweep clean; its only other
   note was the unreproducible old-bundle console ghost.
 
+- Fresh critic pass 13: **0 blockers, 0 majors**, 2 minors, 1 nit — clean
+  pass #1 of the final streak. It verified the worktree scrub in both
+  directions (blind logs redacted incl. a bare-hex/GUID/timestamp sweep of
+  the raw session JSON; Browse keeps the raw hash) and the compact sweep.
+  Its minors were sharpened and fixed anyway:
+  - The sb-wt scrub moved INTO `redact_axis_ids` itself — every blind
+    surface (diffs, logs, originals) is covered by construction, so an
+    agent baking its worktree path into committed content can't reopen
+    the join channel.
+  - Machine-timing lines (MSBuild "Time Elapsed", dotnet durations,
+    restore timings) scrubbed from blind logs — they join exactly against
+    raw Browse logs and carry no judgment value (consistent with hiding
+    wall-time while blind).
+  - A failed session refetch (DB switched under an open session) kept
+    stale session data alive behind the error view, leaving the judge
+    keyboard path armed with mismatched db/session — stale data is now
+    treated as no-session.
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green

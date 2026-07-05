@@ -82,8 +82,10 @@ TIER_OUTPUT_CAP = 100_000
 # during blind judging, scrub them from blind-served logs.
 _TIMING_RES = [
     re.compile(r"Time Elapsed\s+[\d:.,]+", re.IGNORECASE),
-    re.compile(r"Duration:?\s*[\d:.,]+\s*(ms|s|sec|seconds?|minutes?|m)\b", re.IGNORECASE),
-    re.compile(r"\bin\s+[\d.,]+\s*(ms|s|sec|seconds?)\b", re.IGNORECASE),
+    # "<" covers dotnet's "Duration: < 1 ms" — leaving it raw would itself be
+    # a distinguishing pattern next to redacted numeric durations
+    re.compile(r"Duration:?\s*(<\s*)?[\d:.,]+\s*(ms|s|sec|seconds?|minutes?|m)\b", re.IGNORECASE),
+    re.compile(r"\bin\s+(<\s*)?[\d.,]+\s*(ms|s|sec|seconds?)\b", re.IGNORECASE),
 ]
 
 # ---------------------------------------------------------------------------

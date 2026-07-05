@@ -121,7 +121,8 @@ def test_blind_logs_scrub_worktree_hashes(tmp_path):
             trial_id=tid, passed=True, hidden_passed=True,
             hidden_output=(
                 f"building in C:\\Temp\\{wt}\\src ... ok\n"
-                "Time Elapsed 00:00:01.14\nPassed! - Duration: 1.234 s"
+                "Time Elapsed 00:00:01.14\nPassed! - Duration: 1.234 s\n"
+                "Passed! - Total: 1, Duration: < 1 ms - Tests.dll"
             ),
         ))
     conn.close()
@@ -139,6 +140,7 @@ def test_blind_logs_scrub_worktree_hashes(tmp_path):
                 assert "sb-wt-[redacted]" in log
                 # machine-timing lines join exactly against raw Browse logs
                 assert "00:00:01.14" not in log and "1.234" not in log
+                assert "< 1 ms" not in log  # the dotnet sub-millisecond form too
                 # the DIFF is scrubbed too — redact_axis_ids owns the rule now
                 assert "aabbcc112233" not in pair[side]["diff"]
                 assert "ddeeff445566" not in pair[side]["diff"]

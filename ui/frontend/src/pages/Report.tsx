@@ -131,7 +131,8 @@ export function ReportPage() {
                         <td className="num">{fmtPct(s.tier_pass_rates["hidden"] ?? null)}</td>
                         <td className="num">{s.n_trials}</td>
                         <td className="num">{fmtUsd(s.mean_usd)}</td>
-                        <td className="num">{fmtUsd(s.total_usd)}</td>
+                        {/* no cost records → both columns say "unknown", not "$0" */}
+                        <td className="num">{s.mean_usd === null ? "—" : fmtUsd(s.total_usd)}</td>
                         <td>
                           {s.on_frontier ? (
                             <span className="badge ok">yes</span>
