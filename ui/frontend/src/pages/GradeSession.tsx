@@ -94,10 +94,15 @@ export function GradeSession() {
   const { catalog } = useCatalog();
   const navigate = useNavigate();
 
-  const { data: session, error, loading } = useFetch<Session>(
+  const { data: fetched, error, loading } = useFetch<Session>(
     () => api.session(db, sessionId!),
     [db, sessionId],
   );
+  // A failed refetch (e.g. the DB switched under an open session) keeps the
+  // PREVIOUS session in `data` while the error view renders — the judge
+  // path must treat that stale state as no-session, or a keypress behind
+  // the error screen fires a write with mismatched db/session.
+  const session = error ? null : fetched;
 
   const [index, setIndex] = useState<number | null>(null);
   const [choices, setChoices] = useState<Map<number, string>>(new Map());

@@ -434,6 +434,19 @@ Branch: `ui-ux-revamp`. Spec: `recalibration_prompts/28-U1-ui-ux-professionaliza
   - Accepted (already documented): two-way scrolls long lines while
     three-way wraps them — the price of aligned rows.
 
+- Fresh critic pass 12: 0 blockers, **1 major**, 0 minors, 1 nit — and the
+  major was a genuinely sharp catch: per-trial worktree temp hashes
+  (`sb-wt-<hex>`) in blind gate logs are opaque but JOINABLE — the same
+  hash appears on the unblinded Browse/trial-detail surfaces whose ids
+  name the methodology, so a deliberate cross-reference could deblind a
+  side pre-reveal. Blind-served logs now scrub the hash to
+  `sb-wt-[redacted]` (raw trial detail keeps it; fast test asserts both
+  halves). Threat-model boundary documented: blinding protects against
+  passive tells — a local single-user tool cannot stop determined
+  self-deblinding, since the grader owns the database. Pass 12 verified
+  all six pass-11 fixes PASS and the compact sweep clean; its only other
+  note was the unreproducible old-bundle console ghost.
+
 ## End of phase 1
 
 - Final state: 299 fast tests green + 15 Playwright integration tests green

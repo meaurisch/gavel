@@ -138,6 +138,14 @@ def _split_file_hunks(diff: str) -> list[tuple[str, str]]:
     return result
 
 
+# Per-trial worktree temp paths (sb-wt-<hex>, see core.worktree) are opaque
+# but joinable against unblinded surfaces (Browse/trial detail) that show the
+# same hash next to the axis value. Scrubbed from EVERY blind surface here —
+# diffs, gate logs, reconstructed originals — so a future agent that bakes
+# its absolute worktree path into committed content can't reopen the channel.
+_WORKTREE_RE = re.compile(r"sb-wt-[0-9a-f]+", re.IGNORECASE)
+
+
 def redact_axis_ids(text: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
     """Redact every given axis id from arbitrary text (diffs, gate logs,
     reconstructed file content — anything served during blind comparison).
@@ -163,7 +171,7 @@ def redact_axis_ids(text: str, axis_ids_by_axis: dict[str, list[str]]) -> str:
         pattern = re.compile(rf"(?<![A-Za-z0-9]){re.escape(sid)}(?![A-Za-z0-9])", re.IGNORECASE)
         text = pattern.sub(token, text)
 
-    return text
+    return _WORKTREE_RE.sub("sb-wt-[redacted]", text)
 
 
 def anonymize_diff(diff: str, axis_ids_by_axis: dict[str, list[str]]) -> str:

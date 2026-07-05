@@ -113,11 +113,16 @@ def test_blind_logs_scrub_worktree_hashes(tmp_path):
     for tid, meth, wt in (("w1", "methone", "sb-wt-aabbcc112233"), ("w2", "methtwo", "sb-wt-ddeeff445566")):
         insert_trial(conn, Trial(id=tid, task_id="t", methodology_id=meth,
                                  repo_context_id="c", model="m", runner="r", rep=0))
-        insert_run_result(conn, RunResult(trial_id=tid, diff=_make_diff(meth),
+        # the agent baked its worktree path into committed content too
+        diff = _make_diff(meth).replace("def f():", f"def f():  # built in C:/Temp/{wt}")
+        insert_run_result(conn, RunResult(trial_id=tid, diff=diff,
                                           exit_status=0, wall_seconds=1.0))
         insert_gate_result(conn, GateResult(
             trial_id=tid, passed=True, hidden_passed=True,
-            hidden_output=f"building in C:\\Temp\\{wt}\\src ... ok",
+            hidden_output=(
+                f"building in C:\\Temp\\{wt}\\src ... ok\n"
+                "Time Elapsed 00:00:01.14\nPassed! - Duration: 1.234 s"
+            ),
         ))
     conn.close()
     server.set_db_path(db_path)
@@ -132,6 +137,11 @@ def test_blind_logs_scrub_worktree_hashes(tmp_path):
                 log = pair[side]["gate_detail"]["hidden"]["output"]
                 assert "aabbcc112233" not in log and "ddeeff445566" not in log
                 assert "sb-wt-[redacted]" in log
+                # machine-timing lines join exactly against raw Browse logs
+                assert "00:00:01.14" not in log and "1.234" not in log
+                # the DIFF is scrubbed too — redact_axis_ids owns the rule now
+                assert "aabbcc112233" not in pair[side]["diff"]
+                assert "ddeeff445566" not in pair[side]["diff"]
         # The unblinded trial detail keeps the raw path.
         raw = c.get("/api/trials/w1").json()["gate_result"]["hidden_output"]
         assert "sb-wt-aabbcc112233" in raw
