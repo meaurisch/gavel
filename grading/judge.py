@@ -122,13 +122,19 @@ def _gate_line(gate: dict | None) -> str:
 
 def _check_blinding(text: str, forbidden_tokens) -> None:
     for tok in forbidden_tokens or ():
-        # Whole-token match with the same letters/digits boundary alphabet as
-        # grading.pairwise.redact_axis_ids — "none" must not trip on "None".
-        pattern = re.compile(rf"(?<![A-Za-z0-9]){re.escape(tok)}(?![A-Za-z0-9])")
+        # Same matching rules as grading.pairwise.redact_axis_ids (whole
+        # token, letters/digits boundary alphabet, case-INSENSITIVE): a case
+        # variant of an axis id is still that id. Anything legitimate has
+        # been redacted upstream before this net is cast, so a hit here is a
+        # redaction bug — fail closed.
+        pattern = re.compile(
+            rf"(?<![A-Za-z0-9]){re.escape(tok)}(?![A-Za-z0-9])", re.IGNORECASE)
         if pattern.search(text):
+            # Deliberately does NOT name the token: this error is rendered on
+            # the blind progress page / SSE stream, which must stay blind.
             raise BlindingError(
-                f"forbidden token {tok!r} would reach the judge — refusing to "
-                "build the prompt (blind-grading invariant)"
+                "an axis-identifying token would reach the judge — refusing "
+                "to build the prompt (blind-grading invariant)"
             )
 
 

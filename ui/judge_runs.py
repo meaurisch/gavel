@@ -44,7 +44,7 @@ from core.db import (
 from core.models import GradingSession, JudgeCallRecord, Judgment, Trial
 from grading.judge import BlindingError, JudgeError, run_pair
 from grading.judge_providers import JudgeProviderError, get_provider, list_providers
-from grading.pairwise import AXIS_FIELDS, anonymize_diff, generate_pairs
+from grading.pairwise import AXIS_FIELDS, anonymize_diff, generate_pairs, redact_axis_ids
 
 logger = logging.getLogger(__name__)
 
@@ -430,6 +430,10 @@ def _worker(handle: JudgeRunHandle) -> None:
 
         axis_ids = _blinding_for_session(conn, session, pair_trials)
         forbidden = sorted({sid for ids in axis_ids.values() for sid in ids})
+        # The instruction is part of the judge's view, so it gets the same
+        # redaction the diffs do — task text that names an axis id (any case)
+        # must neither reach the provider nor fail the run as a false alarm.
+        instruction = redact_axis_ids(instruction, axis_ids)
 
         judged = {
             (j.left_trial_id, j.right_trial_id)

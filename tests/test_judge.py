@@ -105,9 +105,24 @@ def test_prompt_raises_on_unblinded_token():
 
 def test_prompt_forbidden_tokens_match_whole_tokens_only():
     left, right = _sides()
-    # "none" must not trip on Python's None; same boundary rule as redact_axis_ids
-    prompt = build_prompt("returns None on error", left, right, forbidden_tokens=["none"])
-    assert "None" in prompt
+    # Letters/digits are the token boundary (same rule as redact_axis_ids):
+    # a GLUED occurrence ("nonet") is a different identifier and passes...
+    prompt = build_prompt("call nonet() on error", left, right, forbidden_tokens=["none"])
+    assert "nonet" in prompt
+    # ...but a case VARIANT is still the same id and fails closed. Callers
+    # redact legitimate content first (see ui.judge_runs._worker), so a hit
+    # here means the redaction upstream is broken.
+    with pytest.raises(BlindingError) as exc:
+        build_prompt("returns None on error", left, right, forbidden_tokens=["none"])
+    assert "none" not in str(exc.value)  # the message names no ids
+
+
+def test_blinding_error_message_never_contains_the_token():
+    left, right = _sides()
+    left = dict(left, diff=DIFF_A + "+methodology superpowers\n")
+    with pytest.raises(BlindingError) as exc:
+        build_prompt("t", left, right, forbidden_tokens=["superpowers"])
+    assert "superpowers" not in str(exc.value)
 
 
 # ---------------------------------------------------------------------------
