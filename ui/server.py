@@ -35,6 +35,7 @@ from core.db import (
     grading_readiness,
     get_grading_session,
     insert_grading_session,
+    judge_call_rollup,
     mark_session_revealed,
     list_judgments,
     upsert_judgment,
@@ -63,6 +64,7 @@ from grading.pairwise import (
 from grading.bradley_terry import fit_bradley_terry, bootstrap_ci, bt_scores_to_elo
 from grading.analyzer import analyze, AnalyzerFlags
 
+from ui import judge_runs as judge_manager
 from ui import runs as run_manager
 from ui.catalog import build_catalog
 from ui.originals import diff_file_entries, get_resolver
@@ -126,13 +128,19 @@ def _open(db: str = "") -> sqlite3.Connection:
 class SessionState:
     def __init__(self, session_id: str, axis: str, cell: dict[str, str],
                  pairs: list[tuple[str, str]], judgments_made: set[int] | None = None,
-                 revealed_at: str | None = None):
+                 revealed_at: str | None = None, mode: str = "human",
+                 judge_provider: str | None = None, judge_model: str | None = None,
+                 judge_passes: int | None = None):
         self.session_id = session_id
         self.axis = axis
         self.cell = cell
         self.pairs = pairs
         self.judgments_made: set[int] = judgments_made or set()
         self.revealed_at = revealed_at
+        self.mode = mode
+        self.judge_provider = judge_provider
+        self.judge_model = judge_model
+        self.judge_passes = judge_passes
 
 
 _sessions: dict[str, SessionState] = {}
@@ -162,6 +170,10 @@ def _get_session(conn: sqlite3.Connection, session_id: str) -> SessionState | No
         pairs=list(stored.pairs),
         judgments_made=made,
         revealed_at=stored.revealed_at,
+        mode=stored.mode,
+        judge_provider=stored.judge_provider,
+        judge_model=stored.judge_model,
+        judge_passes=stored.judge_passes,
     )
     _sessions[session_id] = session
     return session
@@ -328,6 +340,9 @@ class SessionResponse(BaseModel):
     judged: list[JudgedPair] = []
     created_at: str | None = None
     revealed_at: str | None = None
+    mode: str = "human"
+    judge_provider: str | None = None
+    judge_model: str | None = None
 
 
 class SessionSummary(BaseModel):
@@ -338,6 +353,9 @@ class SessionSummary(BaseModel):
     n_judged: int
     created_at: str
     revealed_at: str | None = None
+    mode: str = "human"
+    judge_provider: str | None = None
+    judge_model: str | None = None
 
 
 class JudgeRequest(BaseModel):
@@ -361,6 +379,11 @@ class RevealPair(BaseModel):
     left_value: str
     right_value: str
     choice: str | None
+    # LLM-judge extras — populated only for llm-mode sessions, and only after
+    # reveal (this model is exclusively rendered by the reveal payload).
+    rationale: str | None = None
+    confidence: float | None = None
+    position_consistent: bool | None = None
 
 
 class AxisValueRecord(BaseModel):
@@ -382,6 +405,22 @@ class AnalyzerFlagsModel(BaseModel):
     cost_quality_notes: list[str]
 
 
+class JudgeSessionStats(BaseModel):
+    """Post-reveal judge metadata: spend + reliability. Never served while a
+    session is blind (cost/tokens bias judgment — invariant)."""
+    provider: str | None
+    model: str | None
+    passes: int | None
+    n_calls: int
+    input_tokens: int
+    output_tokens: int
+    usd_equiv: float
+    wall_seconds: float
+    n_errors: int
+    n_consistent: int          # judged pairs where both swapped passes agreed
+    n_inconsistent: int
+
+
 class RevealResponse(BaseModel):
     revealed: bool                    # False = locked stub: no unblinded data
     pairs: list[RevealPair]           # judged pairs ONLY — unjudged stay blind
@@ -395,6 +434,8 @@ class RevealResponse(BaseModel):
     bt_scores: list[BTScore] | None = None
     analyzer_flags: AnalyzerFlagsModel | None = None
     pass_rates: dict[str, float] | None = None
+    mode: str = "human"
+    judge_stats: JudgeSessionStats | None = None
 
 
 class RevealRequest(BaseModel):
@@ -739,6 +780,9 @@ async def get_sessions(db: str = "") -> list[SessionSummary]:
                 n_judged=n_judged,
                 created_at=s.created_at,
                 revealed_at=s.revealed_at,
+                mode=s.mode,
+                judge_provider=s.judge_provider,
+                judge_model=s.judge_model,
             ))
         return out
     finally:
@@ -802,6 +846,9 @@ async def get_session(session_id: str, db: str = "") -> SessionResponse:
             judged=judged,
             created_at=stored.created_at,
             revealed_at=stored.revealed_at,
+            mode=stored.mode,
+            judge_provider=stored.judge_provider,
+            judge_model=stored.judge_model,
         )
     finally:
         conn.close()
@@ -904,6 +951,14 @@ async def judge(req: JudgeRequest) -> JudgeResponse:
                 409, "Session was revealed and is closed — start a new session to grade this cell again"
             )
 
+        # Human and LLM verdicts are never mixed inside one session: an llm
+        # session's judgments come exclusively from its judge run.
+        if session.mode == "llm":
+            raise HTTPException(
+                409, "This session is graded by the LLM judge — start a manual "
+                     "session on the same cell to grade it yourself"
+            )
+
         if req.choice not in ("A", "B", "tie"):
             raise HTTPException(400, "Choice must be A, B, or tie")
 
@@ -957,6 +1012,7 @@ async def reveal(session_id: str, db: str = "") -> RevealResponse:
                 n_judged=n_judged,
                 n_unjudged=len(session.pairs) - n_judged,
                 total_pairs=len(session.pairs),
+                mode=session.mode,
             )
         return _reveal_payload(conn, session)
     finally:
@@ -1025,6 +1081,9 @@ def _reveal_payload(conn: sqlite3.Connection, session: SessionState) -> RevealRe
             left_value=left_value,
             right_value=right_value,
             choice=choice,
+            rationale=j.rationale,
+            confidence=j.confidence,
+            position_consistent=j.position_consistent,
         ))
 
         if choice == "A":
@@ -1071,6 +1130,26 @@ def _reveal_payload(conn: sqlite3.Connection, session: SessionState) -> RevealRe
     # Objective stats over the whole cell (passing + failing reps).
     pass_rates, flags = _cell_pass_rates_and_flags(conn, session.axis, session.cell)
 
+    # Judge spend + reliability — post-reveal only by construction (this
+    # function is never called for an unrevealed session).
+    judge_stats = None
+    if session.mode == "llm":
+        rollup = judge_call_rollup(conn, session_id)
+        judged_list = [j for j in judgments if j.position_consistent is not None]
+        judge_stats = JudgeSessionStats(
+            provider=session.judge_provider,
+            model=session.judge_model,
+            passes=session.judge_passes,
+            n_calls=rollup["n_calls"],
+            input_tokens=rollup["input_tokens"],
+            output_tokens=rollup["output_tokens"],
+            usd_equiv=round(rollup["usd_equiv"], 4),
+            wall_seconds=round(rollup["wall_seconds"], 2),
+            n_errors=rollup["n_errors"],
+            n_consistent=sum(1 for j in judged_list if j.position_consistent),
+            n_inconsistent=sum(1 for j in judged_list if not j.position_consistent),
+        )
+
     return RevealResponse(
         revealed=True,
         pairs=reveal_pairs,
@@ -1084,6 +1163,8 @@ def _reveal_payload(conn: sqlite3.Connection, session: SessionState) -> RevealRe
         bt_scores=bt_scores,
         analyzer_flags=flags,
         pass_rates=pass_rates,
+        mode=session.mode,
+        judge_stats=judge_stats,
     )
 
 
@@ -1265,14 +1346,18 @@ async def get_report(
     repo_context: str = "",
     model: str = "",
     runner: str = "",
+    grader: str = "all",
     db: str = "",
 ) -> dict:
     """The full ranking report as JSON (grading.aggregate.build_report), plus
-    any HTML artifacts already written to reports/."""
+    any HTML artifacts already written to reports/. `grader` filters which
+    judgments feed Bradley-Terry: all (default), human, or llm."""
     if axis not in AXIS_FIELDS:
         raise HTTPException(400, f"Unknown axis {axis!r}; valid: {sorted(AXIS_FIELDS)}")
+    if grader not in ("all", "human", "llm"):
+        raise HTTPException(400, f"Unknown grader {grader!r}; valid: all, human, llm")
 
-    from grading.aggregate import build_report, flag_lines
+    from grading.aggregate import build_report, flag_lines, grader_agreement_report
     from grading.bradley_terry import strength_to_elo
 
     cell = {
@@ -1286,7 +1371,9 @@ async def get_report(
 
     conn = _open(db)
     try:
-        data = build_report(conn, axis, cell)
+        data = build_report(conn, axis, cell,
+                            grader=None if grader == "all" else grader)
+        agreement = grader_agreement_report(conn, axis, cell)
         orphans = conn.execute(
             "SELECT COUNT(*) FROM judgment WHERE session_id NOT IN (SELECT id FROM grading_session)"
         ).fetchone()[0]
@@ -1303,6 +1390,7 @@ async def get_report(
     payload["flag_lines"] = flag_lines(data.flags)
     payload["orphan_judgments"] = orphans
     payload["ignored_pin"] = dropped or None
+    payload["agreement"] = agreement
 
     artifacts = []
     if REPORTS_DIR.is_dir():
@@ -1388,6 +1476,124 @@ async def runs_events(run_id: str) -> StreamingResponse:
     handle = run_manager.get_run(run_id)
     if handle is None:
         raise HTTPException(404, "Run not found")
+
+    async def stream():
+        idx = 0
+        while True:
+            while idx < len(handle.events):
+                yield f"data: {json.dumps(handle.events[idx])}\n\n"
+                idx += 1
+            if handle.status != "running":
+                yield f"data: {json.dumps({'type': 'end', 'status': handle.status})}\n\n"
+                return
+            await asyncio.sleep(0.5)
+
+    return StreamingResponse(stream(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache"})
+
+
+# ---------------------------------------------------------------------------
+# LLM judge (mode 2 of grading; the human blind flow above is mode 1)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/judge/providers")
+async def judge_providers() -> list[dict]:
+    """Registered judge providers with availability, models, and billing —
+    everything the config panel needs to render honestly."""
+    return judge_manager.provider_info()
+
+
+@app.get("/api/judge/plan")
+async def judge_plan(
+    axis: str,
+    task: str,
+    methodology: str = "",
+    repo_context: str = "",
+    model: str = "",
+    runner: str = "",
+    provider: str = "claude-cli",
+    judge_model: str = "",
+    passes: int = 2,
+    db: str = "",
+) -> dict:
+    params = {
+        "axis": axis, "task": task, "methodology": methodology,
+        "repo_context": repo_context, "model": model, "runner": runner,
+        "provider": provider, "judge_model": judge_model, "passes": passes,
+    }
+    conn = _open(db)
+    try:
+        return judge_manager.plan_judge(conn, params)
+    except judge_manager.JudgeRequestError as e:
+        raise HTTPException(e.status, str(e))
+    finally:
+        conn.close()
+
+
+@app.post("/api/judge-sessions")
+async def judge_start(body: dict = Body(...)) -> dict:
+    """Create an llm-mode session (or resume one via session_id) and start
+    judging it in the background. Non-free providers require the typed
+    confirmation phrase."""
+    db_name = body.get("db") or _db_path.name
+    db_path = _resolve_db_path(body.get("db", ""))
+    params = {
+        k: body.get(k)
+        for k in ("axis", "task", "methodology", "repo_context", "model",
+                  "runner", "provider", "judge_model", "passes", "session_id")
+        if body.get(k) is not None
+    }
+    try:
+        handle = judge_manager.start_judge(db_name, db_path, params,
+                                           body.get("confirm_phrase"))
+    except judge_manager.JudgeRequestError as e:
+        raise HTTPException(e.status, str(e))
+    return {
+        "run_id": handle.id,
+        "session_id": handle.session_id,
+        "n_pairs": handle.n_pairs,
+        "status": handle.status,
+    }
+
+
+@app.get("/api/judge-runs")
+async def judge_runs_list() -> list[dict]:
+    return judge_manager.list_judge_runs()
+
+
+@app.get("/api/judge-runs/for-session/{session_id}")
+async def judge_run_for_session(session_id: str) -> dict:
+    """The latest run handle for a session — how the judge progress page
+    reattaches after a reload. Runs live in memory only; a 404 with judgments
+    already persisted just means the run finished in a previous server life."""
+    handle = judge_manager.judge_run_for_session(session_id)
+    if handle is None:
+        raise HTTPException(404, "No judge run for this session in this server session")
+    return handle.snapshot()
+
+
+@app.get("/api/judge-runs/{run_id}")
+async def judge_run_get(run_id: str) -> dict:
+    handle = judge_manager.get_judge_run(run_id)
+    if handle is None:
+        raise HTTPException(404, "Judge run not found")
+    return handle.snapshot()
+
+
+@app.post("/api/judge-runs/{run_id}/cancel")
+async def judge_run_cancel(run_id: str) -> dict:
+    if not judge_manager.request_cancel(run_id):
+        raise HTTPException(409, "Judge run is not running")
+    return {"ok": True, "note": "judging stops after the current pair"}
+
+
+@app.get("/api/judge-runs/{run_id}/events")
+async def judge_run_events(run_id: str) -> StreamingResponse:
+    """SSE stream of a judge run's progress (replays history, then follows)."""
+    handle = judge_manager.get_judge_run(run_id)
+    if handle is None:
+        raise HTTPException(404, "Judge run not found")
 
     async def stream():
         idx = 0

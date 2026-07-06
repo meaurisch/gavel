@@ -49,6 +49,7 @@ class ReportData:
     flags: AnalyzerFlags
     n_judgments: int
     n_sessions: int
+    grader: str = "all"  # which judgments fed BT: all | human | llm
 
 
 def flag_lines(flags: AnalyzerFlags) -> list[str]:
@@ -125,6 +126,39 @@ def judgments_to_comparisons(
     return comparisons, n_judgments, n_sessions
 
 
+def grader_agreement_report(conn: sqlite3.Connection, axis: str,
+                            cell: dict | None = None) -> dict:
+    """Human vs LLM agreement over the trial pairs both graded, scoped like
+    build_report. Returns grading.judge.grader_agreement's dict."""
+    from grading.judge import grader_agreement
+
+    cell = {k: v for k, v in (cell or {}).items() if v}
+    scoped: set[str] | None = None
+    if cell:
+        scoped = {
+            t.id for t in list_trials(conn)
+            if all(getattr(t, k) == v for k, v in cell.items())
+        }
+
+    human: list[dict] = []
+    llm: list[dict] = []
+    for session in list_grading_sessions(conn):
+        if session.axis != axis:
+            continue
+        for j in list_judgments(conn, session.id):
+            if scoped is not None and (
+                j.left_trial_id not in scoped or j.right_trial_id not in scoped
+            ):
+                continue
+            entry = {
+                "left_trial_id": j.left_trial_id,
+                "right_trial_id": j.right_trial_id,
+                "choice": j.choice,
+            }
+            (llm if j.grader.startswith("llm") else human).append(entry)
+    return grader_agreement(human, llm)
+
+
 def pareto_frontier(points: dict[str, tuple[float, float]]) -> set[str]:
     """points: value -> (cost, quality); lower cost and higher quality are
     better. Returns the set of non-dominated values. A point is dominated if
@@ -170,10 +204,13 @@ def build_report(
     cell: dict | None = None,
     bootstrap_n: int = 1000,
     seed: int | None = 0,
+    grader: str | None = None,
 ) -> ReportData:
     """Aggregate everything the report renders. `cell` optionally pins any of
     task_id / methodology_id / repo_context_id / model / runner; trials (and
-    the judgments whose pairs fall inside the scope) are filtered to it."""
+    the judgments whose pairs fall inside the scope) are filtered to it.
+    `grader` filters which judgments feed Bradley-Terry: None/'all' (default,
+    human + LLM together — the report labels the mix), 'human', or 'llm'."""
     if axis not in AXIS_FIELDS:
         raise ValueError(f"Unknown axis {axis!r}; valid: {sorted(AXIS_FIELDS)}")
     cell = {k: v for k, v in (cell or {}).items() if v}
@@ -194,7 +231,7 @@ def build_report(
 
     trial_ids = scoped if cell else None
     comparisons, n_judgments, n_sessions = judgments_to_comparisons(
-        conn, axis, trial_ids, trials_by_id
+        conn, axis, trial_ids, trials_by_id, grader=grader
     )
 
     strengths = fit_bradley_terry(comparisons) if len(comparisons) >= 3 else {}
@@ -255,4 +292,5 @@ def build_report(
         flags=flags,
         n_judgments=n_judgments,
         n_sessions=n_sessions,
+        grader=grader or "all",
     )
