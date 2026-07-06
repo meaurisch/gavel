@@ -55,6 +55,28 @@ def check_claude_cli() -> DoctorRow:
                      "npm install -g @anthropic-ai/claude-code (needed for the claude-code runner)")
 
 
+def check_judge_providers() -> DoctorRow:
+    """LLM-judge readiness. The zero-spend mock always works; a real provider
+    (claude CLI login, or a GitHub token for gh-models) makes the mode useful."""
+    from grading.judge_providers import list_providers
+    ready: list[str] = []
+    unavailable: list[str] = []
+    for p in list_providers():
+        ok, reason = p.availability()
+        if ok:
+            ready.append(p.id)
+        else:
+            unavailable.append(f"{p.id}: {reason}")
+    detail = "ready: " + ", ".join(ready)
+    if unavailable:
+        detail += " · unavailable: " + "; ".join(unavailable)
+    # mock alone is enough to demo, but flag when no real judge is available
+    return DoctorRow("LLM judge providers", len(ready) > 1, False, detail,
+                     "log in the claude CLI (subscription) or provide a GitHub "
+                     "token (GITHUB_TOKEN / gh auth login) for a real judge; "
+                     "the mock provider always works at zero spend")
+
+
 def check_dotnet() -> DoctorRow:
     ok, detail = _probe(["dotnet", "--version"])
     return DoctorRow("dotnet SDK", ok, False, detail,
@@ -134,7 +156,7 @@ def check_pricing() -> DoctorRow:
 
 def run_all_checks() -> list[DoctorRow]:
     rows = [check_git(), check_node(), check_frontend_built(),
-            check_claude_cli(), check_dotnet(), check_wsl()]
+            check_claude_cli(), check_judge_providers(), check_dotnet(), check_wsl()]
     rows.extend(check_task_bases())
     rows.extend(check_vendor_packs())
     rows.append(check_pricing())

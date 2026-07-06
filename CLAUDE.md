@@ -39,3 +39,17 @@
   prefer the free `oracle`/`nop`/`manual` runners and the demo DB for pipeline
   work; keep paid sweeps minimal and deliberate. The browser run-launcher
   enforces this (typed SPEND confirmation).
+- Grading has TWO separate modes: manual double-blind ("Grade myself") and the
+  LLM judge (`grading/judge.py` + `grading/judge_providers.py` +
+  `ui/judge_runs.py`, page `/grade/judge/:id`). The judge consumes exactly the
+  blind human payload — anonymized diffs + gate scorecard booleans, never
+  cost/tokens/time or raw axis ids (`run_pair` re-checks via BlindingError).
+  Each pair is judged twice with sides swapped; disagreement scores a tie
+  (`position_consistent=false`). Providers: `claude-cli` (the user's CLI
+  login/subscription — no API key), `gh-models` (GitHub token; free or
+  org/enterprise paid tier), `mock` (deterministic, zero spend — use it for
+  all pipeline/UI work). Non-free judging needs the typed JUDGE phrase.
+  Human and LLM verdicts never mix inside one session (`judgment.grader`;
+  POST /api/judge refuses llm sessions); the report filters by grader and
+  shows human↔LLM agreement (Cohen's κ). Judge rationales and spend are
+  served only post-reveal.

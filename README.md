@@ -4,10 +4,13 @@
 
 A local-first **decision-support tool** for comparing agentic coding setups. It
 tells you which combination of methodology, repo-context, model, and runner
-produces the best results for *your* tasks — and at what cost. You judge blind
-A/B contests between anonymized solutions; gavel tallies the verdicts into a
-Bradley-Terry ranking. It helps you make an informed choice; it does not try
-to prove one setup is statistically superior.
+produces the best results for *your* tasks — and at what cost. Blind A/B
+contests between anonymized solutions are judged either **by you** (the
+double-blind manual mode) or **by an LLM judge** (a second, clearly separated
+mode that sees exactly the same blind payload); gavel tallies the verdicts
+into a Bradley-Terry ranking and reports how well the two kinds of judges
+agree. It helps you make an informed choice; it does not try to prove one
+setup is statistically superior.
 
 > This is a decision-support tool with a handful of tasks and limited statistical
 > power. Treat its rankings as evidence for a decision, not as theorems.
@@ -73,6 +76,26 @@ Anonymized diffs (every axis id redacted) are shown side by side; you pick A, B,
 or Tie. Judgments feed a Bradley-Terry model that produces Elo-style scores with
 95% bootstrap confidence intervals, ranking the chosen axis's values. Multi-rep
 sampling draws balanced cross-value pairs from *all* repetitions, not just one.
+
+**Two grading modes.** Every gradeable cell offers *Grade myself* (the blind
+manual flow) or *LLM judge* — an automated judge that receives **exactly the
+blind payload a human sees** (anonymized diffs + gate scorecard; never axis
+ids, cost, tokens, or timing) and returns rubric-anchored verdicts as strict
+JSON. Position bias is controlled by judging each pair twice with the sides
+swapped; if the passes disagree the pair scores a tie. Judge providers:
+
+| Provider | Auth | Billing |
+|----------|------|---------|
+| `claude-cli` (default) | your installed `claude` CLI login — a Claude Pro/Max **subscription needs no API key** | subscription quota (est. shown at API rates) |
+| `gh-models` | any GitHub token (`GITHUB_TOKEN` / `gh auth login`) — free tier, or an **org/enterprise** paid tier for higher limits | metered by GitHub |
+| `mock` | none | free — deterministic, for demos/tests |
+
+Non-free providers require typing **JUDGE** after a per-session call/token
+estimate. Human and LLM verdicts are never mixed inside one session; the
+report can rank by *all / human / LLM* judgments and shows a **human ↔ LLM
+agreement** card (raw rate + Cohen's κ) wherever both graded the same pairs —
+so you can calibrate how much to trust the judge before letting it scale your
+grading. Rationales and judge spend appear only after the reveal.
 
 **API-rate cost.** Cost is computed from token counts × published API rates (a
 data-driven table in `cost/pricing.toml`, refreshable via `python cli.py
@@ -247,12 +270,23 @@ guessed the same test path. The overwritten agent file is restored after the run
 
 ## Current state
 
-The full pipeline is built and tested (305 fast tests green plus an 18-test
+The full pipeline is built and tested (371 fast tests green plus a 22-test
 Playwright UI suite behind the `integration` marker, 1 env-gated test
 deselected) — engine, 5-axis matrix, three-tier gate, axis-general blind
-grading, Bradley-Terry ranking, API-rate cost, the report command with the
-quality-vs-cost Pareto frontier, and task-quality tooling. The task set spans
-two repos/languages (PyVRP C++/Python and a .NET Cosmos DB service).
+grading in **two modes** (manual double-blind and LLM judge), Bradley-Terry
+ranking, API-rate cost, the report command with the quality-vs-cost Pareto
+frontier, and task-quality tooling. The task set spans two repos/languages
+(PyVRP C++/Python and a .NET Cosmos DB service).
+
+**LLM-judge mode (2026-07-06).** A second grading mode judges blind pairs
+automatically: provider seam (`grading/judge_providers.py`) with `claude-cli`
+(subscription, no API key), `gh-models` (GitHub free/org/enterprise), and a
+deterministic zero-spend `mock`; position-swapped double passes with
+disagreement→tie; strict-JSON verdicts with a self-correction retry loop; a
+`judge_call` usage-audit table; typed `JUDGE` spend gate; blind progress page;
+reveal enriched with rationales, swap-consistency, and judge spend; report
+grader filter + human↔LLM agreement (Cohen's κ). Design notes in
+`docs/superpowers/specs/2026-07-06-llm-judge-design.md`.
 
 **A fresh clone is fully reproducible.** Task base commits are locally
 synthesized (a task's feature reverse-applied onto a pinned upstream anchor;
