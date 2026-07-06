@@ -264,6 +264,26 @@ export function GradeSession() {
   }
   if (!session || !pair || index === null) return <main className="app-main"><div className="empty-state">Session is empty.</div></main>;
 
+  // An llm-mode session is judged by the model, never here — its home is the
+  // judge progress page (human verdicts must not mix into it).
+  if (session.mode === "llm") {
+    return (
+      <main className="app-main">
+        <div className="page" style={{ maxWidth: "44rem" }}>
+          <div className="info-banner" data-testid="llm-session-redirect">
+            This session is judged by the LLM judge ({session.judge_model ?? session.judge_provider}) —
+            manual grading is disabled for it.{" "}
+            <Link to={`/grade/judge/${session.session_id}${db ? `?db=${db}` : ""}`}>
+              Open the judge progress page
+            </Link>
+            , or start a fresh manual session on the same cell from the{" "}
+            <Link to={`/grade${db ? `?db=${db}` : ""}`}>picker</Link>.
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   const currentChoice = choices.get(index);
 
   return (

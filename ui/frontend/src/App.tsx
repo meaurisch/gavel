@@ -7,6 +7,7 @@ import { GavelMark } from "./components/GavelMark";
 import { Dashboard } from "./pages/Dashboard";
 import { GradePicker } from "./pages/GradePicker";
 import { GradeSession } from "./pages/GradeSession";
+import { JudgeSessionPage } from "./pages/JudgeSession";
 import { RevealPage } from "./pages/Reveal";
 import { Runs } from "./pages/Runs";
 import { Browse } from "./pages/Browse";
@@ -123,6 +124,7 @@ export default function App() {
         <Route path="/grade" element={<GradePicker />} />
         <Route path="/grade/session/:sessionId" element={<GradeSession />} />
         <Route path="/grade/session/:sessionId/reveal" element={<RevealPage />} />
+        <Route path="/grade/judge/:sessionId" element={<JudgeSessionPage />} />
         <Route path="/runs" element={<Runs />} />
         <Route path="/browse" element={<Browse />} />
         <Route path="/browse/:trialId" element={<TrialDetailPage />} />

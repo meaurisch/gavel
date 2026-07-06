@@ -107,8 +107,8 @@ export function Dashboard() {
           <div className="card">
             <div className="card-title">Grade — blind pairwise comparison</div>
             <p className="small muted" style={{ marginTop: 0 }}>
-              Pick a comparison axis and a cell, then judge anonymized A/B diffs. Only hidden-gate passers
-              enter grading.
+              Pick a comparison axis and a cell, then judge anonymized A/B diffs — yourself, or via the
+              LLM judge (it sees the same blind payload). Only hidden-gate passers enter grading.
             </p>
             <div className="stack" style={{ gap: "var(--space-1)", marginBottom: "var(--space-3)" }}>
               {status &&
@@ -146,6 +146,11 @@ export function Dashboard() {
                   <div key={s.session_id} className="spread small">
                     <span className="row wrap" style={{ gap: "var(--space-1)" }}>
                       <span className="badge accent">{AXIS_LABELS[s.axis] ?? s.axis}</span>
+                      {s.mode === "llm" && (
+                        <span className="badge neutral" title={`judged by ${s.judge_model ?? "an LLM"}`}>
+                          LLM
+                        </span>
+                      )}
                       <CellChips cell={s.cell} catalog={catalog} />
                     </span>
                     <span className="row" style={{ gap: "var(--space-2)" }}>
@@ -155,7 +160,10 @@ export function Dashboard() {
                       <span className="muted xsmall mono">
                         {s.n_judged}/{s.total_pairs}
                       </span>
-                      <Link className="btn sm" to={`/grade/session/${s.session_id}`}>
+                      <Link
+                        className="btn sm"
+                        to={s.mode === "llm" ? `/grade/judge/${s.session_id}` : `/grade/session/${s.session_id}`}
+                      >
                         Resume
                       </Link>
                     </span>

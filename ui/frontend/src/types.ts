@@ -149,6 +149,8 @@ export interface Pair {
   right: BlindSide;
 }
 
+export type GradingMode = "human" | "llm";
+
 export interface Session {
   session_id: string;
   axis: Axis;
@@ -158,6 +160,9 @@ export interface Session {
   judged: { pair_index: number; choice: string }[];
   created_at: string | null;
   revealed_at: string | null;
+  mode: GradingMode;
+  judge_provider: string | null;
+  judge_model: string | null;
 }
 
 export interface SessionSummary {
@@ -168,6 +173,9 @@ export interface SessionSummary {
   n_judged: number;
   created_at: string;
   revealed_at: string | null;
+  mode: GradingMode;
+  judge_provider: string | null;
+  judge_model: string | null;
 }
 
 export interface OriginalFile {
@@ -184,9 +192,33 @@ export interface OriginalsResponse {
   note: string | null;
 }
 
+export interface RevealPairInfo {
+  pair_index: number;
+  left_value: string;
+  right_value: string;
+  choice: string | null;
+  rationale: string | null;
+  confidence: number | null;
+  position_consistent: boolean | null;
+}
+
+export interface JudgeSessionStats {
+  provider: string | null;
+  model: string | null;
+  passes: number | null;
+  n_calls: number;
+  input_tokens: number;
+  output_tokens: number;
+  usd_equiv: number;
+  wall_seconds: number;
+  n_errors: number;
+  n_consistent: number;
+  n_inconsistent: number;
+}
+
 export interface RevealResponse {
   revealed: boolean;
-  pairs: { pair_index: number; left_value: string; right_value: string; choice: string | null }[];
+  pairs: RevealPairInfo[];
   summary: Record<string, { wins: number; losses: number; ties: number }>;
   axis: Axis;
   cell: Record<string, string>;
@@ -201,6 +233,8 @@ export interface RevealResponse {
     cost_quality_notes: string[];
   } | null;
   pass_rates: Record<string, number> | null;
+  mode: GradingMode;
+  judge_stats: JudgeSessionStats | null;
 }
 
 export interface TrialRow {
@@ -275,6 +309,13 @@ export interface ReportSummary {
   on_frontier: boolean;
 }
 
+export interface AgreementBlock {
+  n_shared: number;
+  n_agree: number;
+  rate: number | null;
+  kappa: number | null;
+}
+
 export interface Report {
   axis: Axis;
   cell: Record<string, string>;
@@ -283,6 +324,8 @@ export interface Report {
   flag_lines: string[];
   n_judgments: number;
   n_sessions: number;
+  grader: "all" | "human" | "llm";
+  agreement: AgreementBlock;
   orphan_judgments: number;
   ignored_pin: string | null;
   artifacts: { name: string; modified_at: number; url: string }[];
@@ -346,6 +389,63 @@ export interface RunSnapshot {
   n_trials: number;
   n_done: number;
   events?: RunEvent[];
+  created_at: number;
+  finished_at: number | null;
+}
+
+// --- LLM judge -------------------------------------------------------------
+
+export interface JudgeProviderInfo {
+  id: string;
+  label: string;
+  billing: "subscription" | "metered" | "free";
+  available: boolean;
+  reason: string | null;
+  models: string[];
+  default_model: string;
+  confirm_phrase: string | null;
+}
+
+export interface JudgePlan {
+  axis: string;
+  provider: string;
+  judge_model: string;
+  passes: number;
+  billing: "subscription" | "metered" | "free";
+  available: boolean;
+  reason: string | null;
+  n_pairs: number;
+  n_calls: number;
+  est_input_tokens: number;
+  est_output_tokens: number;
+  est_usd: number | null;
+  confirm_phrase: string | null;
+}
+
+export interface JudgeEvent {
+  type: "pair" | "status" | "end";
+  index?: number;
+  choice?: string;
+  position_consistent?: boolean | null;
+  truncated?: boolean;
+  status?: string;
+  error?: string | null;
+  ts?: number;
+}
+
+export interface JudgeRunSnapshot {
+  id: string;
+  session_id: string;
+  db: string;
+  provider: string;
+  model: string;
+  passes: number;
+  status: "running" | "done" | "error" | "cancelled";
+  error: string | null;
+  n_pairs: number;
+  n_done: number;
+  n_consistent: number;
+  events?: JudgeEvent[];
   created_at: number;
   finished_at: number | null;
 }

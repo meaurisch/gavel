@@ -17,14 +17,23 @@ const AXIS_TO_KIND: Record<string, "methodology" | "model" | "repo_context" | "r
   runner: "runner",
 };
 
+type Grader = "all" | "human" | "llm";
+
+const GRADER_LABELS: Record<Grader, string> = {
+  all: "All judgments",
+  human: "Human only",
+  llm: "LLM judge only",
+};
+
 export function ReportPage() {
   const { db } = useDb();
   const { catalog } = useCatalog();
   const [axis, setAxis] = useState<Axis>("methodology");
   const [taskPin, setTaskPin] = useState("");
+  const [grader, setGrader] = useState<Grader>("all");
   const { data, error, loading } = useFetch(
-    () => api.report(db, axis, taskPin ? { task: taskPin } : {}),
-    [db, axis, taskPin],
+    () => api.report(db, axis, { ...(taskPin ? { task: taskPin } : {}), grader }),
+    [db, axis, taskPin, grader],
   );
 
   const kind = AXIS_TO_KIND[axis];
@@ -60,6 +69,22 @@ export function ReportPage() {
                   ))}
               </select>
             </div>
+            <div className="field">
+              <label>Judged by</label>
+              <div className="row" style={{ gap: "var(--space-1)" }} data-testid="grader-filter">
+                {(Object.keys(GRADER_LABELS) as Grader[]).map((g) => (
+                  <button
+                    key={g}
+                    className={`btn sm ${grader === g ? "primary" : ""}`}
+                    onClick={() => setGrader(g)}
+                    aria-pressed={grader === g}
+                    data-testid={`grader-${g}`}
+                  >
+                    {GRADER_LABELS[g]}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -75,6 +100,11 @@ export function ReportPage() {
                 </div>
                 <span className="xsmall muted">
                   {data.n_judgments} blind judgment{data.n_judgments === 1 ? "" : "s"} across {data.n_sessions} session{data.n_sessions === 1 ? "" : "s"}
+                  {data.grader !== "all" && (
+                    <span className="badge neutral" style={{ marginLeft: "var(--space-1)" }}>
+                      {data.grader === "human" ? "human verdicts only" : "LLM verdicts only"}
+                    </span>
+                  )}
                 </span>
               </div>
               {data.n_judgments === 0 && (
@@ -155,6 +185,27 @@ export function ReportPage() {
                 </p>
               )}
             </div>
+
+            {data.agreement.n_shared > 0 && (
+              <div className="card" data-testid="agreement-card">
+                <div className="card-title">Human ↔ LLM judge agreement</div>
+                <p className="small" style={{ marginTop: 0 }}>
+                  Over the <strong>{data.agreement.n_shared}</strong> trial pair
+                  {data.agreement.n_shared === 1 ? "" : "s"} both a human and the LLM judge graded, they
+                  agreed on <strong>{data.agreement.n_agree}</strong> ({fmtPct(data.agreement.rate)})
+                  {data.agreement.kappa !== null && (
+                    <> — Cohen's κ = <strong>{data.agreement.kappa.toFixed(2)}</strong></>
+                  )}
+                  .
+                </p>
+                <p className="xsmall muted" style={{ marginBottom: 0 }}>
+                  κ corrects raw agreement for chance: ≥0.6 is substantial (the LLM judge is a usable
+                  stand-in for you on this data), ≤0.2 means its verdicts diverge from yours — trust your
+                  own grading and treat the LLM ranking as a rough draft. Grade a few cells yourself to
+                  grow this comparison.
+                </p>
+              </div>
+            )}
 
             {data.flag_lines.length > 0 && (
               <div className="card">

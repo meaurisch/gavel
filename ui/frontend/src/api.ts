@@ -6,6 +6,9 @@ import type {
   Cell,
   DbInfo,
   GradingStatus,
+  JudgePlan,
+  JudgeProviderInfo,
+  JudgeRunSnapshot,
   OriginalsResponse,
   Report,
   RevealResponse,
@@ -111,6 +114,32 @@ export const api = {
 
   runCancel: (runId: string) =>
     request<{ ok: boolean }>(`/api/runs/${encodeURIComponent(runId)}/cancel`, {}, { method: "POST" }),
+
+  // --- LLM judge -------------------------------------------------------------
+
+  judgeProviders: () => request<JudgeProviderInfo[]>("/api/judge/providers"),
+
+  judgePlan: (db: string, params: Record<string, string>) =>
+    request<JudgePlan>("/api/judge/plan", { db, ...params }),
+
+  judgeStart: (body: Record<string, unknown>) =>
+    request<{ run_id: string; session_id: string; n_pairs: number; status: string }>(
+      "/api/judge-sessions", {}, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+
+  judgeRun: (runId: string) =>
+    request<JudgeRunSnapshot>(`/api/judge-runs/${encodeURIComponent(runId)}`),
+
+  judgeRunForSession: (sessionId: string) =>
+    request<JudgeRunSnapshot>(`/api/judge-runs/for-session/${encodeURIComponent(sessionId)}`),
+
+  judgeRunCancel: (runId: string) =>
+    request<{ ok: boolean }>(`/api/judge-runs/${encodeURIComponent(runId)}/cancel`, {}, {
+      method: "POST",
+    }),
 };
 
 // --- formatting helpers shared across pages --------------------------------

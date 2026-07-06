@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, fmtPct } from "../api";
+import { api, fmtPct, fmtSeconds, fmtTokens, fmtUsd } from "../api";
 import { useDb } from "../db";
 import { useCatalog, useFetch } from "../hooks";
 import { AXIS_LABELS } from "../types";
@@ -52,6 +52,10 @@ export function RevealPage() {
 
   if (!data.revealed) {
     const nothingJudged = data.n_judged === 0;
+    const isLlm = data.mode === "llm";
+    const backTo = isLlm
+      ? `/grade/judge/${sessionId}${db ? `?db=${db}` : ""}`
+      : `/grade/session/${sessionId}${db ? `?db=${db}` : ""}`;
     return (
       <main className="app-main">
         <div className="page" style={{ maxWidth: "44rem" }}>
@@ -59,21 +63,22 @@ export function RevealPage() {
           <div className="card" data-testid="reveal-confirm">
             {nothingJudged ? (
               <p className="small" style={{ marginTop: 0 }}>
-                Nothing has been judged in this session yet — there is no verdict to reveal. Judge some
-                pairs first.
+                Nothing has been judged in this session yet — there is no verdict to reveal.{" "}
+                {isLlm ? "Run the LLM judge first." : "Judge some pairs first."}
               </p>
             ) : (
               <p className="small" style={{ marginTop: 0 }}>
                 Revealing unblinds the <strong>{data.n_judged}</strong> judged pair
-                {data.n_judged === 1 ? "" : "s"} of this {AXIS_LABELS[data.axis] ?? data.axis} session and{" "}
-                <strong>permanently closes it</strong> — no further blind judging is possible afterward.
+                {data.n_judged === 1 ? "" : "s"} of this {AXIS_LABELS[data.axis] ?? data.axis}{" "}
+                {isLlm ? "LLM-judged " : ""}session and <strong>permanently closes it</strong> — no
+                further blind judging is possible afterward.
               </p>
             )}
             {data.n_unjudged > 0 && !nothingJudged && (
               <p className="small muted">
                 {data.n_unjudged} of {data.total_pairs} pairs {data.n_unjudged === 1 ? "is" : "are"} still
                 unjudged — {data.n_unjudged === 1 ? "it" : "they"} will stay blind forever and never enter
-                the ranking. Consider resuming the session first.
+                the ranking. Consider resuming the {isLlm ? "judge run" : "session"} first.
               </p>
             )}
             <div className="row" style={{ marginTop: "var(--space-3)" }}>
@@ -85,12 +90,12 @@ export function RevealPage() {
               >
                 {confirming ? "Striking…" : "Strike the gavel — reveal"}
               </button>
-              <Link className="btn" to={`/grade/session/${sessionId}${db ? `?db=${db}` : ""}`}>
+              <Link className="btn" to={backTo}>
                 {data.n_unjudged > 0
                   ? nothingJudged
-                    ? "Start judging"
-                    : `Keep judging (${data.n_unjudged} left)`
-                  : "Back to the pairs"}
+                    ? isLlm ? "Run the judge" : "Start judging"
+                    : isLlm ? `Resume the judge (${data.n_unjudged} left)` : `Keep judging (${data.n_unjudged} left)`
+                  : isLlm ? "Back to the judge run" : "Back to the pairs"}
               </Link>
             </div>
             {confirmError && <div className="error-banner" style={{ marginTop: "var(--space-2)" }}>{confirmError}</div>}
@@ -115,6 +120,12 @@ export function RevealPage() {
 
         <div className="info-banner" style={{ marginBottom: "var(--space-4)" }} data-testid="session-closed-note">
           The gavel has struck — this session is closed. Revealing ends blind judging permanently.
+          {data.mode === "llm" && (
+            <>
+              {" "}This session was judged by <strong>an LLM</strong>
+              {data.judge_stats?.model ? <> (<code>{data.judge_stats.model}</code>)</> : null}, not by you.
+            </>
+          )}
           {data.n_unjudged > 0 && (
             <>
               {" "}
@@ -126,6 +137,57 @@ export function RevealPage() {
             </>
           )}
         </div>
+
+        {data.judge_stats && (
+          <div className="card" data-testid="judge-stats">
+            <div className="card-title">LLM judge — reliability &amp; spend</div>
+            <div className="row wrap" style={{ gap: "var(--space-4)" }}>
+              <div className="stack" style={{ gap: 0 }}>
+                <span className="xsmall muted">Judge</span>
+                <span className="small mono">
+                  {data.judge_stats.provider} · {data.judge_stats.model} ·{" "}
+                  {data.judge_stats.passes === 2 ? "double pass (position-debiased)" : "single pass"}
+                </span>
+              </div>
+              <div className="stack" style={{ gap: 0 }}>
+                <span className="xsmall muted">Position consistency</span>
+                <span className="small" data-testid="judge-consistency">
+                  {data.judge_stats.passes === 2
+                    ? `${data.judge_stats.n_consistent}/${data.judge_stats.n_consistent + data.judge_stats.n_inconsistent} pairs agreed under side-swap`
+                    : "n/a (single pass)"}
+                </span>
+              </div>
+              <div className="stack" style={{ gap: 0 }}>
+                <span className="xsmall muted">Calls · tokens</span>
+                <span className="small">
+                  {data.judge_stats.n_calls} calls · {fmtTokens(data.judge_stats.input_tokens)} in /{" "}
+                  {fmtTokens(data.judge_stats.output_tokens)} out
+                </span>
+              </div>
+              <div className="stack" style={{ gap: 0 }}>
+                <span className="xsmall muted">Judge cost · time</span>
+                <span className="small">
+                  {data.judge_stats.usd_equiv > 0 ? fmtUsd(data.judge_stats.usd_equiv) : "$0"}
+                  {data.judge_stats.provider === "claude-cli" && " (API-rate equiv. — subscription quota)"}
+                  {" · "}
+                  {fmtSeconds(data.judge_stats.wall_seconds)}
+                </span>
+              </div>
+              {data.judge_stats.n_errors > 0 && (
+                <div className="stack" style={{ gap: 0 }}>
+                  <span className="xsmall muted">Retried calls</span>
+                  <span className="small">{data.judge_stats.n_errors} (malformed replies re-asked)</span>
+                </div>
+              )}
+            </div>
+            {data.judge_stats.n_inconsistent > 0 && (
+              <p className="xsmall muted" style={{ marginBottom: 0 }}>
+                Pairs where the two side-swapped passes disagreed were recorded as ties — a
+                position-dependent verdict carries no reliable signal.
+              </p>
+            )}
+          </div>
+        )}
 
         {data.bt_scores && (
           <div className="card" data-testid="bt-table">
@@ -211,7 +273,8 @@ export function RevealPage() {
                   <th className="num">#</th>
                   <th>A was</th>
                   <th>B was</th>
-                  <th>Your choice</th>
+                  <th>{data.mode === "llm" ? "Judge's choice" : "Your choice"}</th>
+                  {data.mode === "llm" && <th>Why (judge's rationale)</th>}
                 </tr>
               </thead>
               <tbody>
@@ -221,8 +284,25 @@ export function RevealPage() {
                     <td><IdChip catalog={catalog} kind={kind} id={p.left_value} /></td>
                     <td><IdChip catalog={catalog} kind={kind} id={p.right_value} /></td>
                     <td>
-                      <span className="badge accent">{p.choice}</span>
+                      <span className="row" style={{ gap: "var(--space-1)" }}>
+                        <span className="badge accent">{p.choice}</span>
+                        {p.position_consistent === false && (
+                          <span className="badge neutral" title="The two side-swapped judge passes disagreed — recorded as a tie">
+                            swap-disagreed
+                          </span>
+                        )}
+                      </span>
                     </td>
+                    {data.mode === "llm" && (
+                      <td style={{ maxWidth: "28rem" }}>
+                        <span className="xsmall" data-testid="judge-rationale">
+                          {p.rationale ?? "—"}
+                          {p.confidence !== null && (
+                            <span className="muted"> (confidence {Math.round((p.confidence ?? 0) * 100)}%)</span>
+                          )}
+                        </span>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

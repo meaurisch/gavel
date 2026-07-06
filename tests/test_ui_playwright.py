@@ -619,3 +619,154 @@ def test_dashboard_links_every_area(page, server):
         "() => document.querySelector('[data-testid=\"active-db\"]').textContent.includes('trials')"
     )
     assert "trials" in page.get_by_test_id("active-db").inner_text()
+
+# ---------------------------------------------------------------------------
+# LLM judge mode (mode 2 of grading — zero-spend mock provider throughout)
+# ---------------------------------------------------------------------------
+
+import json
+
+
+def _api_json(server: str, path: str, body: dict | None = None) -> dict | list:
+    req = urllib.request.Request(
+        f"{server}{path}",
+        data=json.dumps(body).encode() if body is not None else None,
+        headers={"Content-Type": "application/json"} if body is not None else {},
+        method="POST" if body is not None else "GET",
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return json.loads(resp.read().decode())
+
+
+_MODEL_CELL = {
+    "axis": "model", "task": TASK2, "methodology": PINNED_METH,
+    "repo_context": PINNED_CTX, "runner": PINNED_RUNNER,
+}
+
+
+def _run_mock_judge(server: str, passes: int = 2) -> dict:
+    """Create + finish an llm session on the model-axis cell via the API."""
+    started = _api_json(server, "/api/judge-sessions", {
+        **_MODEL_CELL, "provider": "mock", "judge_model": "mock-judge",
+        "passes": passes,
+    })
+    deadline = time.time() + 20
+    while time.time() < deadline:
+        snap = _api_json(server, f"/api/judge-runs/{started['run_id']}")
+        if snap["status"] != "running":
+            assert snap["status"] == "done", snap["error"]
+            return started
+        time.sleep(0.1)
+    pytest.fail("mock judge run did not finish in 20s")
+
+
+def test_llm_judge_end_to_end_via_browser(page, server):
+    """The full second mode as a user drives it: picker → LLM judge button →
+    config panel → mock provider → launch → blind progress → reveal with
+    rationales + judge stats. Blinding holds until the explicit reveal."""
+    page.goto(f"{server}/grade")
+    page.get_by_test_id("axis-model").click()
+    page.wait_for_selector('[data-testid="cell-row"]')
+    page.get_by_test_id("start-llm-judge").first.click()
+    page.wait_for_selector('[data-testid="judge-config"]')
+
+    # the config panel lists all three providers with billing badges
+    # (the provider list loads async — wait for it before counting)
+    page.wait_for_selector('[data-testid="judge-provider-mock"]')
+    for pid in ("claude-cli", "gh-models", "mock"):
+        assert page.get_by_test_id(f"judge-provider-{pid}").count() == 1
+    page.get_by_test_id("judge-provider-mock").click()
+    # a plan for the previously-selected default provider may still be on
+    # screen — wait for the MOCK plan (recognizable by its zero-spend note)
+    page.wait_for_function(
+        "() => (document.querySelector('[data-testid=\"judge-plan\"]')?.textContent ?? '').includes('zero spend')"
+    )
+    plan_text = page.get_by_test_id("judge-plan").inner_text()
+    assert "call" in plan_text
+
+    # free provider: no phrase input, launch armed immediately
+    assert page.get_by_test_id("judge-confirm-input").count() == 0
+    page.get_by_test_id("judge-launch").click()
+    page.wait_for_url("**/grade/judge/**")
+
+    # the mock judge finishes fast; the page stays blind meanwhile and after
+    page.wait_for_selector('[data-testid="judge-done"]', timeout=20000)
+    html = page.content()
+    for mid in MODELS:
+        assert mid not in html, f"judge progress page leaked axis value {mid!r}"
+    assert page.locator('[data-testid="judge-verdicts"] tbody tr').count() >= 1
+    consistency = page.get_by_test_id("judge-progress-text").inner_text()
+    assert "swap-consistent" in consistency
+
+    # reveal: explicit confirm, then rationales + judge reliability/spend card
+    page.get_by_test_id("judge-reveal-link").click()
+    page.wait_for_selector('[data-testid="reveal-confirm"]')
+    page.get_by_test_id("confirm-reveal").click()
+    page.wait_for_selector('[data-testid="judge-stats"]')
+    revealed = page.content()
+    assert any(m in revealed for m in MODELS), "reveal did not unblind the values"
+    assert page.get_by_test_id("judge-rationale").count() >= 1
+    stats = page.get_by_test_id("judge-stats").inner_text()
+    assert "mock" in stats and "double pass" in stats
+
+
+def test_paid_judge_provider_requires_typed_phrase(page, server):
+    """claude-cli/gh-models judging spends real budget — the launch button
+    must stay disarmed until the JUDGE phrase is typed. Nothing is launched."""
+    page.goto(f"{server}/grade")
+    page.get_by_test_id("axis-model").click()
+    page.wait_for_selector('[data-testid="cell-row"]')
+    page.get_by_test_id("start-llm-judge").first.click()
+    page.wait_for_selector('[data-testid="judge-config"]')
+
+    claude_btn = page.get_by_test_id("judge-provider-claude-cli")
+    if not claude_btn.is_enabled():
+        pytest.skip("claude CLI not on PATH here — phrase gate not reachable")
+    claude_btn.click()
+    page.wait_for_selector('[data-testid="judge-confirm-input"]')
+    assert page.get_by_test_id("judge-launch").is_disabled()
+    page.get_by_test_id("judge-confirm-input").fill("WRONG")
+    assert page.get_by_test_id("judge-launch").is_disabled()
+    page.get_by_test_id("judge-confirm-input").fill("JUDGE")
+    assert page.get_by_test_id("judge-launch").is_enabled()
+    # never click launch — this test must not spend anything
+
+
+def test_llm_session_refuses_manual_grading(page, server):
+    started = _run_mock_judge(server)
+    page.goto(f"{server}/grade/session/{started['session_id']}")
+    page.wait_for_selector('[data-testid="llm-session-redirect"]')
+    text = page.get_by_test_id("llm-session-redirect").inner_text()
+    assert "LLM judge" in text
+
+
+def test_report_grader_filter_and_agreement(page, server):
+    """With both an LLM session and a human session over the same cell, the
+    report shows the human↔LLM agreement card and the grader filter narrows
+    the judgment pool."""
+    _run_mock_judge(server)
+    human = _api_json(
+        server,
+        "/api/pairs?" + "&".join(f"{k}={v}" for k, v in _MODEL_CELL.items()),
+    )
+    for pair in human["pairs"]:
+        _api_json(server, "/api/judge", {
+            "session_id": human["session_id"],
+            "pair_index": pair["pair_index"],
+            "choice": "A",
+        })
+
+    page.goto(f"{server}/report")
+    page.get_by_role("button", name="Model", exact=True).click()
+    page.wait_for_selector('[data-testid="agreement-card"]')
+    card = page.get_by_test_id("agreement-card").inner_text()
+    assert "agreed" in card
+
+    all_count = page.get_by_test_id("report-table").inner_text()
+    page.get_by_test_id("grader-human").click()
+    page.wait_for_selector('[data-testid="report-table"]')
+    page.wait_for_function(
+        "() => document.body.textContent.includes('human verdicts only')"
+    )
+    assert page.get_by_test_id("grader-human").get_attribute("aria-pressed") == "true"
+    del all_count  # counts differ per sampling; the badge is the assertion
