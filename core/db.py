@@ -8,6 +8,7 @@ from core.models import (
     CostRecord,
     GateResult,
     GradingSession,
+    JudgeCallRecord,
     Judgment,
     MethodologySpec,
     RepoContextSpec,
@@ -86,7 +87,11 @@ CREATE TABLE IF NOT EXISTS grading_session (
     cell TEXT NOT NULL,
     pairs TEXT NOT NULL,
     created_at TEXT NOT NULL,
-    revealed_at TEXT
+    revealed_at TEXT,
+    mode TEXT NOT NULL DEFAULT 'human',
+    judge_provider TEXT,
+    judge_model TEXT,
+    judge_passes INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS judgment (
@@ -101,6 +106,26 @@ CREATE TABLE IF NOT EXISTS judgment (
     rubric_minimality TEXT,
     rubric_readability TEXT,
     rubric_overengineering TEXT,
+    created_at TEXT NOT NULL,
+    grader TEXT NOT NULL DEFAULT 'human',
+    rationale TEXT,
+    confidence REAL,
+    position_consistent INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS judge_call (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    pair_index INTEGER NOT NULL,
+    ordering TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    status TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    usd_equiv REAL,
+    wall_seconds REAL NOT NULL,
+    error TEXT,
     created_at TEXT NOT NULL
 );
 """
@@ -127,6 +152,15 @@ def init_schema(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "task_spec", "difficulty", "TEXT")
     _ensure_column(conn, "run_result", "error", "TEXT")
     _ensure_column(conn, "grading_session", "revealed_at", "TEXT")
+    # LLM-judge mode (2026-07-06): pre-existing rows read as human-mode.
+    _ensure_column(conn, "grading_session", "mode", "TEXT NOT NULL DEFAULT 'human'")
+    _ensure_column(conn, "grading_session", "judge_provider", "TEXT")
+    _ensure_column(conn, "grading_session", "judge_model", "TEXT")
+    _ensure_column(conn, "grading_session", "judge_passes", "INTEGER")
+    _ensure_column(conn, "judgment", "grader", "TEXT NOT NULL DEFAULT 'human'")
+    _ensure_column(conn, "judgment", "rationale", "TEXT")
+    _ensure_column(conn, "judgment", "confidence", "REAL")
+    _ensure_column(conn, "judgment", "position_consistent", "INTEGER")
     conn.commit()
 
 
@@ -337,13 +371,26 @@ def list_trials(conn: sqlite3.Connection) -> list[Trial]:
 
 # -- judgment --
 
+_JUDGMENT_COLS = (
+    "id, session_id, task_id, model, left_trial_id, right_trial_id, choice, "
+    "rubric_correctness, rubric_minimality, rubric_readability, "
+    "rubric_overengineering, created_at, grader, rationale, confidence, "
+    "position_consistent"
+)
+
+
+def _judgment_params(j: Judgment) -> tuple:
+    return (j.id, j.session_id, j.task_id, j.model, j.left_trial_id,
+            j.right_trial_id, j.choice, j.rubric_correctness,
+            j.rubric_minimality, j.rubric_readability,
+            j.rubric_overengineering, j.created_at, j.grader, j.rationale,
+            j.confidence, _bool_to_int(j.position_consistent))
+
+
 def insert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
     conn.execute(
-        "INSERT INTO judgment VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (j.id, j.session_id, j.task_id, j.model, j.left_trial_id,
-         j.right_trial_id, j.choice, j.rubric_correctness,
-         j.rubric_minimality, j.rubric_readability,
-         j.rubric_overengineering, j.created_at),
+        f"INSERT INTO judgment ({_JUDGMENT_COLS}) VALUES ({', '.join('?' * 16)})",
+        _judgment_params(j),
     )
     conn.commit()
 
@@ -359,11 +406,8 @@ def upsert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
             (j.session_id, j.left_trial_id, j.right_trial_id),
         )
         conn.execute(
-            "INSERT INTO judgment VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (j.id, j.session_id, j.task_id, j.model, j.left_trial_id,
-             j.right_trial_id, j.choice, j.rubric_correctness,
-             j.rubric_minimality, j.rubric_readability,
-             j.rubric_overengineering, j.created_at),
+            f"INSERT INTO judgment ({_JUDGMENT_COLS}) VALUES ({', '.join('?' * 16)})",
+            _judgment_params(j),
         )
         conn.commit()
     except Exception:
@@ -371,20 +415,73 @@ def upsert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
         raise
 
 
+def _judgment_from_row(row) -> Judgment:
+    d = dict(row)
+    d["grader"] = d.get("grader") or "human"
+    if d.get("position_consistent") is not None:
+        d["position_consistent"] = bool(d["position_consistent"])
+    return TypeAdapter(Judgment).validate_python(d)
+
+
 def list_judgments(conn: sqlite3.Connection, session_id: str) -> list[Judgment]:
     rows = conn.execute(
         "SELECT * FROM judgment WHERE session_id = ?", (session_id,)
     ).fetchall()
-    ta = TypeAdapter(Judgment)
+    return [_judgment_from_row(r) for r in rows]
+
+
+# -- judge calls (LLM-judge usage/cost audit) --
+
+_JUDGE_CALL_COLS = (
+    "id, session_id, pair_index, ordering, provider, model, status, "
+    "input_tokens, output_tokens, usd_equiv, wall_seconds, error, created_at"
+)
+
+
+def insert_judge_call(conn: sqlite3.Connection, c: JudgeCallRecord) -> None:
+    conn.execute(
+        f"INSERT INTO judge_call ({_JUDGE_CALL_COLS}) VALUES ({', '.join('?' * 13)})",
+        (c.id, c.session_id, c.pair_index, c.ordering, c.provider, c.model,
+         c.status, c.input_tokens, c.output_tokens, c.usd_equiv,
+         c.wall_seconds, c.error, c.created_at),
+    )
+    conn.commit()
+
+
+def list_judge_calls(conn: sqlite3.Connection, session_id: str) -> list[JudgeCallRecord]:
+    rows = conn.execute(
+        "SELECT * FROM judge_call WHERE session_id = ? ORDER BY created_at, pair_index",
+        (session_id,),
+    ).fetchall()
+    ta = TypeAdapter(JudgeCallRecord)
     return [ta.validate_python(dict(r)) for r in rows]
+
+
+def judge_call_rollup(conn: sqlite3.Connection, session_id: str) -> dict:
+    """Session-level judge spend: call count, tokens, $ (where priced), errors."""
+    row = conn.execute(
+        """SELECT COUNT(*) AS n_calls,
+                  COALESCE(SUM(input_tokens), 0) AS input_tokens,
+                  COALESCE(SUM(output_tokens), 0) AS output_tokens,
+                  COALESCE(SUM(usd_equiv), 0.0) AS usd_equiv,
+                  COALESCE(SUM(wall_seconds), 0.0) AS wall_seconds,
+                  COALESCE(SUM(CASE WHEN status != 'ok' THEN 1 ELSE 0 END), 0) AS n_errors
+           FROM judge_call WHERE session_id = ?""",
+        (session_id,),
+    ).fetchone()
+    return dict(row)
 
 
 # -- grading sessions --
 
 def insert_grading_session(conn: sqlite3.Connection, s: GradingSession) -> None:
     conn.execute(
-        "INSERT INTO grading_session VALUES (?, ?, ?, ?, ?, ?)",
-        (s.id, s.axis, json.dumps(s.cell), json.dumps(s.pairs), s.created_at, s.revealed_at),
+        """INSERT INTO grading_session
+           (id, axis, cell, pairs, created_at, revealed_at,
+            mode, judge_provider, judge_model, judge_passes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (s.id, s.axis, json.dumps(s.cell), json.dumps(s.pairs), s.created_at,
+         s.revealed_at, s.mode, s.judge_provider, s.judge_model, s.judge_passes),
     )
     conn.commit()
 
@@ -403,6 +500,7 @@ def _session_from_row(row) -> GradingSession:
     d = dict(row)
     d["cell"] = json.loads(d["cell"])
     d["pairs"] = [tuple(p) for p in json.loads(d["pairs"])]
+    d["mode"] = d.get("mode") or "human"
     return TypeAdapter(GradingSession).validate_python(d)
 
 

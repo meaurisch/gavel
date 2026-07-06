@@ -87,6 +87,12 @@ class Judgment:
     rubric_readability: str | None
     rubric_overengineering: str | None
     created_at: str
+    # Who judged: "human" or "llm:<provider>:<model>". Human and LLM verdicts
+    # are never silently mixed — reports can filter on this.
+    grader: str = "human"
+    rationale: str | None = None           # LLM judge's reasoning (post-reveal only)
+    confidence: float | None = None        # 0-1, LLM self-reported
+    position_consistent: bool | None = None  # both swapped passes agreed?
 
 
 @dataclass
@@ -105,6 +111,30 @@ class GradingSession:
     pairs: list[tuple[str, str]]   # ordered (left_trial_id, right_trial_id)
     created_at: str
     revealed_at: str | None = None
+    # Grading mode: "human" (blind manual judging) or "llm" (LLM judge).
+    mode: str = "human"
+    judge_provider: str | None = None   # e.g. "claude-cli" | "gh-models" | "mock"
+    judge_model: str | None = None
+    judge_passes: int | None = None     # 1 or 2 (position-swapped)
+
+
+@dataclass
+class JudgeCallRecord:
+    """One LLM-judge provider call — the usage/cost audit trail. Failed calls
+    are recorded too: they were billed."""
+    id: str
+    session_id: str
+    pair_index: int
+    ordering: str                  # "AB" | "BA"
+    provider: str
+    model: str
+    status: str                    # "ok" | "parse_error" | "provider_error"
+    input_tokens: int
+    output_tokens: int
+    usd_equiv: float | None
+    wall_seconds: float
+    error: str | None
+    created_at: str
 
 
 @dataclass
@@ -113,4 +143,4 @@ class LeakageReport:
     any_found: bool
 
 
-ALL_MODELS = (TaskSpec, MethodologySpec, RepoContextSpec, Trial, RunResult, CostRecord, GateResult, Judgment, GradingSession, LeakageReport)
+ALL_MODELS = (TaskSpec, MethodologySpec, RepoContextSpec, Trial, RunResult, CostRecord, GateResult, Judgment, GradingSession, JudgeCallRecord, LeakageReport)

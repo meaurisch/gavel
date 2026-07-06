@@ -61,11 +61,23 @@ def flag_lines(flags: AnalyzerFlags) -> list[str]:
     )
 
 
+def _grader_matches(judgment_grader: str, grader: str | None) -> bool:
+    """`grader` filter semantics: None/'all' = everything, 'human' = human
+    verdicts, 'llm' = any LLM judge (grader strings look like
+    'llm:<provider>:<model>')."""
+    if grader in (None, "all"):
+        return True
+    if grader == "llm":
+        return judgment_grader.startswith("llm")
+    return judgment_grader == grader
+
+
 def judgments_to_comparisons(
     conn: sqlite3.Connection,
     axis: str,
     trial_ids: set[str] | None = None,
     trials_by_id: dict | None = None,
+    grader: str | None = None,
 ) -> tuple[list[tuple[str, str, str]], int, int]:
     """Translate persisted judgments into Bradley-Terry comparison tuples on
     the chosen axis: (left_value, right_value, win|loss|tie).
@@ -73,7 +85,8 @@ def judgments_to_comparisons(
     Judgments from sessions graded on a DIFFERENT axis are skipped — their
     pairs pin this axis to one value, so they carry no signal for it.
     Same-value pairs are skipped too. If `trial_ids` is given, only judgments
-    whose two trials both fall inside it count (cell scoping).
+    whose two trials both fall inside it count (cell scoping). `grader`
+    optionally restricts to human or LLM verdicts (see _grader_matches).
 
     Returns (comparisons, n_judgments_in_scope, n_sessions_in_scope).
     """
@@ -87,8 +100,9 @@ def judgments_to_comparisons(
             continue
         in_scope = [
             j for j in list_judgments(conn, session.id)
-            if trial_ids is None
-            or (j.left_trial_id in trial_ids and j.right_trial_id in trial_ids)
+            if _grader_matches(j.grader, grader)
+            and (trial_ids is None
+                 or (j.left_trial_id in trial_ids and j.right_trial_id in trial_ids))
         ]
         if not in_scope:
             continue
