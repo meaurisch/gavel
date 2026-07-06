@@ -143,11 +143,18 @@ export function JudgeSessionPage() {
     );
   }
 
-  const nJudged = session.judged.length;
+  // The session payload is fetched once (it's heavy — full diffs); live pair
+  // events from the run fill in progress between session refreshes. Union the
+  // two by pair index so the bar advances DURING a run and stays exact across
+  // resumes (a resumed run only emits events for the remaining pairs).
+  const livePairEvents = (run?.events ?? []).filter((e) => e.type === "pair");
+  const judgedIdx = new Set<number>(session.judged.map((j) => j.pair_index));
+  for (const e of livePairEvents) if (e.index !== undefined) judgedIdx.add(e.index);
+  const nJudged = Math.min(judgedIdx.size, session.total_pairs);
   const total = session.total_pairs;
   const allJudged = nJudged >= total;
   const running = run?.status === "running";
-  const pairEvents = (run?.events ?? []).filter((e) => e.type === "pair");
+  const pairEvents = livePairEvents;
   const revealTo = `/grade/session/${sessionId}/reveal${db ? `?db=${db}` : ""}`;
 
   return (

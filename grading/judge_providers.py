@@ -259,6 +259,12 @@ class GhModelsJudgeProvider:
 
     TIMEOUT_SECONDS = 180
 
+    # `gh auth token` is a subprocess; availability() runs on every provider
+    # listing and plan refresh, so cache the lookup briefly (class-level: the
+    # provider is re-instantiated per request).
+    _TOKEN_TTL_SECONDS = 300
+    _token_cache: tuple[float, str | None] | None = None
+
     def models(self) -> list[str]:
         return list(GH_DEFAULT_MODELS)
 
@@ -269,6 +275,10 @@ class GhModelsJudgeProvider:
         for var in ("GITHUB_TOKEN", "GH_TOKEN"):
             if os.environ.get(var):
                 return os.environ[var]
+        cached = GhModelsJudgeProvider._token_cache
+        if cached is not None and time.monotonic() - cached[0] < self._TOKEN_TTL_SECONDS:
+            return cached[1]
+        token: str | None = None
         gh = shutil.which("gh")
         if gh:
             try:
@@ -276,10 +286,11 @@ class GhModelsJudgeProvider:
                     [gh, "auth", "token"], capture_output=True, text=True, timeout=15
                 )
                 if proc.returncode == 0 and proc.stdout.strip():
-                    return proc.stdout.strip()
+                    token = proc.stdout.strip()
             except Exception:  # pragma: no cover - defensive
                 pass
-        return None
+        GhModelsJudgeProvider._token_cache = (time.monotonic(), token)
+        return token
 
     def availability(self) -> tuple[bool, str | None]:
         if self._token() is None:

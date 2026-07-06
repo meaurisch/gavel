@@ -171,12 +171,13 @@ _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
 
 def parse_verdict(text: str) -> JudgeVerdict:
     cleaned = _FENCE_RE.sub("", (text or "").strip()).strip()
-    # Models sometimes wrap the object in prose; take the outermost {...}.
-    if not cleaned.startswith("{"):
-        start, end = cleaned.find("{"), cleaned.rfind("}")
-        if start == -1 or end == -1 or end <= start:
-            raise VerdictParseError("reply contains no JSON object")
-        cleaned = cleaned[start:end + 1]
+    # Models sometimes wrap the object in prose (before AND after); take the
+    # outermost {...} so a valid verdict with trailing chatter doesn't burn a
+    # retry call.
+    start, end = cleaned.find("{"), cleaned.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        raise VerdictParseError("reply contains no JSON object")
+    cleaned = cleaned[start:end + 1]
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError as exc:

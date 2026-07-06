@@ -191,15 +191,18 @@ def plan_judge(conn: sqlite3.Connection, params: dict) -> dict:
     pinned = _pinned_kwargs(params, comparison_col)
     trials = list_passing_trials(conn, task_id=params.get("task", ""), **pinned)
 
+    # Count only trials that HAVE a diff to judge — session creation drops
+    # run_result-less trials, so the plan must too or n_pairs overpromises.
     counts: dict[str, int] = defaultdict(int)
     diff_chars = 0
     n_diffs = 0
     for t in trials:
-        counts[getattr(t, comparison_col)] += 1
         rr = get_run_result(conn, t.id)
-        if rr is not None:
-            diff_chars += len(rr.diff)
-            n_diffs += 1
+        if rr is None:
+            continue
+        counts[getattr(t, comparison_col)] += 1
+        diff_chars += len(rr.diff)
+        n_diffs += 1
     total = sum(counts.values())
     candidates = (total * total - sum(c * c for c in counts.values())) // 2
     m = len(counts)
