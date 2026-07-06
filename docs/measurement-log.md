@@ -224,3 +224,52 @@ Applied immediately after approval:
   each; then cosmos-B × baseline × sonnet × 3 reps if headroom; `custom`
   deferred to a future campaign alongside the cosmos-A re-sweep.
 - cosmos-B re-run launched (15 trials, haiku, fixed oracle).
+- **cosmos-B re-run done: 15/15 hidden PASS, $4.11** (per-methodology
+  $/trial: karpathy 0.105, baseline 0.117, superpowers 0.144, ecc 0.156,
+  custom 0.849). The counterfactual's 14/15 prediction held direction-wise;
+  fresh runs even cleared custom's old compile failure. The anchor cell is
+  now **5 methodologies × 3 passers = 15 contenders** — maximal grading
+  material; the hidden gate itself saturates at haiku (100% — ceiling flag
+  expected from the analyzer, honest caveat for the report; discrimination
+  on cosmos-B now comes from human grading, not the gate).
+- Campaign spend **$13.6165**, remaining **$6.3835**.
+- 2b slices (sonnet estimates = moreiter baseline $1.11/trial × cosmos-B
+  methodology multipliers): karpathy ≈ $1.00/trial, superpowers ≈ $1.37,
+  ecc ≈ $1.48. Reserving ~$1.4 for the model cell → run karpathy ×2
+  (~$2.0), check; superpowers ×2 (~$2.7), check; ecc only if it still
+  fits (unlikely). karpathy slice launched.
+- **2b slice results:** karpathy 2/2 hidden PASS ($2.00, on estimate);
+  superpowers 2/2 hidden PASS ($2.30). moreiter-A × sonnet cell now
+  6/6 across baseline/karpathy/superpowers — **saturated too**. ecc slice
+  dropped (est ~$3.0 > $2.08 remaining). Campaign spend **$17.9161**.
+- Emerging pattern worth naming for the report: with the two oracle-shape
+  defects fixed, BOTH swept cells saturate their hidden gates (cosmos-B ×
+  haiku 15/15, moreiter-A × sonnet 6/6). At these task difficulties the
+  gate is a floor-check, not a discriminator — the instrument's
+  discrimination now lives entirely in blind pairwise grading, which is
+  what the tool was built around anyway. The analyzer's ceiling flags
+  should fire on both cells; report must say so plainly.
+- **2c launched:** cosmos-B × baseline × sonnet × 3 reps (model-axis cell,
+  est ~$1.05).
+- **2c done: 3/3 hidden PASS, $1.15.** Stage 2 closed. Campaign spend
+  **$19.0655 of $20** ($0.93 headroom; every estimate checked against the
+  DB, cap never crossed).
+
+## Stage 3 — Grading prep (2026-07-06, no spend)
+
+- Gradeable cells enumerated with the server's own `list_grading_cells`
+  (not hand-derived): methodology × (cosmos-B·none·haiku·claude-code,
+  n_values=5) and × (moreiter-A·none·sonnet·claude-code, n_values=3);
+  model × (cosmos-B·baseline·none·claude-code, n_values=2). No
+  repo-context or runner cells (expected — neither axis was varied).
+- Pair counts from `generate_pairs`' default (C(M,2)×3): **30 + 9 + 3 =
+  42 blind pairs**.
+- `calibrate_tasks.py`: cosmos-B 100% (18/18) ceiling-flagged;
+  moreiter-A 67% overall (an aggregation across models — per cell it is
+  0/3 at haiku and 6/6 at sonnet, i.e. floor and ceiling respectively;
+  the 67% "medium" band is an artifact of pooling, noted for the report).
+- Grading brief written: `docs/grading-brief-2026-07-06.md` (cells, pair
+  counts, session-length estimates, keyboard flow, the
+  reveal-closes-permanently warning, BT ≥3 note).
+- **CHECKPOINT 2: STOPPED. The human grades blind in the UI. No grading,
+  no reveal by Claude.**
