@@ -19,6 +19,7 @@ instruction: |
   - Add `ToDoItemDocument` and `AuditDocument` documents under `...CosmosDbData.Models`.
     Each carries the entity's data plus a `Type` discriminator ("todoitem" /
     "audit") and an `_etag` (`Etag`) field, and serializes its id as `id`.
+    `AuditDocument` exposes the audit timestamp as `DateCreatedUtc`.
   - Add static `ToDoItemMapper` and `AuditMapper` under `...CosmosDbData.Mappers`,
     each exposing `ToDocument(entity)` and `ToDomain(document)`. Round-tripping
     must preserve all data. Note `ToDoItem.IsCompleted` has a private setter, and

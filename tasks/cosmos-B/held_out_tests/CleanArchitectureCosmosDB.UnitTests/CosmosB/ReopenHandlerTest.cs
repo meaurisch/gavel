@@ -18,7 +18,7 @@ namespace CleanArchitectureCosmosDB.UnitTests.CosmosB
             item.MarkComplete();
             await repo.AddItemAsync(item);
 
-            Reopen.CommandHandler handler = new Reopen.CommandHandler(repo);
+            Reopen.CommandHandler handler = HandlerFactory.Create<Reopen.CommandHandler>(repo);
             await handler.Handle(new Reopen.ReopenToDoItemCommand() { Id = "work:1" }, CancellationToken.None);
 
             ToDoItem stored = await repo.GetItemAsync("work:1");
@@ -30,7 +30,7 @@ namespace CleanArchitectureCosmosDB.UnitTests.CosmosB
         {
             InMemoryToDoItemRepository repo = new InMemoryToDoItemRepository();
 
-            Reopen.CommandHandler handler = new Reopen.CommandHandler(repo);
+            Reopen.CommandHandler handler = HandlerFactory.Create<Reopen.CommandHandler>(repo);
 
             await Assert.ThrowsAsync<EntityNotFoundException>(() =>
                 handler.Handle(new Reopen.ReopenToDoItemCommand() { Id = "missing:1" }, CancellationToken.None));

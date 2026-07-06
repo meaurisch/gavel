@@ -113,3 +113,114 @@ this campaign's new spend, tracked as `sum(cost_record.usd_equiv) − $11.7069`
         × sonnet × 3 reps → 3 new ≈ $1.0 (model-axis cell)
      Projected campaign total ≈ $18.9 of $20; spend re-checked against the
      DB between sub-stages, c dropped if tight.
+
+## Checkpoint 1 decisions (human, 2026-07-06)
+
+**1a approved, purge approved, Stage-2 a+b+c approved** (via structured
+checkpoint questions; recommendations accepted unchanged).
+
+Applied immediately after approval:
+
+- **Backup**: `backups/results-2026-07-06-pre-cp1.db` (1,380,352 bytes) —
+  full pre-purge DB, kept out of the project root so the UI's DB switcher
+  doesn't list it.
+- **Stale-row purge**: all 19 cosmos-A trials + their gate/run/cost rows
+  deleted (they measured the pre-amendment instruction; trial-id dedup
+  would otherwise silently skip re-runs). Claude-made judgment
+  `ff850172…` deleted; its session `c38ed547…` and the abandoned empty
+  session `b8c3f18f…` deleted. Post-state: 11 trials, 1 judgment
+  (the human tie), 1 session.
+- **Budget bookkeeping correction**: the purge removed $11.51 of *recorded*
+  cost, so `sum(usd_equiv) − 11.7069` no longer works. Real campaign spend
+  so far is unchanged at **$5.8444**; from here, campaign spend =
+  5.8444 + (`sum(cost_record.usd_equiv)` − **4.0247**), the post-purge DB
+  baseline.
+- **Frozen-task amendment (human-OK'd)**: `tasks/cosmos-A/task.yaml`
+  instruction gains one sentence — "`AuditDocument` exposes the audit
+  timestamp as `DateCreatedUtc`." — style-consistent with the already-named
+  `Etag`/`Type`/`id`. `validate_tasks.py --lint`: all tasks OK (moreiter-A
+  length WARN pre-existing). cosmos-A re-sweep deferred to a future
+  campaign.
+
+## Stage 2 — The approved sweep
+
+- **2a launched** (cosmos-B × all 5 × none × haiku × 3 reps; 6 of 15 ids
+  exist → 9 new; est ≈ $1.4). Fast pytest re-run in parallel as a sanity
+  check after the task.yaml edit (305 passed).
+- **2a result: 0/9 hidden passes, actual $3.66** (vs $1.4 estimate — the
+  `custom` pack cost $2.55 for its 3 trials, ~8× baseline per trial, one of
+  them a compile failure). Campaign spend **$9.50**, remaining **$10.50**.
+  Per the budget constraint this alone forces a stop before 2b
+  (est $10.7 ≥ remaining).
+- **Root cause of the 2a wipe-out — cosmos-B has its own oracle-shape
+  defect, same family as cosmos-A:** `CompleteHandlerTest`/
+  `ReopenHandlerTest` construct `new …CommandHandler(repo)` — one argument —
+  while the instruction says "built like the existing Create / Delete
+  slices" and BOTH base slices inject `(IToDoItemRepository, IMapper)`
+  (even Delete, which maps nothing, with an ArgumentNullException guard).
+  Agents that follow the stated convention fail oracle compilation with
+  CS7036. **12 of 13 hidden-tier failures on cosmos-B (old + new trials)
+  carry exactly this signature**; the 13th is a genuine compile failure
+  (custom rep2). The two historical "passers" (baseline rep1,
+  karpathy rep0) are the agents that *deviated* from the stated
+  convention — the 33% "discriminative" pass rate was substantially
+  measuring an arbitrary constructor-style choice. The task's OWN
+  spec-comment promises "the public contract is well specified" — the
+  handler ctor shape is not part of that contract.
+- **Proposed fix (frozen-task change — requires human OK, nothing touched
+  yet):** tolerant construction in the two handler tests via a small
+  `TestDoubles/HandlerFactory.cs` (reflection over the handler's public
+  ctor: repository → the test double, `IMapper` → a real
+  `MapperConfiguration` exactly as the existing `SearchHandlerTest.
+  BuildMapper()` does, `ILogger<T>` → `NullLogger<T>`). All behavioural
+  assertions unchanged (repo state, `EntityNotFoundException`); FAIL_TO_PASS
+  on base preserved (the `Complete`/`Reopen` types don't exist → compile
+  fail). Proposal drafted in scratchpad, counterfactual running: every
+  compile-passing cosmos-B trial re-gated under the tolerant tests, plus
+  GOLD (reference.diff must PASS) and BASE (must FAIL).
+- No cosmos-B agent diff touches a held-out `CosmosB/` path (SQL-checked),
+  so the 15 stored trials can be **re-gated in place for free** via the
+  real `grading.gate.apply` against reconstructed worktrees if the fix is
+  approved — no API re-spend needed to restore the anchor cell.
+- **Counterfactual verdict (tolerant handler tests): ALL 14 compile-passing
+  trials PASS, each 20/20 xunit; GOLD passes; BASE fails compile
+  (FAIL_TO_PASS preserved).** Post-fix cosmos-B × haiku hidden pass rate:
+  **14/15 ≈ 93%** (only custom rep2's genuine compile failure remains).
+  Honest consequences: (a) the pre-fix "33%, in the discrimination band"
+  was an artifact of the ctor trap — post-fix the gate SATURATES at haiku
+  (ceiling, >70%), so cosmos-B's gate carries little methodology signal;
+  (b) the cell becomes excellent *grading* material — 5 methodologies with
+  14 hidden-gate passers → many cross-value blind pairs, and would-I-merge
+  judgment is the tool's primary metric anyway. The analyzer's
+  non-discriminating flag will (correctly) fire; goes in the report
+  caveats.
+- **CHECKPOINT 1.5 (unscheduled) presented — STOPPED for human OK:**
+  cosmos-B test fix, in-place re-gate of the 15 stored trials, and a
+  revised budget plan for the remainder of Stage 2 ($10.50 left).
+
+## Checkpoint 1.5 decisions (human, 2026-07-06)
+
+- **Test fix APPROVED** — applied to the frozen held-out suite:
+  `TestDoubles/HandlerFactory.cs` added; `CompleteHandlerTest`/
+  `ReopenHandlerTest` construct via the factory. `validate_tasks.py
+  --lint`: all OK.
+- **Re-gate REJECTED — human chose fresh re-runs** (~$4.3 est): stored
+  diffs are NOT re-gated; the 15 cosmos-B trials re-execute with live
+  agents under the fixed oracle.
+- Consequence (logged, follows necessarily from re-run): trial ids are
+  deterministic, so the old 15 cosmos-B rows had to be deleted first
+  (backup `backups/results-2026-07-06-pre-cosmosB-rerun.db`), **including
+  the human's tie judgment + session `28057019…`** — it referenced trial
+  ids whose diffs are being regenerated; keeping it would attach the
+  verdict to content the human never saw. DB now: 5 trials (probe +
+  moreiter baselines), 0 judgments, 0 sessions. Every judged pair will be
+  freshly human-graded (a pure gold standard, per the CP1 purge decision).
+- Spend-tracking re-base #2: campaign spend so far **$9.5037** (real,
+  unchanged by deletions); from here = 9.5037 + (`sum(usd_equiv)` −
+  **3.3679**).
+- **Remainder plan APPROVED (trimmed 2b + model cell):** after the
+  cosmos-B re-run — moreiter-A × sonnet × karpathy+ecc+superpowers ×
+  2 reps, run cheapest-first per methodology with a spend check between
+  each; then cosmos-B × baseline × sonnet × 3 reps if headroom; `custom`
+  deferred to a future campaign alongside the cosmos-A re-sweep.
+- cosmos-B re-run launched (15 trials, haiku, fixed oracle).
