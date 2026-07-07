@@ -124,7 +124,7 @@ function JudgeConfigPanel({ axis, cell, onClose }: { axis: Axis; cell: Cell; onC
 
   const provider: JudgeProviderInfo | undefined = providers?.find((p) => p.id === providerId);
 
-  const { data: plan, error: planError } = useFetch(
+  const { data: plan, error: planError, loading: planLoading } = useFetch(
     () =>
       providerId
         ? api.judgePlan(db, {
@@ -136,6 +136,16 @@ function JudgeConfigPanel({ axis, cell, onClose }: { axis: Axis; cell: Cell; onC
           })
         : Promise.resolve(null),
     [db, axis, JSON.stringify(cell), providerId, model, passes],
+  );
+
+  // A plan is only trustworthy when its echoed config matches the CURRENT
+  // selection — after a provider/model/passes switch, React commits at least
+  // one frame before the refetch effect runs, and showing the previous
+  // provider's numbers there (e.g. mock's "zero spend" beside a selected
+  // paid provider) lies about what launch would cost.
+  const planReady = Boolean(
+    plan && !planLoading && plan.provider === providerId &&
+    (model === "" || plan.judge_model === model) && plan.passes === passes,
   );
 
   const needsPhrase = Boolean(provider && provider.confirm_phrase);
@@ -230,7 +240,12 @@ function JudgeConfigPanel({ axis, cell, onClose }: { axis: Axis; cell: Cell; onC
         )}
 
         {planError && <div className="error-banner">{planError}</div>}
-        {plan && (
+        {!planError && providerId && !planReady && (
+          <div className="info-banner" data-testid="judge-plan-loading">
+            Estimating calls and spend…
+          </div>
+        )}
+        {planReady && plan && (
           <div className="info-banner" data-testid="judge-plan">
             <strong>{plan.n_pairs}</strong> blind pair{plan.n_pairs === 1 ? "" : "s"} →{" "}
             <strong>{plan.n_calls}</strong> judge call{plan.n_calls === 1 ? "" : "s"} · est.{" "}
@@ -266,7 +281,7 @@ function JudgeConfigPanel({ axis, cell, onClose }: { axis: Axis; cell: Cell; onC
           <button
             className="btn primary"
             onClick={() => void start()}
-            disabled={!provider?.available || !armed || starting || !plan}
+            disabled={!provider?.available || !armed || starting || !planReady}
             data-testid="judge-launch"
           >
             {starting ? "Launching…" : "Launch the LLM judge"}

@@ -303,7 +303,10 @@ export function RevealPage() {
                       </span>
                     </td>
                     {data.mode === "llm" && (
-                      <td style={{ maxWidth: "28rem" }}>
+                      /* overflowWrap: a rationale citing an unbroken identifier
+                         must wrap inside the cell, not stretch the table into
+                         horizontal scroll (clipping every other column) */
+                      <td style={{ maxWidth: "28rem", overflowWrap: "anywhere" }}>
                         <span className="xsmall" data-testid="judge-rationale">
                           {p.rationale ?? "—"}
                           {p.confidence !== null && (

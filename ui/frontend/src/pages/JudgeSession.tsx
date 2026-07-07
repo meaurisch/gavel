@@ -154,8 +154,19 @@ export function JudgeSessionPage() {
   const total = session.total_pairs;
   const allJudged = nJudged >= total;
   const running = run?.status === "running";
-  const pairEvents = livePairEvents;
   const revealTo = `/grade/session/${sessionId}/reveal${db ? `?db=${db}` : ""}`;
+
+  // Verdict rows: the same union — a resumed run only emits events for the
+  // pairs IT judged, so rows for earlier runs come from the session payload.
+  const verdictRows = new Map<
+    number,
+    { choice: string; live?: (typeof livePairEvents)[number] }
+  >();
+  for (const j of session.judged) verdictRows.set(j.pair_index, { choice: j.choice });
+  for (const e of livePairEvents) {
+    if (e.index !== undefined) verdictRows.set(e.index, { choice: e.choice ?? "", live: e });
+  }
+  const sortedVerdicts = [...verdictRows.entries()].sort(([a], [b]) => a - b);
 
   return (
     <main className="app-main">
@@ -179,9 +190,12 @@ export function JudgeSessionPage() {
           <div className="spread" style={{ marginTop: "var(--space-2)" }}>
             <span className="small" data-testid="judge-progress-text">
               {nJudged}/{total} pairs judged
-              {run && run.passes === 2 && pairEvents.length > 0 && (
+              {running && !allJudged && (
+                <span className="muted"> · judging pair {nJudged + 1}…</span>
+              )}
+              {run && run.passes === 2 && livePairEvents.length > 0 && (
                 <span className="muted">
-                  {" "}· {pairEvents.filter((e) => e.position_consistent).length}/{pairEvents.length} swap-consistent
+                  {" "}· {livePairEvents.filter((e) => e.position_consistent).length}/{livePairEvents.length} swap-consistent
                 </span>
               )}
             </span>
@@ -225,7 +239,7 @@ export function JudgeSessionPage() {
           )}
         </div>
 
-        {(pairEvents.length > 0 || allJudged) && (
+        {sortedVerdicts.length > 0 && (
           <div className="card">
             <div className="card-title">Blind verdicts</div>
             <div className="table-wrap">
@@ -238,28 +252,25 @@ export function JudgeSessionPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pairEvents.length > 0
-                    ? pairEvents.map((e) => (
-                        <tr key={e.index}>
-                          <td className="num">{(e.index ?? 0) + 1}</td>
-                          <td><span className="badge accent">{e.choice}</span></td>
-                          <td className="small">
-                            {e.position_consistent === null || e.position_consistent === undefined
-                              ? "single pass"
-                              : e.position_consistent
-                                ? "consistent"
-                                : "disagreed → tie"}
-                            {e.truncated && <span className="muted"> · diff truncated</span>}
-                          </td>
-                        </tr>
-                      ))
-                    : session.judged.map((j) => (
-                        <tr key={j.pair_index}>
-                          <td className="num">{j.pair_index + 1}</td>
-                          <td><span className="badge accent">{j.choice}</span></td>
-                          <td className="small muted">from a previous run</td>
-                        </tr>
-                      ))}
+                  {sortedVerdicts.map(([index, row]) => (
+                    <tr key={index}>
+                      <td className="num">{index + 1}</td>
+                      <td><span className="badge accent">{row.choice}</span></td>
+                      {row.live ? (
+                        <td className="small">
+                          {row.live.position_consistent === null ||
+                          row.live.position_consistent === undefined
+                            ? "single pass"
+                            : row.live.position_consistent
+                              ? "consistent"
+                              : "disagreed → tie"}
+                          {row.live.truncated && <span className="muted"> · diff truncated</span>}
+                        </td>
+                      ) : (
+                        <td className="small muted">from a previous run</td>
+                      )}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

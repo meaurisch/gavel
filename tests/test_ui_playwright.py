@@ -25,10 +25,12 @@ from core.db import (
     connect,
     insert_cost_record,
     insert_gate_result,
+    insert_grading_session,
+    insert_judgment,
     insert_run_result,
     insert_trial,
 )
-from core.models import CostRecord, GateResult, RunResult, Trial
+from core.models import CostRecord, GateResult, GradingSession, Judgment, RunResult, Trial
 
 pytestmark = pytest.mark.integration
 
@@ -110,6 +112,31 @@ def _build_test_db(path: Path) -> None:
     for model in MODELS:
         _seed(conn, f"{TASK2}-{model}", task=TASK2, meth=PINNED_METH, ctx=PINNED_CTX,
               model=model, runner=PINNED_RUNNER, rep=0, diff=_long_diff(model))
+
+    # A pre-revealed llm session whose rationale carries an unbroken 150-char
+    # identifier and a truncated-diff verdict — the reveal page must wrap it
+    # inside the cell (no table-wide horizontal scroll) and show the badge.
+    insert_grading_session(conn, GradingSession(
+        id="revealed-llm", axis="model", cell={
+            "task_id": TASK2, "methodology_id": PINNED_METH,
+            "repo_context_id": PINNED_CTX, "runner": PINNED_RUNNER},
+        pairs=[(f"{TASK2}-{MODELS[0]}", f"{TASK2}-{MODELS[1]}")],
+        created_at="2026-07-07T00:00:00Z", revealed_at="2026-07-07T01:00:00Z",
+        mode="llm", judge_provider="mock", judge_model="mock-judge", judge_passes=2,
+    ))
+    insert_judgment(conn, Judgment(
+        id="revealed-llm-j0", session_id="revealed-llm", task_id=TASK2, model="",
+        left_trial_id=f"{TASK2}-{MODELS[0]}", right_trial_id=f"{TASK2}-{MODELS[1]}",
+        choice="A", rubric_correctness="A", rubric_minimality="tie",
+        rubric_readability="A", rubric_overengineering="tie",
+        created_at="2026-07-07T00:30:00Z", grader="llm:mock:mock-judge",
+        rationale=("Solution A keeps the pipeline single-pass and avoids the "
+                   "speculative registry. See the unbroken identifier "
+                   + "SupercalifragilisticWindowedAggregationCoordinator" * 3
+                   + " which must wrap inside the cell rather than stretch "
+                     "the table into horizontal scroll."),
+        confidence=0.8, position_consistent=True, truncated=True,
+    ))
     conn.close()
 
 
@@ -738,6 +765,72 @@ def test_llm_session_refuses_manual_grading(page, server):
     page.wait_for_selector('[data-testid="llm-session-redirect"]')
     text = page.get_by_test_id("llm-session-redirect").inner_text()
     assert "LLM judge" in text
+
+
+def test_reveal_long_rationale_wraps_and_truncation_badge_shows(page, server):
+    """A rationale citing an unbroken 150-char identifier must wrap inside
+    its cell (not stretch the table into horizontal scroll that clips every
+    column), and a verdict rendered on a truncated diff must say so."""
+    page.goto(f"{server}/grade/session/revealed-llm/reveal")
+    page.wait_for_selector('[data-testid="judge-stats"]')
+    assert page.get_by_test_id("judge-rationale").count() == 1
+    assert page.get_by_test_id("truncated-badge").count() == 1
+
+    probe = page.evaluate(
+        """() => {
+          const wrap = document.querySelector('[data-testid="reveal-pairs"]').closest('.table-wrap');
+          return {
+            tableOverflow: wrap.scrollWidth - wrap.clientWidth,
+            pageOverflow: document.scrollingElement.scrollWidth - document.scrollingElement.clientWidth,
+          };
+        }"""
+    )
+    assert probe["tableOverflow"] <= 1, f"rationale stretched the table: {probe}"
+    assert probe["pageOverflow"] <= 1, f"page overflows horizontally: {probe}"
+
+
+def test_plan_banner_never_shows_another_providers_numbers(page, server):
+    """Switching provider must never leave the previous provider's estimate
+    on screen (a mock 'zero spend' banner next to a selected paid provider
+    lies about the launch cost). A MutationObserver records every DOM state
+    between the switch and the settled new plan."""
+    page.goto(f"{server}/grade")
+    page.get_by_test_id("axis-model").click()
+    page.wait_for_selector('[data-testid="cell-row"]')
+    page.get_by_test_id("start-llm-judge").first.click()
+    page.wait_for_selector('[data-testid="judge-provider-mock"]')
+    page.get_by_test_id("judge-provider-mock").click()
+    page.wait_for_function(
+        "() => (document.querySelector('[data-testid=\"judge-plan\"]')?.textContent ?? '').includes('zero spend')"
+    )
+
+    claude_btn = page.get_by_test_id("judge-provider-claude-cli")
+    if not claude_btn.is_enabled():
+        pytest.skip("claude CLI not on PATH here — provider switch not reachable")
+
+    page.evaluate(
+        """() => {
+          window.__planLog = [];
+          const root = document.querySelector('[data-testid="judge-config"]');
+          new MutationObserver(() => {
+            const plan = root.querySelector('[data-testid="judge-plan"]');
+            const cli = root.querySelector('[data-testid="judge-provider-claude-cli"]');
+            window.__planLog.push({
+              plan: plan ? plan.textContent : null,
+              cliSelected: cli ? cli.getAttribute('aria-pressed') === 'true' : false,
+            });
+          }).observe(root, {subtree: true, childList: true, characterData: true, attributes: true});
+        }"""
+    )
+    claude_btn.click()
+    page.wait_for_function(
+        "() => (document.querySelector('[data-testid=\"judge-plan\"]')?.textContent ?? '').includes('subscription')",
+        timeout=15000,
+    )
+    stale_frames = page.evaluate(
+        "() => window.__planLog.filter((s) => s.cliSelected && s.plan && s.plan.includes('zero spend'))"
+    )
+    assert stale_frames == [], f"stale mock plan shown while claude-cli selected: {stale_frames[:3]}"
 
 
 def test_report_grader_filter_and_agreement(page, server):
