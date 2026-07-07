@@ -1,7 +1,9 @@
 """ui.judge_runs — planning, spend confirmation, the background judging
 worker, resume, and the blinding of everything a judge provider sees."""
 
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -388,6 +390,126 @@ def test_parse_garbage_run_records_every_billed_retry_in_audit(tmp_path, monkeyp
         assert all(c.status == "parse_error" for c in calls)
         assert all(c.input_tokens == 11 for c in calls)
         assert list_judgments(conn, handle.session_id) == []
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# lifecycle races (critic session 2026-07-07)
+# ---------------------------------------------------------------------------
+
+class BlockingProvider(MockJudgeProvider):
+    """Blocks inside the FIRST provider call until released — a stand-in for
+    a real judge call that takes minutes."""
+
+    def __init__(self):
+        self.entered = threading.Event()
+        self.release = threading.Event()
+        self.n_calls = 0
+
+    def complete(self, prompt, model):
+        self.n_calls += 1
+        if self.n_calls == 1:
+            self.entered.set()
+            assert self.release.wait(10), "test never released the provider"
+        return super().complete(prompt, model)
+
+
+def test_reveal_racing_a_provider_call_discards_the_inflight_verdict(
+        tmp_path, monkeypatch):
+    """The pre-pair reveal check is not enough: a reveal landing DURING a
+    provider call (minutes long on real providers) must abort the run
+    without writing the in-flight judgment. Its calls were still billed,
+    so the audit keeps them."""
+    db = _seed_multi_pair_db(tmp_path)
+    provider = BlockingProvider()
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: provider)
+
+    handle = judge_runs.start_judge("multi.db", db, _params(passes=1), confirm_phrase=None)
+    assert provider.entered.wait(10)
+
+    # the user strikes the gavel while the judge's first call is in flight
+    conn = connect(db)
+    mark_session_revealed(conn, handle.session_id, "2026-07-07T00:00:00Z")
+    conn.close()
+    provider.release.set()
+    _wait(handle)
+
+    assert handle.status == "error"
+    assert "revealed" in (handle.error or "")
+    conn = connect(db)
+    try:
+        assert list_judgments(conn, handle.session_id) == [], (
+            "a judgment was written into a revealed session"
+        )
+        calls = list_judge_calls(conn, handle.session_id)
+        assert len(calls) == 1, "the billed in-flight call must stay in the audit"
+    finally:
+        conn.close()
+
+
+def test_cancel_between_pairs_then_resume_and_double_cancel(tmp_path, monkeypatch):
+    db = _seed_multi_pair_db(tmp_path)
+    provider = BlockingProvider()
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: provider)
+
+    handle = judge_runs.start_judge("multi.db", db, _params(passes=1), confirm_phrase=None)
+    assert provider.entered.wait(10)
+    assert judge_runs.request_cancel(handle.id) is True
+    assert judge_runs.request_cancel(handle.id) is True   # double-cancel: harmless
+    provider.release.set()
+    _wait(handle)
+
+    assert handle.status == "cancelled"
+    assert judge_runs.request_cancel(handle.id) is False  # not running anymore
+    conn = connect(db)
+    try:
+        n_before = len(list_judgments(conn, handle.session_id))
+        assert n_before == 1   # the in-flight pair completed, then it stopped
+    finally:
+        conn.close()
+
+    healthy = RecordingMock()
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: healthy)
+    handle2 = judge_runs.start_judge(
+        "multi.db", db, {"session_id": handle.session_id}, confirm_phrase=None)
+    _wait(handle2)
+    assert handle2.status == "done", handle2.error
+    conn = connect(db)
+    try:
+        assert len(list_judgments(conn, handle.session_id)) == 3
+    finally:
+        conn.close()
+
+
+def test_concurrent_starts_exactly_one_wins(tmp_path, monkeypatch):
+    db = _seed_multi_pair_db(tmp_path)
+    provider = BlockingProvider()
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: provider)
+
+    results = []
+    def try_start():
+        try:
+            return judge_runs.start_judge("multi.db", db, _params(passes=1),
+                                          confirm_phrase=None)
+        except judge_runs.JudgeRequestError as exc:
+            return exc
+
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        results = list(pool.map(lambda _: try_start(), range(5)))
+
+    winners = [r for r in results if isinstance(r, judge_runs.JudgeRunHandle)]
+    refused = [r for r in results if isinstance(r, judge_runs.JudgeRequestError)]
+    assert len(winners) == 1, f"{len(winners)} concurrent judge runs started"
+    assert all(e.status == 409 for e in refused)
+    provider.release.set()
+    _wait(winners[0])
+
+    # only ONE llm session was created — the losers must not leave orphans
+    conn = connect(db)
+    try:
+        n_sessions = conn.execute("SELECT COUNT(*) FROM grading_session").fetchone()[0]
+        assert n_sessions == 1
     finally:
         conn.close()
 

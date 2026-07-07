@@ -491,6 +491,18 @@ def _worker(handle: JudgeRunHandle) -> None:
                 _persist_calls(conn, session.id, i, handle, exc.calls)
                 raise
 
+            # Re-check AFTER the provider call too: a reveal can land while
+            # the call is in flight (minutes on real providers), and a
+            # judgment must never be written into a revealed session. The
+            # call itself was billed — keep it in the audit, drop the verdict.
+            current = get_grading_session(conn, handle.session_id)
+            if current is not None and current.revealed_at is not None:
+                _persist_calls(conn, session.id, i, handle, result.calls)
+                raise JudgeError(
+                    "session was revealed mid-run — judging stopped and the "
+                    "in-flight verdict was discarded"
+                )
+
             now = datetime.now(timezone.utc).isoformat()
             rubric = result.verdicts[0].rubric if result.verdicts else {}
             upsert_judgment(conn, Judgment(

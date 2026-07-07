@@ -193,6 +193,135 @@ def test_for_session_lookup(client):
 
 
 # ---------------------------------------------------------------------------
+# lifecycle races via the HTTP surface (critic session 2026-07-07)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def multi_client(tmp_path):
+    """Like `client` but the cell yields 3 pairs (2 methodologies x 2 reps)."""
+    db_path = tmp_path / "results.db"
+    conn = connect(db_path)
+    insert_task_spec(conn, TaskSpec(
+        id="taskx", repo_url="u", base_commit="c",
+        instruction="Do the thing.", run_cmd="pytest",
+        held_out_tests_path="h", reference_diff_path="r"))
+    for meth in ("methalpha", "methbeta"):
+        for rep in range(2):
+            _seed(conn, f"{meth}-r{rep}", methodology=meth)
+    conn.close()
+    server.set_db_path(db_path)
+    server._sessions.clear()
+    judge_runs._runs.clear()
+    with TestClient(server.app) as c:
+        yield c
+    judge_runs._runs.clear()
+
+
+def test_restart_midway_reattach_404_then_resume_completes(multi_client, monkeypatch):
+    """Server restart mid-run: the in-memory handle is gone (404 on
+    reattach — the page's runMissing path), the session keeps its judged
+    pairs, and a resume finishes only the remainder."""
+    from grading.judge_providers import JudgeProviderError, MockJudgeProvider
+
+    class DiesAfterOne(MockJudgeProvider):
+        n = 0
+        def complete(self, prompt, model):
+            DiesAfterOne.n += 1
+            if DiesAfterOne.n > 1:
+                raise JudgeProviderError("socket closed")
+            return super().complete(prompt, model)
+
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: DiesAfterOne())
+    started, snap = _start_and_wait(multi_client, passes=1)
+    assert snap["status"] == "error"
+    assert snap["n_done"] == 1
+    sid = started["session_id"]
+
+    judge_runs._runs.clear()   # ~ server restart: handles are memory-only
+
+    assert multi_client.get(f"/api/judge-runs/for-session/{sid}").status_code == 404
+    session = multi_client.get(f"/api/session/{sid}").json()
+    assert session["mode"] == "llm"
+    assert len(session["judged"]) == 1          # persisted verdicts survived
+
+    monkeypatch.setattr(judge_runs, "get_provider",
+                        lambda pid: MockJudgeProvider())
+    resp = multi_client.post("/api/judge-sessions", json={"session_id": sid})
+    assert resp.status_code == 200, resp.text
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        snap2 = multi_client.get(f"/api/judge-runs/{resp.json()['run_id']}").json()
+        if snap2["status"] != "running":
+            break
+        time.sleep(0.02)
+    assert snap2["status"] == "done", snap2.get("error")
+    assert snap2["n_done"] == 2                 # only the remainder was judged
+    session = multi_client.get(f"/api/session/{sid}").json()
+    assert len(session["judged"]) == 3
+
+
+def test_human_and_llm_sessions_same_cell_no_cross_talk(multi_client):
+    """The two modes may run on the same cell concurrently — verdicts must
+    stay in their own sessions and refuse each other's write paths."""
+    human = multi_client.get("/api/pairs", params={
+        "axis": "methodology", "task": "taskx", "repo_context": "ctxx",
+        "model": "modelx", "runner": "runnerx",
+    }).json()
+    resp = multi_client.post("/api/judge", json={
+        "session_id": human["session_id"], "pair_index": 0, "choice": "B",
+    })
+    assert resp.status_code == 200
+
+    started, snap = _start_and_wait(multi_client)
+    assert snap["status"] == "done"
+
+    human_session = multi_client.get(f"/api/session/{human['session_id']}").json()
+    assert [j["choice"] for j in human_session["judged"]] == ["B"]
+    llm_session = multi_client.get(f"/api/session/{started['session_id']}").json()
+    assert len(llm_session["judged"]) == llm_session["total_pairs"]
+
+    # write paths stay mode-exclusive in both directions
+    assert multi_client.post("/api/judge", json={
+        "session_id": started["session_id"], "pair_index": 1, "choice": "A",
+    }).status_code == 409
+    assert multi_client.post("/api/judge-sessions", json={
+        "session_id": human["session_id"],
+    }).status_code == 409
+
+
+def test_session_reads_survive_concurrent_worker_writes(multi_client, monkeypatch):
+    """Hammer /api/session while the judge worker writes on its own sqlite
+    connection — every read must succeed and judged counts only grow."""
+    from grading.judge_providers import MockJudgeProvider
+
+    class SlowMock(MockJudgeProvider):
+        def complete(self, prompt, model):
+            time.sleep(0.05)
+            return super().complete(prompt, model)
+
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: SlowMock())
+    resp = multi_client.post("/api/judge-sessions", json={
+        "axis": "methodology", "task": "taskx", "repo_context": "ctxx",
+        "model": "modelx", "runner": "runnerx",
+        "provider": "mock", "judge_model": "mock-judge", "passes": 2,
+    })
+    assert resp.status_code == 200, resp.text
+    started = resp.json()
+    sid, rid = started["session_id"], started["run_id"]
+
+    seen = []
+    deadline = time.time() + 15
+    while time.time() < deadline:
+        r = multi_client.get(f"/api/session/{sid}")
+        assert r.status_code == 200, f"read failed during worker writes: {r.text}"
+        seen.append(len(r.json()["judged"]))
+        if multi_client.get(f"/api/judge-runs/{rid}").json()["status"] != "running":
+            break
+    assert seen == sorted(seen), "judged count went backwards"
+    assert multi_client.get(f"/api/judge-runs/{rid}").json()["status"] == "done"
+
+
+# ---------------------------------------------------------------------------
 # report: grader filter + agreement
 # ---------------------------------------------------------------------------
 
