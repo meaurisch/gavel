@@ -291,6 +291,15 @@ export function RevealPage() {
                             swap-disagreed
                           </span>
                         )}
+                        {p.truncated && (
+                          <span
+                            className="badge neutral"
+                            title="One of the diffs exceeded the judge's budget — the verdict covers a truncated prefix"
+                            data-testid="truncated-badge"
+                          >
+                            diff truncated
+                          </span>
+                        )}
                       </span>
                     </td>
                     {data.mode === "llm" && (

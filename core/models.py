@@ -93,6 +93,9 @@ class Judgment:
     rationale: str | None = None           # LLM judge's reasoning (post-reveal only)
     confidence: float | None = None        # 0-1, LLM self-reported
     position_consistent: bool | None = None  # both swapped passes agreed?
+    # True when the judge saw a budget-truncated diff — the verdict covers a
+    # prefix of the change and the reveal must say so. None for human mode.
+    truncated: bool | None = None
 
 
 @dataclass

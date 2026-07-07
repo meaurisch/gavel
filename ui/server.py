@@ -384,6 +384,7 @@ class RevealPair(BaseModel):
     rationale: str | None = None
     confidence: float | None = None
     position_consistent: bool | None = None
+    truncated: bool | None = None      # the judge saw a budget-truncated diff
 
 
 class AxisValueRecord(BaseModel):
@@ -1084,6 +1085,7 @@ def _reveal_payload(conn: sqlite3.Connection, session: SessionState) -> RevealRe
             rationale=j.rationale,
             confidence=j.confidence,
             position_consistent=j.position_consistent,
+            truncated=j.truncated,
         ))
 
         if choice == "A":

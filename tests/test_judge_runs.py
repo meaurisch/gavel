@@ -414,6 +414,78 @@ def test_parse_garbage_run_records_every_billed_retry_in_audit(tmp_path, monkeyp
 
 
 # ---------------------------------------------------------------------------
+# diff budget end-to-end (critic session 2026-07-07)
+# ---------------------------------------------------------------------------
+
+def test_oversized_diff_truncation_reaches_prompt_and_judgment_row(
+        tmp_path, monkeypatch):
+    """A >60k-char diff must be truncated in the prompt (marker visible to
+    the judge) AND the fact must be recorded on the judgment row — the
+    reveal page reads the row, not the dead run's memory."""
+    path = tmp_path / "big.db"
+    conn = connect(path)
+    insert_task_spec(conn, TaskSpec(
+        id="taskone", repo_url="u", base_commit="c",
+        instruction="Implement the frobnicator.", run_cmd="pytest",
+        held_out_tests_path="h", reference_diff_path="r",
+    ))
+    big_hunk = "".join(f"+filler line {i}\n" for i in range(8000))   # ~100k chars
+    for marker, extra in (("a", big_hunk), ("b", "+small = 1\n")):
+        tid = f"trial-{marker}"
+        insert_trial(conn, Trial(
+            id=tid, task_id="taskone", methodology_id=f"meth-{marker}",
+            repo_context_id="ctxone", model="modelone", runner="runnerone", rep=0,
+        ))
+        insert_run_result(conn, RunResult(
+            trial_id=tid,
+            diff=("diff --git a/src/app.py b/src/app.py\n"
+                  "--- a/src/app.py\n+++ b/src/app.py\n"
+                  f"@@ -1,0 +1,9999 @@\n{extra}"),
+            exit_status=0, wall_seconds=1.0,
+        ))
+        insert_gate_result(conn, GateResult(
+            trial_id=tid, passed=True,
+            compile_passed=True, visible_passed=True, hidden_passed=True,
+        ))
+    conn.close()
+
+    recorder = RecordingMock()
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: recorder)
+    handle = judge_runs.start_judge("big.db", path, _params(passes=1), confirm_phrase=None)
+    _wait(handle)
+    assert handle.status == "done", handle.error
+
+    assert any("diff truncated for the judge" in p for p in recorder.prompts)
+    assert all(len(p) < 80_000 for p in recorder.prompts)
+
+    conn = connect(path)
+    try:
+        [j] = list_judgments(conn, handle.session_id)
+        assert j.truncated is True
+    finally:
+        conn.close()
+    assert [e for e in handle.events if e["type"] == "pair"][0]["truncated"] is True
+
+
+def test_prompts_share_one_static_prefix_per_session(seeded_db, monkeypatch):
+    """The provider-side caching assumption: every prompt of a session must
+    start with the identical preamble + task instruction bytes."""
+    recorder = RecordingMock()
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: recorder)
+    handle = judge_runs.start_judge("judge.db", seeded_db, _params(), confirm_phrase=None)
+    _wait(handle)
+    assert handle.status == "done", handle.error
+    assert len(recorder.prompts) >= 2
+
+    import os
+    prefix = os.path.commonprefix(recorder.prompts)
+    assert "Implement the frobnicator." in prefix, (
+        "shared prompt prefix ends before the task instruction — the "
+        "provider-side cache would miss on every pair"
+    )
+
+
+# ---------------------------------------------------------------------------
 # lifecycle races (critic session 2026-07-07)
 # ---------------------------------------------------------------------------
 

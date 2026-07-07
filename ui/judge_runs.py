@@ -531,6 +531,7 @@ def _worker(handle: JudgeRunHandle) -> None:
                 rationale=result.rationale,
                 confidence=result.confidence,
                 position_consistent=result.position_consistent,
+                truncated=result.truncated,
             ))
             _persist_calls(conn, session.id, i, handle, result.calls, now=now)
             handle.events.append({

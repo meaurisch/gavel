@@ -110,7 +110,8 @@ CREATE TABLE IF NOT EXISTS judgment (
     grader TEXT NOT NULL DEFAULT 'human',
     rationale TEXT,
     confidence REAL,
-    position_consistent INTEGER
+    position_consistent INTEGER,
+    truncated INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS judge_call (
@@ -161,6 +162,7 @@ def init_schema(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "judgment", "rationale", "TEXT")
     _ensure_column(conn, "judgment", "confidence", "REAL")
     _ensure_column(conn, "judgment", "position_consistent", "INTEGER")
+    _ensure_column(conn, "judgment", "truncated", "INTEGER")
     conn.commit()
 
 
@@ -375,7 +377,7 @@ _JUDGMENT_COLS = (
     "id, session_id, task_id, model, left_trial_id, right_trial_id, choice, "
     "rubric_correctness, rubric_minimality, rubric_readability, "
     "rubric_overengineering, created_at, grader, rationale, confidence, "
-    "position_consistent"
+    "position_consistent, truncated"
 )
 
 
@@ -384,12 +386,13 @@ def _judgment_params(j: Judgment) -> tuple:
             j.right_trial_id, j.choice, j.rubric_correctness,
             j.rubric_minimality, j.rubric_readability,
             j.rubric_overengineering, j.created_at, j.grader, j.rationale,
-            j.confidence, _bool_to_int(j.position_consistent))
+            j.confidence, _bool_to_int(j.position_consistent),
+            _bool_to_int(j.truncated))
 
 
 def insert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
     conn.execute(
-        f"INSERT INTO judgment ({_JUDGMENT_COLS}) VALUES ({', '.join('?' * 16)})",
+        f"INSERT INTO judgment ({_JUDGMENT_COLS}) VALUES ({', '.join('?' * 17)})",
         _judgment_params(j),
     )
     conn.commit()
@@ -406,7 +409,7 @@ def upsert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
             (j.session_id, j.left_trial_id, j.right_trial_id),
         )
         conn.execute(
-            f"INSERT INTO judgment ({_JUDGMENT_COLS}) VALUES ({', '.join('?' * 16)})",
+            f"INSERT INTO judgment ({_JUDGMENT_COLS}) VALUES ({', '.join('?' * 17)})",
             _judgment_params(j),
         )
         conn.commit()
@@ -418,8 +421,9 @@ def upsert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
 def _judgment_from_row(row) -> Judgment:
     d = dict(row)
     d["grader"] = d.get("grader") or "human"
-    if d.get("position_consistent") is not None:
-        d["position_consistent"] = bool(d["position_consistent"])
+    for flag in ("position_consistent", "truncated"):
+        if d.get(flag) is not None:
+            d[flag] = bool(d[flag])
     return TypeAdapter(Judgment).validate_python(d)
 
 

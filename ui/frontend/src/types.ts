@@ -200,6 +200,7 @@ export interface RevealPairInfo {
   rationale: string | null;
   confidence: number | null;
   position_consistent: boolean | null;
+  truncated: boolean | null;
 }
 
 export interface JudgeSessionStats {

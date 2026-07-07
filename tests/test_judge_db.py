@@ -61,6 +61,22 @@ def test_judgment_roundtrips_llm_fields(conn):
     assert j.position_consistent is True
 
 
+def test_judgment_roundtrips_truncated_flag(conn):
+    """A verdict rendered on a truncated diff must say so durably — the
+    in-memory progress event does not survive a server restart."""
+    j = Judgment(
+        id="jt", session_id="s1", task_id="task", model="m",
+        left_trial_id="t1", right_trial_id="t2", choice="A",
+        rubric_correctness=None, rubric_minimality=None,
+        rubric_readability=None, rubric_overengineering=None,
+        created_at="2026-07-07T00:00:00Z",
+        grader="llm:mock:mock-judge", truncated=True,
+    )
+    insert_judgment(conn, j)
+    [got] = list_judgments(conn, "s1")
+    assert got.truncated is True
+
+
 def test_judgment_defaults_to_human_grader(conn):
     _judgment(conn)
     [j] = list_judgments(conn, "s1")
