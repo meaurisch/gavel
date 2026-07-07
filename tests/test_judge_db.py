@@ -225,3 +225,87 @@ def test_comparisons_grader_llm_only(conn):
         conn, "methodology", grader="llm")
     assert n_judgments == 1
     assert comparisons == [("meth-a", "meth-b", "loss")]
+
+
+# ---------------------------------------------------------------------------
+# grader-filter arithmetic + agreement scoping vs hand counts
+# (critic session 2026-07-07)
+# ---------------------------------------------------------------------------
+
+def _seed_two_task_cells(conn):
+    """Two tasks, meth-a vs meth-b in each. Hand-countable judgment mix:
+    task1: human session (A win + tie), llm session (B win)   -> 3 judgments
+    task2: llm session (A win)                                -> 1 judgment
+    """
+    for task in ("task1", "task2"):
+        for tid, meth in ((f"{task}-ta", "meth-a"), (f"{task}-tb", "meth-b")):
+            insert_trial(conn, Trial(id=tid, task_id=task, methodology_id=meth,
+                                     repo_context_id="none", model="m", runner="r", rep=0))
+            insert_gate_result(conn, GateResult(trial_id=tid, passed=True))
+
+    insert_grading_session(conn, GradingSession(
+        id="h1", axis="methodology", cell={"task_id": "task1"},
+        pairs=[("task1-ta", "task1-tb"), ("task1-tb", "task1-ta")],
+        created_at="2026-07-07T00:00:00Z", mode="human"))
+    _judgment(conn, session_id="h1", left="task1-ta", right="task1-tb",
+              choice="A", grader="human", jid="h1a")            # meth-a win
+    _judgment(conn, session_id="h1", left="task1-tb", right="task1-ta",
+              choice="tie", grader="human", jid="h1b")          # tie
+
+    insert_grading_session(conn, GradingSession(
+        id="l1", axis="methodology", cell={"task_id": "task1"},
+        pairs=[("task1-ta", "task1-tb")],
+        created_at="2026-07-07T01:00:00Z", mode="llm",
+        judge_provider="mock", judge_model="mock-judge", judge_passes=2))
+    _judgment(conn, session_id="l1", left="task1-ta", right="task1-tb",
+              choice="B", grader="llm:mock:mock-judge", jid="l1a")   # meth-b win
+
+    insert_grading_session(conn, GradingSession(
+        id="l2", axis="methodology", cell={"task_id": "task2"},
+        pairs=[("task2-ta", "task2-tb")],
+        created_at="2026-07-07T02:00:00Z", mode="llm",
+        judge_provider="mock", judge_model="mock-judge", judge_passes=2))
+    _judgment(conn, session_id="l2", left="task2-ta", right="task2-tb",
+              choice="A", grader="llm:mock:mock-judge", jid="l2a")   # meth-a win
+
+
+def test_report_grader_arithmetic_matches_hand_counts(conn):
+    from grading.aggregate import build_report
+
+    _seed_two_task_cells(conn)
+    everything = build_report(conn, "methodology")
+    human = build_report(conn, "methodology", grader="human")
+    llm = build_report(conn, "methodology", grader="llm")
+
+    assert (everything.n_judgments, everything.n_sessions) == (4, 3)
+    assert (human.n_judgments, human.n_sessions) == (2, 1)
+    assert (llm.n_judgments, llm.n_sessions) == (2, 2)
+
+    # per-value comparison counts by hand: every judgment touches both values
+    for report, expected in ((everything, 4), (human, 2), (llm, 2)):
+        by_value = {s.value: s for s in report.summaries}
+        assert by_value["meth-a"].n_comparisons == expected
+        assert by_value["meth-b"].n_comparisons == expected
+
+    # cell pin scopes judgments to that task's trials
+    pinned = build_report(conn, "methodology", cell={"task_id": "task1"})
+    assert (pinned.n_judgments, pinned.n_sessions) == (3, 2)
+
+
+def test_agreement_scoping_with_cell_pin(conn):
+    from grading.aggregate import grader_agreement_report
+
+    _seed_two_task_cells(conn)
+    # unscoped: the shared pair is task1's (human A vs llm B -> disagree)
+    overall = grader_agreement_report(conn, "methodology")
+    assert overall["n_shared"] == 1
+    assert overall["n_agree"] == 0
+
+    # pinned to task1: same single shared pair
+    task1 = grader_agreement_report(conn, "methodology", {"task_id": "task1"})
+    assert task1["n_shared"] == 1
+
+    # pinned to task2: llm judged it, no human did -> nothing shared
+    task2 = grader_agreement_report(conn, "methodology", {"task_id": "task2"})
+    assert task2["n_shared"] == 0
+    assert task2["rate"] is None
