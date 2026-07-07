@@ -174,6 +174,102 @@ def test_parse_tolerates_missing_rubric():
 
 
 # ---------------------------------------------------------------------------
+# parse_verdict — hostile-reply fuzz (critic session 2026-07-07)
+# ---------------------------------------------------------------------------
+
+def test_parse_prose_on_both_sides_and_braces_inside_rationale():
+    verdict = dict(VALID_VERDICT, rationale="uses {braces} and } inside { the text")
+    text = "Sure! Here is my verdict:\n" + json.dumps(verdict) + "\nHope that helps!"
+    v = parse_verdict(text)
+    assert v.choice == "A"
+    assert "{braces}" in v.rationale
+
+
+def test_parse_two_json_objects_is_a_parse_error_not_a_crash():
+    text = json.dumps(VALID_VERDICT) + "\n" + json.dumps(dict(VALID_VERDICT, choice="B"))
+    with pytest.raises(VerdictParseError):
+        parse_verdict(text)
+
+
+def test_parse_single_quoted_pseudo_json_is_a_parse_error():
+    with pytest.raises(VerdictParseError):
+        parse_verdict("{'choice': 'A', 'rationale': 'looks fine'}")
+
+
+def test_parse_unicode_quoted_pseudo_json_is_a_parse_error():
+    with pytest.raises(VerdictParseError):
+        parse_verdict("{“choice”: “A”, “rationale”: “x”}")
+
+
+@pytest.mark.parametrize("reply", ["", "   \n\t  ", "```json\n```"])
+def test_parse_empty_replies_are_parse_errors(reply):
+    with pytest.raises(VerdictParseError):
+        parse_verdict(reply)
+
+
+def test_parse_100kb_reply_with_buried_verdict():
+    text = ("blah " * 20_000) + json.dumps(VALID_VERDICT)
+    assert len(text) > 100_000
+    v = parse_verdict(text)
+    assert v.choice == "A"
+
+
+def test_parse_nonfinite_confidence_is_rejected_not_full_confidence():
+    """json.loads accepts the NaN/Infinity literals; NaN must NOT clamp to
+    1.0 (an unparseable confidence recorded as maximum certainty is a lie).
+    Non-finite -> parse error -> the correction retry loop."""
+    for literal in ("NaN", "Infinity", "-Infinity"):
+        with pytest.raises(VerdictParseError):
+            parse_verdict(
+                '{"choice": "A", "rationale": "x", "confidence": %s}' % literal
+            )
+
+
+def test_parse_null_confidence_is_treated_as_missing():
+    """An explicit null is the same signal as an absent key — burning a
+    billed retry call over it would be waste."""
+    v = parse_verdict(json.dumps(dict(VALID_VERDICT, confidence=None)))
+    assert v.confidence == 0.5
+
+
+def test_parse_string_confidence_is_coerced():
+    v = parse_verdict(json.dumps(dict(VALID_VERDICT, confidence="0.85")))
+    assert v.confidence == pytest.approx(0.85)
+
+
+def test_parse_negative_confidence_clamps_to_zero():
+    v = parse_verdict(json.dumps(dict(VALID_VERDICT, confidence=-3)))
+    assert v.confidence == 0.0
+
+
+@pytest.mark.parametrize("bad_rubric", [["correctness"], "good", 3, True])
+def test_parse_non_dict_rubric_is_tolerated_like_missing(bad_rubric):
+    """A malformed rubric must degrade like a missing one (it is optional
+    enrichment), not escape as an AttributeError that kills the whole run."""
+    v = parse_verdict(json.dumps(dict(VALID_VERDICT, rubric=bad_rubric)))
+    assert v.rubric == {}
+
+
+def test_parse_rubric_unknown_keys_and_values_are_filtered():
+    rub = {"correctness": "A", "bogus": "B", "minimality": "excellent",
+           "readability": None, "overengineering": 3}
+    v = parse_verdict(json.dumps(dict(VALID_VERDICT, rubric=rub)))
+    assert v.rubric == {"correctness": "A"}
+
+
+def test_retry_prompt_carries_error_and_caps_the_echoed_reply():
+    """The correction prompt appends the parse error and an excerpt of the
+    bad reply — a 100KB garbage reply must not double the next call's size."""
+    left, right = _sides()
+    provider = ScriptedProvider(["x" * 100_000, json.dumps(VALID_VERDICT)])
+    result = run_pair(provider, "m", "task", left, right, passes=1, max_retries=2)
+    assert result.choice == "A"
+    base, retry = provider.prompts
+    assert "no JSON object" in retry                  # the error, verbatim
+    assert len(retry) < len(base) + 3_000             # echo capped, not appended whole
+
+
+# ---------------------------------------------------------------------------
 # swap / merge
 # ---------------------------------------------------------------------------
 

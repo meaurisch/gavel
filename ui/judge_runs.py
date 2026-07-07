@@ -409,6 +409,30 @@ def _payload(conn: sqlite3.Connection, trial_id: str,
     return {"diff": anonymize_diff(rr.diff, axis_ids), "gate": gate}
 
 
+def _persist_calls(conn: sqlite3.Connection, session_id: str, pair_index: int,
+                   handle: JudgeRunHandle, calls, now: str | None = None) -> None:
+    """Write one pair's provider calls to the judge_call audit — successful,
+    retried, AND permanently-failed pairs alike (every call was billed)."""
+    if now is None:
+        now = datetime.now(timezone.utc).isoformat()
+    for call in calls:
+        insert_judge_call(conn, JudgeCallRecord(
+            id=uuid.uuid4().hex,
+            session_id=session_id,
+            pair_index=pair_index,
+            ordering=call.ordering,
+            provider=handle.provider,
+            model=handle.model,
+            status=call.status,
+            input_tokens=call.input_tokens,
+            output_tokens=call.output_tokens,
+            usd_equiv=call.usd_equiv,
+            wall_seconds=call.wall_seconds,
+            error=call.error,
+            created_at=now,
+        ))
+
+
 def _worker(handle: JudgeRunHandle) -> None:
     conn = connect(Path(handle.db_path))
     try:
@@ -456,10 +480,16 @@ def _worker(handle: JudgeRunHandle) -> None:
 
             left = _payload(conn, left_id, axis_ids)
             right = _payload(conn, right_id, axis_ids)
-            result = run_pair(
-                provider, handle.model, instruction, left, right,
-                passes=handle.passes, forbidden_tokens=forbidden,
-            )
+            try:
+                result = run_pair(
+                    provider, handle.model, instruction, left, right,
+                    passes=handle.passes, forbidden_tokens=forbidden,
+                )
+            except JudgeError as exc:
+                # The pair failed permanently, but its attempts were billed —
+                # the audit table records them even though no verdict exists.
+                _persist_calls(conn, session.id, i, handle, exc.calls)
+                raise
 
             now = datetime.now(timezone.utc).isoformat()
             rubric = result.verdicts[0].rubric if result.verdicts else {}
@@ -481,22 +511,7 @@ def _worker(handle: JudgeRunHandle) -> None:
                 confidence=result.confidence,
                 position_consistent=result.position_consistent,
             ))
-            for call in result.calls:
-                insert_judge_call(conn, JudgeCallRecord(
-                    id=uuid.uuid4().hex,
-                    session_id=session.id,
-                    pair_index=i,
-                    ordering=call.ordering,
-                    provider=handle.provider,
-                    model=handle.model,
-                    status=call.status,
-                    input_tokens=call.input_tokens,
-                    output_tokens=call.output_tokens,
-                    usd_equiv=call.usd_equiv,
-                    wall_seconds=call.wall_seconds,
-                    error=call.error,
-                    created_at=now,
-                ))
+            _persist_calls(conn, session.id, i, handle, result.calls, now=now)
             handle.events.append({
                 "type": "pair",
                 "index": i,

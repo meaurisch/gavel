@@ -13,6 +13,7 @@ swapped; the two passes must agree or the pair is recorded as a tie with
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass, field
 
@@ -59,7 +60,14 @@ _SIDE_TEMPLATE = """=== SOLUTION {label} DIFF ===
 
 
 class JudgeError(Exception):
-    """Judging a pair failed permanently (after retries)."""
+    """Judging a pair failed permanently (after retries). ``calls`` carries
+    every provider call made before the failure — they were billed even
+    though the pair produced no verdict, so the caller must still write
+    them to the usage audit."""
+
+    def __init__(self, message: str, calls: list["JudgeCall"] | None = None):
+        super().__init__(message)
+        self.calls: list[JudgeCall] = calls or []
 
 
 class VerdictParseError(Exception):
@@ -200,14 +208,27 @@ def parse_verdict(text: str) -> JudgeVerdict:
     if not isinstance(rationale, str) or not rationale.strip():
         raise VerdictParseError('"rationale" must be a non-empty string')
 
-    raw_conf = data.get("confidence", 0.5)
+    # An explicit null is the same signal as an absent key — don't burn a
+    # billed retry call over it.
+    raw_conf = data.get("confidence")
+    if raw_conf is None:
+        raw_conf = 0.5
     try:
         confidence = float(raw_conf)
     except (TypeError, ValueError):
         raise VerdictParseError(f'"confidence" must be a number — got {raw_conf!r}')
+    if not math.isfinite(confidence):
+        # NaN would sail through a min/max clamp as 1.0 — an unparseable
+        # confidence recorded as full certainty. Reject; the retry loop
+        # asks for a real number.
+        raise VerdictParseError(f'"confidence" must be a finite number — got {raw_conf!r}')
     confidence = max(0.0, min(1.0, confidence))
 
-    rubric_raw = data.get("rubric") or {}
+    # The rubric is optional enrichment: a malformed one (list, string, ...)
+    # degrades exactly like a missing one instead of crashing the run.
+    rubric_raw = data.get("rubric")
+    if not isinstance(rubric_raw, dict):
+        rubric_raw = {}
     rubric = {
         dim: rubric_raw[dim]
         for dim in RUBRIC_DIMENSIONS
@@ -339,10 +360,16 @@ def run_pair(
                                  forbidden_tokens=forbidden_tokens)
 
     calls: list[JudgeCall] = []
-    first = _call_with_retries(provider, model, prompt_ab, "AB", max_retries, calls)
-    second = None
-    if prompt_ba is not None:
-        second = _call_with_retries(provider, model, prompt_ba, "BA", max_retries, calls)
+    try:
+        first = _call_with_retries(provider, model, prompt_ab, "AB", max_retries, calls)
+        second = None
+        if prompt_ba is not None:
+            second = _call_with_retries(provider, model, prompt_ba, "BA", max_retries, calls)
+    except JudgeError as exc:
+        # The pair failed, but its attempts were still billed — hand the
+        # call records to the caller so the usage audit stays honest.
+        exc.calls = calls
+        raise
 
     choice, consistent = merge_passes(first, second)
 

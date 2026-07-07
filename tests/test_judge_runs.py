@@ -277,6 +277,121 @@ def test_resume_skips_already_judged_pairs(seeded_db, monkeypatch):
         conn.close()
 
 
+def _seed_multi_pair_db(tmp_path: Path) -> Path:
+    """2 methodologies x 2 reps -> 4 cross-value candidates -> 3 pairs."""
+    path = tmp_path / "multi.db"
+    conn = connect(path)
+    insert_task_spec(conn, TaskSpec(
+        id="taskone", repo_url="u", base_commit="c",
+        instruction="Implement the frobnicator.", run_cmd="pytest",
+        held_out_tests_path="h", reference_diff_path="r",
+    ))
+    for marker in ("a", "b"):
+        for rep in range(2):
+            tid = f"trial-{marker}{rep}"
+            insert_trial(conn, Trial(
+                id=tid, task_id="taskone", methodology_id=f"meth-{marker}",
+                repo_context_id="ctxone", model="modelone", runner="runnerone", rep=rep,
+            ))
+            insert_run_result(conn, RunResult(
+                trial_id=tid, diff=_diff(f"{marker}{rep}"), exit_status=0, wall_seconds=1.0,
+            ))
+            insert_gate_result(conn, GateResult(
+                trial_id=tid, passed=True,
+                compile_passed=True, visible_passed=True, hidden_passed=True,
+            ))
+    conn.close()
+    return path
+
+
+class DyingProvider(MockJudgeProvider):
+    """Healthy for the first N calls, then fails transport-level forever."""
+
+    def __init__(self, die_after: int):
+        self.die_after = die_after
+        self.n_calls = 0
+
+    def complete(self, prompt, model):
+        self.n_calls += 1
+        if self.n_calls > self.die_after:
+            from grading.judge_providers import JudgeProviderError
+            raise JudgeProviderError("connection reset by peer")
+        return super().complete(prompt, model)
+
+
+def test_provider_death_mid_session_keeps_judgments_and_billed_call_audit(
+        tmp_path, monkeypatch):
+    """Kill the provider on pair 1: pair 0's judgment must survive, the
+    FAILED pair's billed/attempted calls must still reach the judge_call
+    audit (they were spent), and a resume must finish only the remainder."""
+    db = _seed_multi_pair_db(tmp_path)
+    dying = DyingProvider(die_after=1)   # pair 0 pass 1 ok; pair 1 dies
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: dying)
+
+    handle = judge_runs.start_judge("multi.db", db, _params(passes=1), confirm_phrase=None)
+    _wait(handle)
+    assert handle.status == "error"
+    assert "provider" in (handle.error or "").lower() or "failed" in (handle.error or "").lower()
+
+    conn = connect(db)
+    try:
+        session = get_grading_session(conn, handle.session_id)
+        assert len(session.pairs) == 3
+        judgments = list_judgments(conn, handle.session_id)
+        assert len(judgments) == 1                     # pair 0 survived
+        calls = list_judge_calls(conn, handle.session_id)
+        by_status = {}
+        for c in calls:
+            by_status.setdefault(c.status, []).append(c)
+        assert len(by_status.get("ok", [])) == 1       # pair 0's call
+        # the dead pair's attempt is in the audit too — it was still a call
+        assert len(by_status.get("provider_error", [])) == 1
+        assert by_status["provider_error"][0].error
+    finally:
+        conn.close()
+
+    # resume with a healthy provider: only the 2 remaining pairs get judged
+    healthy = RecordingMock()
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: healthy)
+    handle2 = judge_runs.start_judge(
+        "multi.db", db, {"session_id": handle.session_id}, confirm_phrase=None)
+    _wait(handle2)
+    assert handle2.status == "done", handle2.error
+    assert sum(1 for e in handle2.events if e["type"] == "pair") == 2
+    conn = connect(db)
+    try:
+        assert len(list_judgments(conn, handle.session_id)) == 3
+    finally:
+        conn.close()
+
+
+def test_parse_garbage_run_records_every_billed_retry_in_audit(tmp_path, monkeypatch):
+    """A provider that only ever returns garbage exhausts the retry loop:
+    the run errors AND every billed (garbage) call lands in judge_call."""
+    db = _seed_multi_pair_db(tmp_path)
+
+    class GarbageProvider(MockJudgeProvider):
+        def complete(self, prompt, model):
+            from grading.judge_providers import ProviderResult
+            return ProviderResult(text="not json at all", input_tokens=11, output_tokens=3)
+
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: GarbageProvider())
+    handle = judge_runs.start_judge("multi.db", db, _params(passes=1), confirm_phrase=None)
+    _wait(handle)
+    assert handle.status == "error"
+
+    conn = connect(db)
+    try:
+        calls = list_judge_calls(conn, handle.session_id)
+        # max_retries=2 -> 3 attempts, all billed, all parse_error
+        assert len(calls) == 3
+        assert all(c.status == "parse_error" for c in calls)
+        assert all(c.input_tokens == 11 for c in calls)
+        assert list_judgments(conn, handle.session_id) == []
+    finally:
+        conn.close()
+
+
 def test_resume_refuses_revealed_session(seeded_db):
     conn = connect(seeded_db)
     insert_grading_session(conn, GradingSession(
