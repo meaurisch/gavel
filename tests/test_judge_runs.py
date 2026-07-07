@@ -138,6 +138,25 @@ def test_plan_non_mock_provider_requires_confirm_phrase(seeded_db):
     assert plan["confirm_phrase"] == judge_runs.CONFIRM_PHRASE
 
 
+def test_plan_estimates_reflect_measured_cli_reality(seeded_db):
+    """Calibrated against the real cosmos-B run (2026-07-07): claude-cli
+    calls produced ~2.7k output tokens each (thinking counts as output) and
+    carry ~24k prompt-side tokens of CLI overhead per call. The old
+    constants (400 out, zero overhead) understated spend >6x."""
+    conn = connect(seeded_db)
+    try:
+        cli = judge_runs.plan_judge(conn, _params(provider="claude-cli",
+                                                  judge_model="claude-haiku-4-5"))
+        mock = judge_runs.plan_judge(conn, _params())
+    finally:
+        conn.close()
+    assert cli["est_output_tokens"] >= cli["n_calls"] * 2000
+    assert cli["est_input_tokens"] >= cli["n_calls"] * 20_000
+    # the mock has no CLI wrapper: its estimate stays prompt-sized
+    assert mock["est_input_tokens"] < mock["n_calls"] * 20_000
+    assert mock["est_output_tokens"] < mock["n_calls"] * 2000
+
+
 def test_plan_rejects_unknown_axis(seeded_db):
     conn = connect(seeded_db)
     try:

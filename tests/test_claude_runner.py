@@ -134,6 +134,47 @@ def test_parse_multiagent_fixture_aggregates_modelusage():
     assert result.total_cost_usd == 0.1620787
 
 
+def test_parse_captures_cache_creation_tokens():
+    """Real CLI shape (captured 2026-07-07): a one-shot `claude -p` call puts
+    nearly the whole prompt into cache_creation_input_tokens — input_tokens
+    alone says 9 for a ~24k-token call. The parser must expose it."""
+    data = {
+        "total_cost_usd": 0.0189295,
+        "result": "OK",
+        "usage": {
+            "input_tokens": 9, "output_tokens": 64,
+            "cache_read_input_tokens": 15305,
+            "cache_creation_input_tokens": 8535,
+        },
+        "modelUsage": {
+            "claude-haiku-4-5": {
+                "inputTokens": 9, "outputTokens": 64,
+                "cacheReadInputTokens": 15305,
+                "cacheCreationInputTokens": 8535,
+                "costUSD": 0.0189295,
+            }
+        },
+    }
+    result = parse_claude_output(data)
+    assert result.cache_creation_tokens == 8535
+    assert result.input_tokens == 9
+    assert result.cache_read_tokens == 15305
+
+
+def test_parse_cache_creation_from_model_usage_fallback():
+    data = {
+        "total_cost_usd": 0.02,
+        "result": "Done",
+        "modelUsage": {
+            "claude-haiku-4-5": {"inputTokens": 5, "outputTokens": 10,
+                                 "cacheReadInputTokens": 0,
+                                 "cacheCreationInputTokens": 7000},
+        },
+    }
+    result = parse_claude_output(data)
+    assert result.cache_creation_tokens == 7000
+
+
 # --- Runner protocol ---
 
 def test_claude_code_runner_conforms_to_protocol():

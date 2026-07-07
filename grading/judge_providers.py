@@ -66,6 +66,11 @@ class MockJudgeProvider:
     label = "Mock judge (deterministic, zero spend)"
     billing = "free"
 
+    # Plan-estimate constants (see plan_judge): the mock answers with a
+    # fixed ~80-token verdict and wraps the prompt in nothing.
+    EST_OUTPUT_TOKENS_PER_CALL = 80
+    EST_PROMPT_OVERHEAD_TOKENS = 0
+
     def models(self) -> list[str]:
         return ["mock-judge"]
 
@@ -128,6 +133,14 @@ class ClaudeCliJudgeProvider:
 
     # Judge calls are single completions; 10 minutes is generous.
     TIMEOUT_SECONDS = 600
+
+    # Plan-estimate constants, measured on the real cosmos-B judge run +
+    # a probe call (2026-07-07): the CLI wraps every call in ~24k
+    # prompt-side tokens of its own (system prompt; mostly cache-priced),
+    # and verdicts run ~2.7k output tokens because thinking counts as
+    # output. The old generic 400-token guess understated spend >6x.
+    EST_OUTPUT_TOKENS_PER_CALL = 2_700
+    EST_PROMPT_OVERHEAD_TOKENS = 24_000
 
     def __init__(self, workdir: Path | None = None) -> None:
         self._workdir = workdir
@@ -210,18 +223,26 @@ class ClaudeCliJudgeProvider:
                 f"claude CLI reported an error: {usage.error_message or 'unknown'}"
             )
 
-        usd = None
-        try:
-            from cost.pricing import compute_api_rate_usd
-            usd = compute_api_rate_usd(
-                model, usage.input_tokens, usage.output_tokens, usage.cache_read_tokens
-            ) or None
-        except Exception:  # pragma: no cover - pricing optional
-            pass
+        # The CLI's own cost figure knows the cache-write premia; recomputing
+        # from tokens under-reported the real cosmos-B run (measured
+        # 2026-07-07). Recompute only when the CLI gives no number.
+        usd = usage.total_cost_usd or None
+        if usd is None:
+            try:
+                from cost.pricing import compute_api_rate_usd
+                usd = compute_api_rate_usd(
+                    model, usage.input_tokens, usage.output_tokens, usage.cache_read_tokens
+                ) or None
+            except Exception:  # pragma: no cover - pricing optional
+                pass
 
         return ProviderResult(
             text=usage.result_text or "",
-            input_tokens=usage.input_tokens,
+            # A one-shot `claude -p` call parks the prompt in cache_creation
+            # (+ CLI system prompt in cache_read): input_tokens alone reads
+            # ~10 for a 30k-char prompt. Report the whole prompt side.
+            input_tokens=(usage.input_tokens + usage.cache_read_tokens
+                          + usage.cache_creation_tokens),
             output_tokens=usage.output_tokens,
             usd_equiv=usd,
             wall_seconds=wall,
@@ -258,6 +279,11 @@ class GhModelsJudgeProvider:
     billing = "metered"
 
     TIMEOUT_SECONDS = 180
+
+    # Plan-estimate constants: a bare chat-completions call has no wrapper
+    # overhead, and non-thinking replies stay near the asked-for verdict.
+    EST_OUTPUT_TOKENS_PER_CALL = 400
+    EST_PROMPT_OVERHEAD_TOKENS = 0
 
     # `gh auth token` is a subprocess; availability() runs on every provider
     # listing and plan refresh, so cache the lookup briefly (class-level: the

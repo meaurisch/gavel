@@ -50,8 +50,11 @@ logger = logging.getLogger(__name__)
 
 CONFIRM_PHRASE = "JUDGE"
 
-# Rough completion size of one verdict reply, for the plan estimate.
+# Plan-estimate fallbacks for providers that don't declare their own
+# EST_OUTPUT_TOKENS_PER_CALL / EST_PROMPT_OVERHEAD_TOKENS (see
+# grading.judge_providers for the measured per-provider values).
 _EST_OUTPUT_TOKENS_PER_CALL = 400
+_EST_PROMPT_OVERHEAD_TOKENS = 0
 
 _PARAM_TO_KWARG = {
     "methodology": "methodology_id",
@@ -214,11 +217,17 @@ def plan_judge(conn: sqlite3.Connection, params: dict) -> dict:
     task = get_task_spec(conn, params.get("task", ""))
     instruction_chars = len(task.instruction) if task else 500
     avg_diff = (diff_chars / n_diffs) if n_diffs else 2000
-    # one call = static preamble + instruction + both diffs
+    # one call = provider wrapper overhead + static preamble + instruction
+    # + both diffs; output size is provider-specific (thinking counts as
+    # output on the claude CLI) — both measured against the real run.
     per_call_chars = 1800 + instruction_chars + 2 * avg_diff
+    overhead_tokens = getattr(provider, "EST_PROMPT_OVERHEAD_TOKENS",
+                              _EST_PROMPT_OVERHEAD_TOKENS)
+    output_tokens_per_call = getattr(provider, "EST_OUTPUT_TOKENS_PER_CALL",
+                                     _EST_OUTPUT_TOKENS_PER_CALL)
     n_calls = n_pairs * passes
-    est_input = int(n_calls * per_call_chars / 4)
-    est_output = n_calls * _EST_OUTPUT_TOKENS_PER_CALL
+    est_input = int(n_calls * (per_call_chars / 4 + overhead_tokens))
+    est_output = n_calls * output_tokens_per_call
 
     est_usd = None
     if provider.billing == "free":

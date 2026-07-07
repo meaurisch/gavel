@@ -19,6 +19,10 @@ class ClaudeUsageResult:
     result_text: str
     is_error: bool
     error_message: str = ""
+    # On a one-shot `claude -p` call nearly the whole prompt is written to
+    # the cache: input_tokens says ~10 while cache_creation carries the real
+    # prompt size (measured 2026-07-07). Consumption accounting must add it.
+    cache_creation_tokens: int = 0
     raw_model_usage: dict[str, Any] = field(default_factory=dict)
 
 
@@ -55,15 +59,18 @@ def parse_claude_output(raw: str | dict[str, Any]) -> ClaudeUsageResult:
     mu_input = sum(v.get("inputTokens", 0) for v in model_usage.values())
     mu_output = sum(v.get("outputTokens", 0) for v in model_usage.values())
     mu_cache = sum(v.get("cacheReadInputTokens", 0) for v in model_usage.values())
+    mu_creation = sum(v.get("cacheCreationInputTokens", 0) for v in model_usage.values())
 
-    if mu_input or mu_output or mu_cache:
+    if mu_input or mu_output or mu_cache or mu_creation:
         input_tokens = mu_input
         output_tokens = mu_output
         cache_read_tokens = mu_cache
+        cache_creation_tokens = mu_creation
     else:
         input_tokens = usage.get("input_tokens", 0)
         output_tokens = usage.get("output_tokens", 0)
         cache_read_tokens = usage.get("cache_read_input_tokens", 0)
+        cache_creation_tokens = usage.get("cache_creation_input_tokens", 0)
 
     result_text = data.get("result") or ""
 
@@ -84,6 +91,7 @@ def parse_claude_output(raw: str | dict[str, Any]) -> ClaudeUsageResult:
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         cache_read_tokens=cache_read_tokens,
+        cache_creation_tokens=cache_creation_tokens,
         result_text=result_text,
         is_error=is_error,
         error_message=error_message,

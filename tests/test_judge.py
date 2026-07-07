@@ -302,6 +302,34 @@ def test_merge_single_pass():
     assert consistent is None
 
 
+def _verdict(choice):
+    return parse_verdict(json.dumps(dict(VALID_VERDICT, choice=choice)))
+
+
+@pytest.mark.parametrize("first,second_swapped,want_choice,want_consistent", [
+    # second pass is expressed in SWAPPED coordinates: its "A" is the
+    # original right side. Agreement requires swap(second) == first.
+    ("A", "B", "A", True),
+    ("A", "A", "tie", False),
+    ("A", "tie", "tie", False),
+    ("B", "A", "B", True),
+    ("B", "B", "tie", False),
+    ("B", "tie", "tie", False),
+    ("tie", "tie", "tie", True),
+    ("tie", "A", "tie", False),
+    ("tie", "B", "tie", False),
+])
+def test_merge_passes_exhaustive_truth_table(first, second_swapped,
+                                             want_choice, want_consistent):
+    choice, consistent = merge_passes(_verdict(first), _verdict(second_swapped))
+    assert (choice, consistent) == (want_choice, want_consistent)
+
+
+@pytest.mark.parametrize("only", ["A", "B", "tie"])
+def test_merge_passes_single_pass_truth_table(only):
+    assert merge_passes(_verdict(only), None) == (only, None)
+
+
 # ---------------------------------------------------------------------------
 # diff budget
 # ---------------------------------------------------------------------------
@@ -426,6 +454,47 @@ def test_mock_provider_availability_is_always_ok():
     assert ok is True
 
 
+def test_claude_cli_provider_reports_full_prompt_side_usage(monkeypatch, tmp_path):
+    """Measured on the real CLI (2026-07-07): a one-shot `claude -p` call
+    reports input_tokens≈10 while the actual prompt lands in cache_creation
+    and cache_read. Recording only input_tokens said a 6-call session
+    consumed 60 input tokens. The provider must report the FULL prompt side
+    and prefer the CLI's own cost figure (it knows the cache premia)."""
+    import subprocess as sp
+    from grading import judge_providers as jp
+
+    payload = json.dumps({
+        "total_cost_usd": 0.0189295,
+        "result": json.dumps(VALID_VERDICT),
+        "is_error": False,
+        "usage": {
+            "input_tokens": 9, "output_tokens": 64,
+            "cache_read_input_tokens": 15305,
+            "cache_creation_input_tokens": 8535,
+        },
+        "modelUsage": {
+            "claude-haiku-4-5": {
+                "inputTokens": 9, "outputTokens": 64,
+                "cacheReadInputTokens": 15305,
+                "cacheCreationInputTokens": 8535,
+                "costUSD": 0.0189295,
+            }
+        },
+    })
+
+    def fake_run(cmd, **kwargs):
+        return sp.CompletedProcess(cmd, 0, stdout=payload, stderr="")
+
+    monkeypatch.setattr(jp.shutil, "which", lambda name: "claude")
+    monkeypatch.setattr(jp.subprocess, "run", fake_run)
+    provider = jp.ClaudeCliJudgeProvider(workdir=tmp_path)
+    res = provider.complete("judge this pair", "claude-haiku-4-5")
+
+    assert res.input_tokens == 9 + 15305 + 8535   # the whole prompt side
+    assert res.output_tokens == 64
+    assert res.usd_equiv == pytest.approx(0.0189295)  # CLI's own number
+
+
 # ---------------------------------------------------------------------------
 # agreement math
 # ---------------------------------------------------------------------------
@@ -470,3 +539,53 @@ def test_grader_agreement_no_overlap():
     result = grader_agreement([_judgment("t1", "t2", "A", "human")], [])
     assert result["n_shared"] == 0
     assert result["rate"] is None
+
+
+# ---------------------------------------------------------------------------
+# statistical edge cases (critic session 2026-07-07)
+# ---------------------------------------------------------------------------
+
+def test_cohens_kappa_all_ties_is_perfect_agreement():
+    # chance agreement is 1.0 too; the convention here is kappa = 1.0 when
+    # the raters actually agree everywhere (not 0/0 = NaN)
+    assert cohens_kappa(["tie"] * 5, ["tie"] * 5) == pytest.approx(1.0)
+
+
+def test_cohens_kappa_constant_rater_vs_constant_disagreement():
+    # one rater constant, chance == observed -> 0.0, not a crash
+    assert cohens_kappa(["A", "A", "A"], ["A", "B", "A"]) == pytest.approx(0.0)
+    # both constant but never agreeing -> chance 0, observed 0 -> 0.0
+    assert cohens_kappa(["A", "A"], ["B", "B"]) == pytest.approx(0.0)
+
+
+def test_cohens_kappa_single_shared_pair():
+    assert cohens_kappa(["A"], ["A"]) == pytest.approx(1.0)
+    assert cohens_kappa(["A"], ["B"]) == pytest.approx(0.0)
+
+
+def test_cohens_kappa_mismatched_lengths_is_none():
+    assert cohens_kappa(["A", "B"], ["A"]) is None
+
+
+def test_grader_agreement_duplicate_pair_last_wins_deterministically():
+    """The same unordered pair judged twice by one grader (re-grades across
+    sessions, reversed orientation) collapses to the LATEST entry — the
+    list order callers pass is session creation order."""
+    human = [
+        _judgment("t1", "t2", "A", "human"),
+        _judgment("t2", "t1", "A", "human"),   # re-grade, reversed: t2 wins now
+    ]
+    llm = [_judgment("t1", "t2", "B", "llm:mock:m")]
+    result = grader_agreement(human, llm)
+    assert result["n_shared"] == 1
+    # human's latest verdict is "t2 wins" == llm's B(t1,t2) -> they agree
+    assert result["n_agree"] == 1
+
+
+def test_grader_agreement_tie_orientation_neutral():
+    human = [_judgment("t1", "t2", "tie", "human")]
+    llm = [_judgment("t2", "t1", "tie", "llm:mock:m")]
+    result = grader_agreement(human, llm)
+    assert result["n_shared"] == 1
+    assert result["n_agree"] == 1
+    assert result["kappa"] == pytest.approx(1.0)
