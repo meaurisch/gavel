@@ -270,7 +270,7 @@ guessed the same test path. The overwritten agent file is restored after the run
 
 ## Current state
 
-The full pipeline is built and tested (371 fast tests green plus a 22-test
+The full pipeline is built and tested (437 fast tests green plus a 24-test
 Playwright UI suite behind the `integration` marker, 1 env-gated test
 deselected) — engine, 5-axis matrix, three-tier gate, axis-general blind
 grading in **two modes** (manual double-blind and LLM judge), Bradley-Terry
@@ -287,6 +287,21 @@ disagreement→tie; strict-JSON verdicts with a self-correction retry loop; a
 reveal enriched with rationales, swap-consistency, and judge spend; report
 grader filter + human↔LLM agreement (Cohen's κ). Design notes in
 `docs/superpowers/specs/2026-07-06-llm-judge-design.md`.
+
+**Judge-mode adversarial hardening (2026-07-07).** A dedicated critic session
+stress-tested the mode across blinding, parsing, races, migration, stats,
+cost, and UX (commits `judge-critic-pass-1…7`): the task instruction now goes
+through the same redaction as diffs, BlindingError fails closed without
+naming the leaked id, hostile provider replies (NaN confidence, non-dict
+rubric, 100KB prose) degrade into the retry loop instead of killing runs,
+failed pairs still land their billed calls in the `judge_call` audit, a
+reveal racing an in-flight provider call discards the verdict, claude-cli
+usage is recorded honestly (cache-creation tokens + the CLI's own cost — a
+one-shot `claude -p` call parks ~24k prompt-side tokens in cache), plan
+estimates are measured per provider, and diff-budget truncation persists to
+the judgment row and reveal. One bounded real run (cosmos-B model axis,
+claude-haiku-4-5, 6 calls, 3/3 swap-consistent, rationales verified against
+the diffs) is written up in the design doc's testing section.
 
 **A fresh clone is fully reproducible.** Task base commits are locally
 synthesized (a task's feature reverse-applied onto a pinned upstream anchor;

@@ -188,6 +188,74 @@ GradePicker ──"Judge myself"──► existing human session flow (unchanged
   18-test suite stays green.
 - E2E on `results-demo.db` with the mock judge — zero spend.
 
+### Adversarial hardening session (2026-07-07)
+
+A dedicated critic session attacked the mode along eight axes (commits
+`judge-critic-pass-1…7`). Fixed findings, each with a regression test first:
+
+1. **Blinding**: the task instruction reached the judge unredacted — an
+   exact-case contender mention killed the run (false fail-closed; real
+   tasks name their pinned context) and a case variant sailed through. The
+   worker now redacts the instruction via `redact_axis_ids`;
+   `_check_blinding` is case-insensitive; `BlindingError` no longer names
+   the leaked token (its message is rendered on blind surfaces).
+2. **Parsing**: confidence `NaN` clamped to 1.0 (now a parse error → retry);
+   a non-dict rubric raised `AttributeError` and killed the run (now reads
+   as missing); explicit `null` confidence burned a billed retry (now the
+   0.5 default).
+3. **Spend honesty on failure**: a permanently-failed pair discarded its
+   billed call records; `JudgeError` now carries them into `judge_call`.
+4. **Races**: a reveal landing during a provider call (minutes on real
+   providers) still wrote its verdict into the closed session; the worker
+   re-checks after the call and discards the in-flight verdict (billed call
+   stays in the audit). Cancel/resume, concurrent starts, restart-reattach,
+   and read-vs-write contention all held and are pinned by tests.
+5. **Migration**: report numbers for `grader=all` on copies of the real and
+   demo DBs are byte-identical to the pre-branch code (merge-base worktree
+   ground truth); legacy rows read as human-mode; reveal of legacy sessions
+   works. Opening a DB backfills the new columns (schema-only, by design).
+6. **claude-cli usage honesty** (found by the real run below): a one-shot
+   `claude -p` call parks the prompt in `cache_creation_input_tokens` (and
+   the CLI system prompt — ~24k tokens/call — in cache), so `input_tokens`
+   read ~10/call; the provider now reports the full prompt side and prefers
+   the CLI's own `total_cost_usd` (recomputation missed the 2× 1h-cache
+   write premium). Plan estimates are now per-provider constants measured
+   against the run (claude-cli: ~24k overhead in, ~2.7k out — thinking
+   counts as output; the old generic 400-token guess was >6× low).
+7. **Truncation**: the diff-budget `truncated` flag lived only in the
+   in-memory progress event; it now persists on the judgment row and shows
+   as a badge in the reveal.
+8. **UX** (screenshot pass, light+dark, 1440/1100/900): rationale cells wrap
+   unbroken identifiers instead of stretching the table into horizontal
+   scroll; the plan banner never shows the previous provider's numbers
+   (render-time config match, MutationObserver-tested); a live-resumed run's
+   verdicts table merges earlier runs' verdicts; the progress line shows
+   "judging pair N…" while a call is in flight.
+
+**The one bounded real run** (audit): cosmos-B model-axis cell on a copy of
+`results.db`, `claude-cli` / `claude-haiku-4-5`, double pass — 3 pairs,
+**6 calls, 0 retries, 0 errors, 3/3 position-consistent**, verdicts
+sonnet-4-6 over haiku-4-5 3–0. Wall ~31 s/call (188 s total). Output
+averaged **2,667 tokens/call** (thinking included) vs the old 400 estimate;
+recorded input was 10 tokens/call until the cache-accounting fix (real
+prompt side ≈ 31k/call incl. CLI overhead). Recomputed spend read
+$0.0913; the CLI's own per-call cost (now recorded) runs higher — a probe
+call showed 1h-cache writes billed at 2× input rate. Rationale
+groundedness: all checkable claims verified against the raw diffs — the
+unused `IMapper`/`AutoMapper` injection exists in exactly the two haiku
+reps the judge accused (and not the third), and the `completedValue` /
+`ProducesResponseType` vs `ApiConventionMethod` contrasts match the diffs.
+Verdict: grounded and internally consistent, not generic.
+
+Deferred (design changes, out of critic scope): CamelCase-glued axis ids
+(`SpeedrunHelper`) stay unredacted — the deliberate `CosmosDbData` tradeoff
+in `redact_axis_ids`; runner-side trial `cost_record`s share the
+cache-creation blind spot (predates this branch; changing it would reprice
+recorded campaign data); cross-session duplicate re-grades collapse
+last-wins in the agreement math (pinned by test); "from a previous run"
+verdict rows don't carry swap-consistency (not in the session payload);
+`gh-models` has not been exercised against the live endpoint.
+
 ## Out of scope
 
 - Judging with the judge seeing full repo context (tool-using judge).
