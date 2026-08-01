@@ -100,7 +100,8 @@ def _seed(conn, trial_id, *, task, meth, ctx, model, runner, rep, diff):
 
 def _build_test_db(path: Path) -> None:
     conn = connect(path)
-    # Methodology-axis cell: 4 methodologies x 3 reps -> 18 pairs (marathon).
+    # Methodology-axis cell: 4 methodologies x 3 reps -> 18 base pairs
+    # (+2 E2.1 probes at session start -> 20 served) — the marathon.
     # Every diff carries a 600-char unwrapped line so any sampled pair
     # exercises horizontal overflow (pane equality + sticky gutters).
     for meth in METHS:
@@ -445,6 +446,9 @@ def test_blinding_no_varying_axis_id_anywhere(page, server, axis, varying, pinne
         html = page.content()
         for vid in varying:
             assert vid not in html, f"{axis} value {vid!r} leaked into the {view}-way page"
+        # E2.1: consistency probes must be indistinguishable while blind —
+        # no marker of any kind on the judging page.
+        assert "probe" not in html.lower(), f"probe marker leaked into the blind {view}-way page"
 
     # Sanity: the page isn't blank — pinned ids are allowed and present.
     html = page.content()
@@ -492,7 +496,8 @@ def test_cell_rows_show_pinned_values_with_previews(page, server):
 
 
 # ---------------------------------------------------------------------------
-# Marathon: judge 18 pairs back-to-back with the keyboard, reload mid-way
+# Marathon: judge 20 pairs (18 + 2 probes) back-to-back with the keyboard,
+# reload mid-way
 # ---------------------------------------------------------------------------
 
 def test_marathon_keyboard_session_with_reload(page, server):
@@ -530,6 +535,12 @@ def test_marathon_keyboard_session_with_reload(page, server):
     reveal = page.locator('[data-testid="reveal-pairs"]').inner_text()
     for meth in METHS:  # now (and only now) values are revealed
         assert meth in reveal
+
+    # E2.1: with every pair judged, the reveal shows the consistency card
+    # and flags exactly the probe pairs.
+    page.wait_for_selector('[data-testid="probe-stats"]')
+    assert "2 of 2 inserted" in page.get_by_test_id("probe-evaluated").inner_text()
+    assert page.get_by_test_id("probe-badge").count() == 2
 
 
 def test_reveal_needs_confirmation_then_closes_session(page, server):

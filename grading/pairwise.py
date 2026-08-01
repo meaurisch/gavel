@@ -109,6 +109,94 @@ def generate_pairs(
     return selected
 
 
+def insert_probes(
+    pairs: list[tuple],
+    k: int | None = None,
+    seed: int | None = None,
+) -> tuple[list[tuple], dict[int, int]]:
+    """E2.1 consistency probes: duplicate ``k`` randomly-chosen pairs with
+    their sides SWAPPED and reinsert each at a random position after its
+    original. A probe is indistinguishable from a real pair on every blind
+    surface; only the session record (``probe_of``) knows. Judged probes
+    yield the instrument's self-agreement and side-swap flip rate and are
+    excluded from Bradley-Terry.
+
+    Default ``k`` ≈ 10% of pairs, min 2, capped at one probe per pair.
+    Returns (pairs_with_probes, {probe_index: original_index}).
+    """
+    n = len(pairs)
+    if n == 0:
+        return list(pairs), {}
+    if k is None:
+        k = max(2, round(0.1 * n))
+    k = min(k, n)
+
+    rng = random.Random(seed)
+    chosen = rng.sample(range(n), k)
+
+    # Work on (kind, original_index) tags so positions can shift freely as
+    # probes are inserted; resolve final indices at the end.
+    items: list[tuple[str, int]] = [("orig", i) for i in range(n)]
+    for oi in chosen:
+        pos = items.index(("orig", oi))
+        items.insert(rng.randint(pos + 1, len(items)), ("probe", oi))
+
+    out: list[tuple] = []
+    orig_at: dict[int, int] = {}
+    for idx, (kind, oi) in enumerate(items):
+        if kind == "orig":
+            orig_at[oi] = idx
+            out.append(pairs[oi])
+        else:
+            left, right = pairs[oi]
+            out.append((right, left))
+    probe_of = {
+        idx: orig_at[oi]
+        for idx, (kind, oi) in enumerate(items)
+        if kind == "probe"
+    }
+    return out, probe_of
+
+
+class ProbeStats(BaseModel):
+    """The instrument numbers a session's probes yield. ``n_evaluated``
+    counts probes where BOTH the probe and its original were judged;
+    agreement compares content choices across the side swap (original A ≙
+    probe B). A flip is a pair of non-tie verdicts that named opposite
+    contents — the judge followed the side, not the diff."""
+    n_probes: int
+    n_evaluated: int
+    n_agree: int
+    n_flips: int
+    self_agreement: float | None
+    flip_rate: float | None
+
+
+_PROBE_SWAP = {"A": "B", "B": "A", "tie": "tie"}
+
+
+def compute_probe_stats(probe_of: dict[int, int], choices: dict[int, str]) -> ProbeStats:
+    """``choices`` maps pair_index -> A|B|tie for every judged pair."""
+    n_evaluated = n_agree = n_flips = 0
+    for probe_idx, orig_idx in probe_of.items():
+        orig, probe = choices.get(orig_idx), choices.get(probe_idx)
+        if orig is None or probe is None:
+            continue
+        n_evaluated += 1
+        if _PROBE_SWAP.get(probe) == orig:
+            n_agree += 1
+        elif orig != "tie" and probe != "tie":
+            n_flips += 1
+    return ProbeStats(
+        n_probes=len(probe_of),
+        n_evaluated=n_evaluated,
+        n_agree=n_agree,
+        n_flips=n_flips,
+        self_agreement=(n_agree / n_evaluated) if n_evaluated else None,
+        flip_rate=(n_flips / n_evaluated) if n_evaluated else None,
+    )
+
+
 def _is_instruction_file(path: str) -> bool:
     if path in METHODOLOGY_FILE_PATTERNS:
         return True

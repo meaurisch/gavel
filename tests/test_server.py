@@ -102,7 +102,8 @@ def test_cells_lists_multi_value_and_omits_single(client):
 
 
 def test_pairs_filters_to_one_cell(client):
-    # Pin to cell cA -> only modelone vs modeltwo
+    # Pin to cell cA -> only modelone vs modeltwo: 1 base pair + 1 E2.1
+    # consistency probe (k capped at the pair count)
     resp = client.get("/api/pairs", params={
         "axis": "model",
         "task": "taskone",
@@ -112,7 +113,7 @@ def test_pairs_filters_to_one_cell(client):
     })
     assert resp.status_code == 200
     data = resp.json()
-    assert data["total_pairs"] == 1
+    assert data["total_pairs"] == 2
 
     # Pin to decoy cell cB -> only modelnine vs modelten
     resp2 = client.get("/api/pairs", params={
@@ -124,7 +125,7 @@ def test_pairs_filters_to_one_cell(client):
     })
     assert resp2.status_code == 200
     data2 = resp2.json()
-    assert data2["total_pairs"] == 1
+    assert data2["total_pairs"] == 2
 
 
 def test_pairs_diffs_have_no_axis_ids(client):
@@ -189,7 +190,7 @@ def test_reveal_includes_bt_scores_and_flags(client):
     data = resp.json()
     session_id = data["session_id"]
     pairs = data["pairs"]
-    assert data["total_pairs"] == 9  # C(3,2) * 3
+    assert data["total_pairs"] == 11  # C(3,2) * 3 base pairs + 2 probes
 
     _judge_n(client, session_id, pairs, len(pairs))
 

@@ -59,6 +59,9 @@ from grading.pairwise import (
     anonymize_diff,
     compute_proxy,
     generate_pairs,
+    insert_probes,
+    compute_probe_stats,
+    ProbeStats,
     redact_axis_ids,
 )
 from grading.bradley_terry import fit_bradley_terry, bootstrap_ci, bt_scores_to_elo
@@ -130,7 +133,8 @@ class SessionState:
                  pairs: list[tuple[str, str]], judgments_made: set[int] | None = None,
                  revealed_at: str | None = None, mode: str = "human",
                  judge_provider: str | None = None, judge_model: str | None = None,
-                 judge_passes: int | None = None):
+                 judge_passes: int | None = None,
+                 probe_of: dict[int, int] | None = None):
         self.session_id = session_id
         self.axis = axis
         self.cell = cell
@@ -141,6 +145,7 @@ class SessionState:
         self.judge_provider = judge_provider
         self.judge_model = judge_model
         self.judge_passes = judge_passes
+        self.probe_of = probe_of
 
 
 _sessions: dict[str, SessionState] = {}
@@ -174,6 +179,7 @@ def _get_session(conn: sqlite3.Connection, session_id: str) -> SessionState | No
         judge_provider=stored.judge_provider,
         judge_model=stored.judge_model,
         judge_passes=stored.judge_passes,
+        probe_of=stored.probe_of,
     )
     _sessions[session_id] = session
     return session
@@ -385,6 +391,10 @@ class RevealPair(BaseModel):
     confidence: float | None = None
     position_consistent: bool | None = None
     truncated: bool | None = None      # the judge saw a budget-truncated diff
+    # E2.1: True marks a consistency probe (side-swapped repeat). Post-reveal
+    # only by construction — this model is exclusively part of the reveal
+    # payload; blind surfaces never carry the flag.
+    is_probe: bool | None = None
 
 
 class AxisValueRecord(BaseModel):
@@ -437,6 +447,9 @@ class RevealResponse(BaseModel):
     pass_rates: dict[str, float] | None = None
     mode: str = "human"
     judge_stats: JudgeSessionStats | None = None
+    # E2.1 judge-consistency numbers — present only when the session carried
+    # probes (and, like everything here, only post-reveal).
+    probe_stats: ProbeStats | None = None
 
 
 class RevealRequest(BaseModel):
@@ -722,6 +735,10 @@ async def get_pairs(
             raise HTTPException(400, "Not enough passing values for this axis in the selected cell")
 
         trial_pairs = generate_pairs(trials, run_results, axis)
+        # E2.1 consistency probes: side-swapped repeat pairs, indistinguishable
+        # in everything served below — only the session record knows which
+        # indices are probes, and nothing pre-reveal ever reads probe_of.
+        trial_pairs, probe_of = insert_probes(trial_pairs)
 
         session_id = uuid.uuid4().hex
         id_pairs = [(left.id, right.id) for left, right in trial_pairs]
@@ -733,6 +750,7 @@ async def get_pairs(
             axis=axis,
             cell=cell,
             pairs=id_pairs,
+            probe_of=probe_of or None,
         )
         _sessions[session_id] = session
         created_at = datetime.now(timezone.utc).isoformat()
@@ -742,6 +760,7 @@ async def get_pairs(
             cell=cell,
             pairs=id_pairs,
             created_at=created_at,
+            probe_of=probe_of or None,
         ))
 
         axis_ids = _axis_ids_for_blinding(trials)
@@ -968,6 +987,12 @@ async def judge(req: JudgeRequest) -> JudgeResponse:
 
         left_trial_id, right_trial_id = session.pairs[req.pair_index]
 
+        # E2.1: stamp probe verdicts so aggregation can exclude them without
+        # a session join. None (not False) on sessions built without probes.
+        is_probe = None
+        if session.probe_of is not None:
+            is_probe = req.pair_index in session.probe_of
+
         judgment = Judgment(
             id=uuid.uuid4().hex,
             session_id=session.session_id,
@@ -981,6 +1006,7 @@ async def judge(req: JudgeRequest) -> JudgeResponse:
             rubric_readability=req.rubric_readability,
             rubric_overengineering=req.rubric_overengineering,
             created_at=datetime.now(timezone.utc).isoformat(),
+            is_probe=is_probe,
         )
 
         upsert_judgment(conn, judgment)
@@ -1059,6 +1085,7 @@ def _reveal_payload(conn: sqlite3.Connection, session: SessionState) -> RevealRe
     summary: dict[str, AxisValueRecord] = defaultdict(lambda: AxisValueRecord(wins=0, losses=0, ties=0))
     comparisons: list[tuple[str, str, str]] = []
     n_unjudged = 0
+    probe_idxs = set(session.probe_of or ())
 
     for i, (left_id, right_id) in enumerate(session.pairs):
         j = judgment_by_pair.get((left_id, right_id))
@@ -1086,7 +1113,14 @@ def _reveal_payload(conn: sqlite3.Connection, session: SessionState) -> RevealRe
             confidence=j.confidence,
             position_consistent=j.position_consistent,
             truncated=j.truncated,
+            is_probe=True if i in probe_idxs else None,
         ))
+
+        # Probe verdicts measure the judge, not the contenders: they are
+        # shown above (flagged) but never enter the win/loss summary or the
+        # session's Bradley-Terry — a probe repeats an already-counted pair.
+        if i in probe_idxs:
+            continue
 
         if choice == "A":
             comparisons.append((left_value, right_value, "win"))
@@ -1152,6 +1186,16 @@ def _reveal_payload(conn: sqlite3.Connection, session: SessionState) -> RevealRe
             n_inconsistent=sum(1 for j in judged_list if not j.position_consistent),
         )
 
+    # E2.1: the two instrument numbers the probes were inserted to yield.
+    probe_stats = None
+    if session.probe_of:
+        choices = {
+            i: judgment_by_pair[pair].choice
+            for i, pair in enumerate(session.pairs)
+            if pair in judgment_by_pair
+        }
+        probe_stats = compute_probe_stats(session.probe_of, choices)
+
     return RevealResponse(
         revealed=True,
         pairs=reveal_pairs,
@@ -1167,6 +1211,7 @@ def _reveal_payload(conn: sqlite3.Connection, session: SessionState) -> RevealRe
         pass_rates=pass_rates,
         mode=session.mode,
         judge_stats=judge_stats,
+        probe_stats=probe_stats,
     )
 
 
@@ -1390,6 +1435,8 @@ async def get_report(
         else:
             s["bt_ci_elo"] = None
     payload["flag_lines"] = flag_lines(data.flags)
+    # asdict deep-copies the pydantic ProbeStats as an object; serialize it.
+    payload["probe_stats"] = data.probe_stats.model_dump() if data.probe_stats else None
     payload["orphan_judgments"] = orphans
     payload["ignored_pin"] = dropped or None
     payload["agreement"] = agreement

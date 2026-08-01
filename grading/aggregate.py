@@ -19,7 +19,7 @@ from core.db import (
 )
 from grading.analyzer import AnalyzerFlags, analyze
 from grading.bradley_terry import bootstrap_ci, bt_scores_to_elo, fit_bradley_terry
-from grading.pairwise import AXIS_FIELDS
+from grading.pairwise import AXIS_FIELDS, ProbeStats, compute_probe_stats
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,9 @@ class ReportData:
     n_judgments: int
     n_sessions: int
     grader: str = "all"  # which judgments fed BT: all | human | llm
+    # E2.1 judge-consistency numbers, pooled across in-scope sessions that
+    # carried probes. None when no session in scope had any.
+    probe_stats: ProbeStats | None = None
 
 
 def flag_lines(flags: AnalyzerFlags) -> list[str]:
@@ -101,7 +104,8 @@ def judgments_to_comparisons(
             continue
         in_scope = [
             j for j in list_judgments(conn, session.id)
-            if _grader_matches(j.grader, grader)
+            if not j.is_probe  # E2.1 probes measure the judge, never the contenders
+            and _grader_matches(j.grader, grader)
             and (trial_ids is None
                  or (j.left_trial_id in trial_ids and j.right_trial_id in trial_ids))
         ]
@@ -146,6 +150,11 @@ def grader_agreement_report(conn: sqlite3.Connection, axis: str,
         if session.axis != axis:
             continue
         for j in list_judgments(conn, session.id):
+            # Probes are side-swapped repeats — grader_agreement normalizes
+            # pair orientation, so a probe verdict would silently overwrite
+            # its original's. Only canonical verdicts enter agreement.
+            if j.is_probe:
+                continue
             if scoped is not None and (
                 j.left_trial_id not in scoped or j.right_trial_id not in scoped
             ):
@@ -157,6 +166,54 @@ def grader_agreement_report(conn: sqlite3.Connection, axis: str,
             }
             (llm if j.grader.startswith("llm") else human).append(entry)
     return grader_agreement(human, llm)
+
+
+def probe_stats_for_axis(
+    conn: sqlite3.Connection,
+    axis: str,
+    trial_ids: set[str] | None = None,
+    grader: str | None = None,
+) -> ProbeStats | None:
+    """Pool E2.1 probe results across every in-scope session on this axis.
+    Returns None when no in-scope session carried probes (so the report can
+    omit the block entirely rather than print zeros)."""
+    n_probes = n_evaluated = n_agree = n_flips = 0
+    found = False
+    for session in list_grading_sessions(conn):
+        if session.axis != axis or not session.probe_of:
+            continue
+        probe_of = session.probe_of
+        if trial_ids is not None:
+            probe_of = {
+                p: o for p, o in probe_of.items()
+                if session.pairs[p][0] in trial_ids and session.pairs[p][1] in trial_ids
+            }
+        if not probe_of:
+            continue
+        found = True
+        index_by_pair = {tuple(pair): i for i, pair in enumerate(session.pairs)}
+        choices: dict[int, str] = {}
+        for j in list_judgments(conn, session.id):
+            if not _grader_matches(j.grader, grader):
+                continue
+            idx = index_by_pair.get((j.left_trial_id, j.right_trial_id))
+            if idx is not None:
+                choices[idx] = j.choice
+        s = compute_probe_stats(probe_of, choices)
+        n_probes += s.n_probes
+        n_evaluated += s.n_evaluated
+        n_agree += s.n_agree
+        n_flips += s.n_flips
+    if not found:
+        return None
+    return ProbeStats(
+        n_probes=n_probes,
+        n_evaluated=n_evaluated,
+        n_agree=n_agree,
+        n_flips=n_flips,
+        self_agreement=(n_agree / n_evaluated) if n_evaluated else None,
+        flip_rate=(n_flips / n_evaluated) if n_evaluated else None,
+    )
 
 
 def pareto_frontier(points: dict[str, tuple[float, float]]) -> set[str]:
@@ -293,4 +350,5 @@ def build_report(
         n_judgments=n_judgments,
         n_sessions=n_sessions,
         grader=grader or "all",
+        probe_stats=probe_stats_for_axis(conn, axis, trial_ids, grader),
     )

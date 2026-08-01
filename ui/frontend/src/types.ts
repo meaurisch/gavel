@@ -201,6 +201,19 @@ export interface RevealPairInfo {
   confidence: number | null;
   position_consistent: boolean | null;
   truncated: boolean | null;
+  // E2.1: true marks a consistency probe (side-swapped repeat pair) —
+  // measured the judge, excluded from the ranking. Post-reveal only.
+  is_probe: boolean | null;
+}
+
+// E2.1 judge-consistency numbers from the session's repeat probes.
+export interface ProbeStats {
+  n_probes: number;
+  n_evaluated: number;
+  n_agree: number;
+  n_flips: number;
+  self_agreement: number | null;
+  flip_rate: number | null;
 }
 
 export interface JudgeSessionStats {
@@ -236,6 +249,7 @@ export interface RevealResponse {
   pass_rates: Record<string, number> | null;
   mode: GradingMode;
   judge_stats: JudgeSessionStats | null;
+  probe_stats: ProbeStats | null;
 }
 
 export interface TrialRow {
@@ -327,6 +341,7 @@ export interface Report {
   n_sessions: number;
   grader: "all" | "human" | "llm";
   agreement: AgreementBlock;
+  probe_stats: ProbeStats | null;
   orphan_judgments: number;
   ignored_pin: string | null;
   artifacts: { name: string; modified_at: number; url: string }[];

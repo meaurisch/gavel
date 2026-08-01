@@ -273,3 +273,22 @@ Applied immediately after approval:
   reveal-closes-permanently warning, BT ≥3 note).
 - **CHECKPOINT 2: STOPPED. The human grades blind in the UI. No grading,
   no reveal by Claude.**
+
+## E2.1 — consistency probes, built before CP2 (2026-08-01, no spend)
+
+- **Human decision:** the elevation brief's Part-2 timing question ("build
+  E2.1 before grading?") was answered **yes** on 2026-08-01 — the CP2
+  session is the only human gold standard being produced, and the LLM
+  judge's promotion rule (E3.4) needs the human's self-agreement as its
+  yardstick.
+- Implementation (branch `e21-consistency-probes`, merged into
+  `llm-judge`): human sessions insert ~10% (min 2) side-swapped repeat
+  pairs at random later positions; blind surfaces never mark them
+  (Playwright-asserted); probe verdicts are excluded from Bradley-Terry
+  and yield self-agreement + side-swap flip rate at reveal and in every
+  report surface. Additive schema (`grading_session.probe_of`,
+  `judgment.is_probe`); LLM-judge sessions unchanged.
+- **Consequence for CP2:** the three sessions will serve
+  33 + 11 + 5 = **49 pairs (42 real + 7 probes)**. The grading brief
+  gained an addendum; expect ~15% more grading time.
+- Suites: 462 fast + 24 Playwright green. Spend: $0.

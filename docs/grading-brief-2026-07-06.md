@@ -51,3 +51,20 @@ question — which methodology's output would you merge), then 2, then 3.
 
 When you're done grading, say so — Stage 4 (report + decision doc) runs
 after your confirmation.
+
+## Addendum (2026-08-01): consistency probes are in
+
+Per your E2.1 approval, every session now silently includes a few repeat
+pairs with sides swapped (~10%, min 2). You cannot tell them apart — don't
+try; just judge every pair on its merits. They are excluded from the
+ranking and, at reveal, show your self-agreement and side-swap flip rate.
+
+Updated serving counts (real pairs unchanged at 42):
+
+| Cell | Real pairs | Probes | Served |
+|---|---|---|---|
+| 1 (cosmos-B methodology) | 30 | 3 | **33** |
+| 2 (moreiter-A methodology) | 9 | 2 | **11** |
+| 3 (cosmos-B model) | 3 | 2 | **5** |
+
+Expect roughly 15% more grading time than the estimates above.

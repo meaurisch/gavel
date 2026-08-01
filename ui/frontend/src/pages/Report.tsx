@@ -207,6 +207,25 @@ export function ReportPage() {
               </div>
             )}
 
+            {data.probe_stats && data.probe_stats.n_evaluated > 0 && (
+              <div className="card" data-testid="probe-stats-card">
+                <div className="card-title">Judge consistency — repeat probes</div>
+                <p className="small" style={{ marginTop: 0 }}>
+                  Across <strong>{data.probe_stats.n_evaluated}</strong> evaluated probe
+                  {data.probe_stats.n_evaluated === 1 ? "" : "s"} (deliberate side-swapped repeat
+                  pairs, excluded from the ranking): self-agreement{" "}
+                  <strong>{fmtPct(data.probe_stats.self_agreement)}</strong> (
+                  {data.probe_stats.n_agree}/{data.probe_stats.n_evaluated}), side-swap flips{" "}
+                  <strong>{fmtPct(data.probe_stats.flip_rate)}</strong> (
+                  {data.probe_stats.n_flips}/{data.probe_stats.n_evaluated}).
+                </p>
+                <p className="xsmall muted" style={{ marginBottom: 0 }}>
+                  Self-agreement is the judging instrument's own noise floor — an LLM judge earns
+                  scaled duty only by agreeing with the human at least this often.
+                </p>
+              </div>
+            )}
+
             {data.flag_lines.length > 0 && (
               <div className="card">
                 <div className="card-title">Analyzer flags</div>

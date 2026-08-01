@@ -96,6 +96,10 @@ class Judgment:
     # True when the judge saw a budget-truncated diff — the verdict covers a
     # prefix of the change and the reveal must say so. None for human mode.
     truncated: bool | None = None
+    # E2.1: True when this verdict was on a consistency probe (a deliberate
+    # side-swapped repeat pair). Probe verdicts measure the judge and are
+    # excluded from Bradley-Terry. None on sessions without probes.
+    is_probe: bool | None = None
 
 
 @dataclass
@@ -119,6 +123,10 @@ class GradingSession:
     judge_provider: str | None = None   # e.g. "claude-cli" | "gh-models" | "mock"
     judge_model: str | None = None
     judge_passes: int | None = None     # 1 or 2 (position-swapped)
+    # E2.1 consistency probes: {probe_pair_index: original_pair_index}. The
+    # probe pair is its original with sides swapped. None = session predates
+    # probes or was built without them (LLM judge sessions).
+    probe_of: dict[int, int] | None = None
 
 
 @dataclass

@@ -189,6 +189,43 @@ export function RevealPage() {
           </div>
         )}
 
+        {data.probe_stats && data.probe_stats.n_probes > 0 && (
+          <div className="card" data-testid="probe-stats">
+            <div className="card-title">
+              {data.mode === "llm" ? "Judge" : "Your"} consistency — repeat probes
+            </div>
+            <div className="row wrap" style={{ gap: "var(--space-4)" }}>
+              <div className="stack" style={{ gap: 0 }}>
+                <span className="xsmall muted">Probes evaluated</span>
+                <span className="small" data-testid="probe-evaluated">
+                  {data.probe_stats.n_evaluated} of {data.probe_stats.n_probes} inserted
+                </span>
+              </div>
+              <div className="stack" style={{ gap: 0 }}>
+                <span className="xsmall muted">Self-agreement</span>
+                <span className="small" data-testid="probe-agreement">
+                  {data.probe_stats.self_agreement !== null
+                    ? `${fmtPct(data.probe_stats.self_agreement)} (${data.probe_stats.n_agree}/${data.probe_stats.n_evaluated})`
+                    : "— (judge both a probe and its original to measure)"}
+                </span>
+              </div>
+              <div className="stack" style={{ gap: 0 }}>
+                <span className="xsmall muted">Side-swap flips</span>
+                <span className="small" data-testid="probe-flips">
+                  {data.probe_stats.flip_rate !== null
+                    ? `${fmtPct(data.probe_stats.flip_rate)} (${data.probe_stats.n_flips}/${data.probe_stats.n_evaluated})`
+                    : "—"}
+                </span>
+              </div>
+            </div>
+            <p className="xsmall muted" style={{ marginBottom: 0 }}>
+              A probe repeats an earlier pair with sides swapped — indistinguishable while blind.
+              Probe verdicts measure the judging instrument and never enter the win/loss record or
+              the Bradley-Terry ranking. A flip means the verdict followed the side, not the diff.
+            </p>
+          </div>
+        )}
+
         {data.bt_scores && (
           <div className="card" data-testid="bt-table">
             <div className="card-title">Bradley-Terry ranking (this session)</div>
@@ -286,6 +323,15 @@ export function RevealPage() {
                     <td>
                       <span className="row" style={{ gap: "var(--space-1)" }}>
                         <span className="badge accent">{p.choice}</span>
+                        {p.is_probe && (
+                          <span
+                            className="badge neutral"
+                            title="Consistency probe — a side-swapped repeat of an earlier pair; excluded from the ranking"
+                            data-testid="probe-badge"
+                          >
+                            probe
+                          </span>
+                        )}
                         {p.position_consistent === false && (
                           <span className="badge neutral" title="The two side-swapped judge passes disagreed — recorded as a tie">
                             swap-disagreed

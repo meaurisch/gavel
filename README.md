@@ -303,6 +303,18 @@ the judgment row and reveal. One bounded real run (cosmos-B model axis,
 claude-haiku-4-5, 6 calls, 3/3 swap-consistent, rationales verified against
 the diffs) is written up in the design doc's testing section.
 
+**Consistency probes (E2.1, 2026-08-01).** Human grading sessions now measure
+the judge as well as the contenders: session construction inserts ~10% (min 2)
+deliberate repeat pairs with sides swapped, placed after their originals at
+random positions (`grading/pairwise.insert_probes`). Probes are
+indistinguishable on every blind surface (Playwright-asserted); their verdicts
+are stamped (`judgment.is_probe`), excluded from Bradley-Terry and win/loss
+summaries, and yield two instrument numbers — self-agreement and side-swap
+flip rate — at reveal, in the report UI/CLI, and in the HTML artifact. Schema
+changes are additive (`grading_session.probe_of`); legacy sessions and
+LLM-judge sessions (which already measure consistency via position-swapped
+double passes) are unaffected.
+
 **A fresh clone is fully reproducible.** Task base commits are locally
 synthesized (a task's feature reverse-applied onto a pinned upstream anchor;
 for cosmos, a csproj/sln-only net8 migration patch) and are rebuilt by

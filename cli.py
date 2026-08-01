@@ -268,8 +268,19 @@ def report(
     scope = ", ".join(f"{k}={v}" for k, v in data.cell.items()) or "all cells"
     console.print(f"\n[bold]Comparison axis:[/] {axis}   [bold]Scope:[/] {scope}")
     console.print(
-        f"[dim]{data.n_judgments} blind judgment(s) across {data.n_sessions} grading session(s)[/]\n"
+        f"[dim]{data.n_judgments} blind judgment(s) across {data.n_sessions} grading session(s)[/]"
     )
+    ps = data.probe_stats
+    if ps is not None:
+        sa = f"{ps.self_agreement * 100:.0f}% ({ps.n_agree}/{ps.n_evaluated})" \
+            if ps.self_agreement is not None else "—"
+        fr = f"{ps.flip_rate * 100:.0f}% ({ps.n_flips}/{ps.n_evaluated})" \
+            if ps.flip_rate is not None else "—"
+        console.print(
+            f"[dim]Judge consistency ({ps.n_probes} repeat probe(s), excluded from "
+            f"the ranking): self-agreement {sa}, side-swap flips {fr}[/]"
+        )
+    console.print()
 
     table = Table(title=f"{axis} ranking (Bradley-Terry)")
     table.add_column(axis, style="cyan")

@@ -236,8 +236,19 @@ def render_report_html(report: ReportData, generated_at: str = "") -> str:
             "indistinguishable).</div></div>"
         )
 
+    probe_note = ""
+    ps = report.probe_stats
+    if ps is not None and ps.n_evaluated and ps.self_agreement is not None:
+        probe_note = (
+            f" Judge consistency ({ps.n_evaluated} repeat probe(s), excluded from the "
+            f"ranking): self-agreement {ps.self_agreement * 100:.0f}% "
+            f"({ps.n_agree}/{ps.n_evaluated}), side-swap flips {ps.flip_rate * 100:.0f}% "
+            f"({ps.n_flips}/{ps.n_evaluated})."
+        )
+
     n_note = (
-        f"{report.n_judgments} blind judgment(s) across {report.n_sessions} grading session(s). "
+        f"{report.n_judgments} blind judgment(s) across {report.n_sessions} grading session(s)."
+        f"{probe_note} "
         "Overlapping confidence intervals mean the values are statistically "
         "indistinguishable — treat this as decision support, not a theorem."
     )

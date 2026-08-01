@@ -91,7 +91,8 @@ CREATE TABLE IF NOT EXISTS grading_session (
     mode TEXT NOT NULL DEFAULT 'human',
     judge_provider TEXT,
     judge_model TEXT,
-    judge_passes INTEGER
+    judge_passes INTEGER,
+    probe_of TEXT
 );
 
 CREATE TABLE IF NOT EXISTS judgment (
@@ -111,7 +112,8 @@ CREATE TABLE IF NOT EXISTS judgment (
     rationale TEXT,
     confidence REAL,
     position_consistent INTEGER,
-    truncated INTEGER
+    truncated INTEGER,
+    is_probe INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS judge_call (
@@ -158,11 +160,13 @@ def init_schema(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "grading_session", "judge_provider", "TEXT")
     _ensure_column(conn, "grading_session", "judge_model", "TEXT")
     _ensure_column(conn, "grading_session", "judge_passes", "INTEGER")
+    _ensure_column(conn, "grading_session", "probe_of", "TEXT")
     _ensure_column(conn, "judgment", "grader", "TEXT NOT NULL DEFAULT 'human'")
     _ensure_column(conn, "judgment", "rationale", "TEXT")
     _ensure_column(conn, "judgment", "confidence", "REAL")
     _ensure_column(conn, "judgment", "position_consistent", "INTEGER")
     _ensure_column(conn, "judgment", "truncated", "INTEGER")
+    _ensure_column(conn, "judgment", "is_probe", "INTEGER")
     conn.commit()
 
 
@@ -377,7 +381,7 @@ _JUDGMENT_COLS = (
     "id, session_id, task_id, model, left_trial_id, right_trial_id, choice, "
     "rubric_correctness, rubric_minimality, rubric_readability, "
     "rubric_overengineering, created_at, grader, rationale, confidence, "
-    "position_consistent, truncated"
+    "position_consistent, truncated, is_probe"
 )
 
 
@@ -387,12 +391,12 @@ def _judgment_params(j: Judgment) -> tuple:
             j.rubric_minimality, j.rubric_readability,
             j.rubric_overengineering, j.created_at, j.grader, j.rationale,
             j.confidence, _bool_to_int(j.position_consistent),
-            _bool_to_int(j.truncated))
+            _bool_to_int(j.truncated), _bool_to_int(j.is_probe))
 
 
 def insert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
     conn.execute(
-        f"INSERT INTO judgment ({_JUDGMENT_COLS}) VALUES ({', '.join('?' * 17)})",
+        f"INSERT INTO judgment ({_JUDGMENT_COLS}) VALUES ({', '.join('?' * 18)})",
         _judgment_params(j),
     )
     conn.commit()
@@ -409,7 +413,7 @@ def upsert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
             (j.session_id, j.left_trial_id, j.right_trial_id),
         )
         conn.execute(
-            f"INSERT INTO judgment ({_JUDGMENT_COLS}) VALUES ({', '.join('?' * 17)})",
+            f"INSERT INTO judgment ({_JUDGMENT_COLS}) VALUES ({', '.join('?' * 18)})",
             _judgment_params(j),
         )
         conn.commit()
@@ -421,7 +425,7 @@ def upsert_judgment(conn: sqlite3.Connection, j: Judgment) -> None:
 def _judgment_from_row(row) -> Judgment:
     d = dict(row)
     d["grader"] = d.get("grader") or "human"
-    for flag in ("position_consistent", "truncated"):
+    for flag in ("position_consistent", "truncated", "is_probe"):
         if d.get(flag) is not None:
             d[flag] = bool(d[flag])
     return TypeAdapter(Judgment).validate_python(d)
@@ -482,10 +486,11 @@ def insert_grading_session(conn: sqlite3.Connection, s: GradingSession) -> None:
     conn.execute(
         """INSERT INTO grading_session
            (id, axis, cell, pairs, created_at, revealed_at,
-            mode, judge_provider, judge_model, judge_passes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            mode, judge_provider, judge_model, judge_passes, probe_of)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (s.id, s.axis, json.dumps(s.cell), json.dumps(s.pairs), s.created_at,
-         s.revealed_at, s.mode, s.judge_provider, s.judge_model, s.judge_passes),
+         s.revealed_at, s.mode, s.judge_provider, s.judge_model, s.judge_passes,
+         json.dumps(s.probe_of) if s.probe_of is not None else None),
     )
     conn.commit()
 
@@ -505,6 +510,9 @@ def _session_from_row(row) -> GradingSession:
     d["cell"] = json.loads(d["cell"])
     d["pairs"] = [tuple(p) for p in json.loads(d["pairs"])]
     d["mode"] = d.get("mode") or "human"
+    if d.get("probe_of") is not None:
+        # JSON object keys are strings; the model wants int pair indices.
+        d["probe_of"] = {int(k): int(v) for k, v in json.loads(d["probe_of"]).items()}
     return TypeAdapter(GradingSession).validate_python(d)
 
 
