@@ -21,7 +21,7 @@ function Cell({ cell, changed, sep }: { cell: ThreeWayCell; changed?: boolean; s
   if (cell.kind === "add") cls += " cell-add";
   else if (cell.kind === "absent") {
     cls += " cell-absent";
-    text = "(removed)";
+    text = ""; // the red deletion styling already says "removed"
   } else if (cell.kind === "empty") {
     cls += " cell-empty";
     text = "";

@@ -44,6 +44,7 @@ function CellRow({
   judgeSelected,
   catalog,
   starting,
+  busy,
 }: {
   axis: Axis;
   cell: Cell;
@@ -51,7 +52,10 @@ function CellRow({
   onJudge: () => void;
   judgeSelected: boolean;
   catalog: ReturnType<typeof useCatalog>["catalog"];
+  /** THIS cell is the one being started — only it shows the loading label. */
   starting: boolean;
+  /** Some cell is starting — every row's button waits, none of them lie. */
+  busy: boolean;
 }) {
   const pinned = Object.entries(cell).filter(([k]) => k !== "n_values" && k !== "n_pairs");
   const noun = AXIS_NOUNS[axis][cell.n_values === 1 ? 0 : 1];
@@ -68,7 +72,7 @@ function CellRow({
       <td className="num">{cell.n_pairs}</td>
       <td style={{ textAlign: "right" }}>
         <span className="row" style={{ gap: "var(--space-1)", justifyContent: "flex-end" }}>
-          <button className="btn sm primary" onClick={onStart} disabled={starting} data-testid="start-session">
+          <button className="btn sm primary" onClick={onStart} disabled={busy} data-testid="start-session">
             {starting ? "Starting…" : "Grade myself"}
           </button>
           <button
@@ -301,12 +305,12 @@ function AxisCells({ axis }: { axis: Axis }) {
   const navigate = useNavigate();
   const { catalog } = useCatalog();
   const { data: cells, error, loading } = useFetch(() => api.cells(db, axis), [db, axis]);
-  const [starting, setStarting] = useState(false);
+  const [startingIdx, setStartingIdx] = useState<number | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [judgeCellIdx, setJudgeCellIdx] = useState<number | null>(null);
 
-  const start = async (cell: Cell) => {
-    setStarting(true);
+  const start = async (cell: Cell, idx: number) => {
+    setStartingIdx(idx);
     setStartError(null);
     try {
       const cellParams: Record<string, string> = { task: cell.task_id };
@@ -323,7 +327,7 @@ function AxisCells({ axis }: { axis: Axis }) {
       navigate(`/grade/session/${session.session_id}${db ? `?db=${db}` : ""}`);
     } catch (e) {
       setStartError(String((e as Error).message ?? e));
-      setStarting(false);
+      setStartingIdx(null);
     }
   };
 
@@ -362,10 +366,11 @@ function AxisCells({ axis }: { axis: Axis }) {
                 axis={axis}
                 cell={cell}
                 catalog={catalog}
-                onStart={() => start(cell)}
+                onStart={() => start(cell, i)}
                 onJudge={() => setJudgeCellIdx(judgeCellIdx === i ? null : i)}
                 judgeSelected={judgeCellIdx === i}
-                starting={starting}
+                starting={startingIdx === i}
+                busy={startingIdx !== null}
               />
             ))}
           </tbody>
