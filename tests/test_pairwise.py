@@ -108,6 +108,34 @@ def test_anonymize_without_skip_ids_still_redacts_none():
     assert "[context]" in result
 
 
+def test_anonymize_strips_agent_plan_folder_at_any_depth():
+    """A committed planning/progress folder identifies the methodology on
+    sight — as loud a tell as CLAUDE.md. It must never reach a blind diff,
+    at any depth under the root folder."""
+    diff = (
+        "diff --git a/src/app.py b/src/app.py\n"
+        "--- a/src/app.py\n"
+        "+++ b/src/app.py\n"
+        "@@ -1,0 +1,1 @@\n"
+        "+x = 1\n"
+        "diff --git a/.agent-plans/plan.md b/.agent-plans/plan.md\n"
+        "--- /dev/null\n"
+        "+++ b/.agent-plans/plan.md\n"
+        "@@ -0,0 +1,1 @@\n"
+        "+step 1: read the code\n"
+        "diff --git a/.agent-plans/2026-08/progress/notes.md b/.agent-plans/2026-08/progress/notes.md\n"
+        "--- /dev/null\n"
+        "+++ b/.agent-plans/2026-08/progress/notes.md\n"
+        "@@ -0,0 +1,1 @@\n"
+        "+phase 2 complete\n"
+    )
+    result = anonymize_diff(diff, {"methodology": []})
+    assert ".agent-plans" not in result
+    assert "step 1: read the code" not in result
+    assert "phase 2 complete" not in result
+    assert "x = 1" in result  # real work still served
+
+
 def test_generate_pairs_groups_by_axis_model():
     trials = [
         make_trial(id="t-m1", model="m1"),

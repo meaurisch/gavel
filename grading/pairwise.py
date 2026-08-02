@@ -35,6 +35,11 @@ METHODOLOGY_DIR_PREFIXES = (
     ".claude/agents/",
     ".claude/rules/",
     ".github/agents/",
+    # Planning/progress artifacts an agent COMMITS while working. Not laid
+    # down by a pack, so the leakage scanner never saw them — but their mere
+    # presence in a served diff names the methodology. Stripped at serve time
+    # so recorded and future runs are both covered (2026-08-02).
+    ".agent-plans/",
 )
 
 DEP_FILES = {"requirements.txt", "pyproject.toml", "package.json"}

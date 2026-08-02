@@ -77,6 +77,15 @@ def _long_diff(marker: str, with_long_line: bool = False) -> str:
         "@@ -0,0 +1,2 @@",
         "+# the second file",
         "+EXTRA = True",
+        # A committed planning folder — recorded in the diff, never served:
+        # its presence alone would name the methodology (2026-08-02 leak).
+        "diff --git a/.agent-plans/2026-08/plan.md b/.agent-plans/2026-08/plan.md",
+        "new file mode 100644",
+        "--- /dev/null",
+        "+++ b/.agent-plans/2026-08/plan.md",
+        "@@ -0,0 +1,2 @@",
+        "+# plan",
+        f"+phase 1 by {marker}",
     ]
     return "\n".join(lines) + "\n"
 
@@ -359,7 +368,10 @@ def test_file_navigator_jumps_both_panes(page, server):
     _start_session(page, server, "methodology")
     page.wait_for_selector('[data-testid="file-nav"]')
     items = page.locator('[data-testid="file-nav-item"]')
+    # 2, not 3: every seeded diff also commits a planning folder, which the
+    # serve-side stripper drops before the grader can see it.
     assert items.count() == 2
+    assert ".agent-plans" not in page.content()
 
     # Jump to the last file (below 150 lines of app.py): panes must scroll and
     # the file header must be visible in the pane viewport. The pane may clamp

@@ -292,3 +292,39 @@ Applied immediately after approval:
   33 + 11 + 5 = **49 pairs (42 real + 7 probes)**. The grading brief
   gained an addendum; expect ~15% more grading time.
 - Suites: 462 fast + 24 Playwright green. Spend: $0.
+
+## Blinding leak — committed planning folder (2026-08-02, no spend)
+
+- **Found by the human mid-CP2.** One methodology's runs commit a
+  root-level planning/progress folder. The instruction-file stripper never
+  covered it (it is not laid down by a pack, so the leakage scanner never
+  saw it either), so its mere presence in a served diff identified the
+  varying axis value on sight — a live blinding leak on the manual
+  double-blind surface.
+- **Aggregate exposure (no axis values recorded here, CP2 is still open):**
+  **3 of 27** stored diffs carry the folder. All three sit in **cell 1**;
+  cells 2 and 3 have **0** affected trials and **0** affected pairs.
+- **Cell 1 sessions.** Two open (unrevealed) human sessions exist on cell 1,
+  both 33 pairs — the first carries **5 judgments**, of which **2** were
+  served a diff containing the folder; the second (created after the last
+  judgment) has **0 judgments**. Cell-1 pair exposure: 13 of 33 pairs in the
+  first session, 15 of 33 in the second, involve at least one affected trial.
+- **Fix (serve-side, this branch).** `.agent-plans/` joins
+  `grading.pairwise.METHODOLOGY_DIR_PREFIXES`, so the one stripper that
+  governs served diffs, the diff-shape proxy (computed on the anonymized
+  diff) and the reconstructed-originals endpoint drops it at any depth.
+  Recorded and future runs are both covered; the vendored packs and the
+  runner's diff capture are untouched (packs are frozen at pinned commits —
+  changing them is an instrument change needing an explicit human OK).
+  TDD: unit test on `anonymize_diff`, an API test across diff + proxy +
+  originals, and the Playwright fixture now commits such a folder in every
+  seeded diff while the file navigator must still show exactly 2 files.
+- **Flagged follow-up (not done):** a capture-side option — have the runner
+  gitignore the folder so it never enters a stored diff. That changes the
+  instrument for future runs and would make stored diffs differ from what
+  the agent actually produced; serve-side stripping is strictly safer and
+  already sufficient.
+- **OPEN — human decision pending** on the 2 already-judged affected pairs:
+  (a) back up `results.db` and purge, or (b) keep and log the caveat. Not
+  taken by Claude. Unjudged pairs are clean as of this fix.
+- Suites: 464 fast + 24 Playwright green. Spend: $0.

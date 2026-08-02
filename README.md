@@ -270,7 +270,7 @@ guessed the same test path. The overwritten agent file is restored after the run
 
 ## Current state
 
-The full pipeline is built and tested (437 fast tests green plus a 24-test
+The full pipeline is built and tested (464 fast tests green plus a 24-test
 Playwright UI suite behind the `integration` marker, 1 env-gated test
 deselected) — engine, 5-axis matrix, three-tier gate, axis-general blind
 grading in **two modes** (manual double-blind and LLM judge), Bradley-Terry
@@ -314,6 +314,15 @@ flip rate — at reveal, in the report UI/CLI, and in the HTML artifact. Schema
 changes are additive (`grading_session.probe_of`); legacy sessions and
 LLM-judge sessions (which already measure consistency via position-swapped
 double passes) are unaffected.
+
+**Blinding-leak fix (2026-08-02).** Agents sometimes *commit* their own
+planning/progress artifacts, which no pack lays down and the leakage scanner
+therefore never sees — yet a `.agent-plans/` folder in a served diff names the
+methodology on sight. The single serve-side stripper
+(`grading.pairwise.METHODOLOGY_DIR_PREFIXES`, which governs blind diffs, the
+diff-shape proxy and the reconstructed-originals endpoint) now drops it at any
+depth, covering recorded and future runs without touching the frozen packs or
+the runner's diff capture.
 
 **A fresh clone is fully reproducible.** Task base commits are locally
 synthesized (a task's feature reverse-applied onto a pinned upstream anchor;

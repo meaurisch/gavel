@@ -409,6 +409,49 @@ def test_pair_originals_new_file_and_blinding(tmp_path):
             assert f["content"] is None
 
 
+def test_agent_plan_folder_never_served_on_any_blind_surface(tmp_path):
+    """A methodology that commits a planning/progress folder would be
+    identifiable on sight. Every blind surface — diff, proxy, originals —
+    must drop it, at any depth."""
+    db_path = tmp_path / "plans.db"
+    conn = connect(db_path)
+    for tid, meth in (("g1", "methplanone"), ("g2", "methplantwo")):
+        diff = (
+            "diff --git a/src/app.py b/src/app.py\n"
+            "--- a/src/app.py\n"
+            "+++ b/src/app.py\n"
+            "@@ -1,1 +1,2 @@\n"
+            " x = 1\n"
+            "+y = 2\n"
+            "diff --git a/.agent-plans/2026-08/plan.md b/.agent-plans/2026-08/plan.md\n"
+            "new file mode 100644\n"
+            "--- /dev/null\n"
+            "+++ b/.agent-plans/2026-08/plan.md\n"
+            "@@ -0,0 +1,1 @@\n"
+            "+phase 1: write the failing test\n"
+        )
+        _seed(conn, tid, task="demo-task", methodology=meth, diff=diff)
+    conn.close()
+    server.set_db_path(db_path)
+    server._sessions.clear()
+    with TestClient(server.app) as c:
+        data = c.get("/api/pairs", params={
+            "axis": "methodology", "task": "demo-task", "repo_context": "ctxx",
+            "model": "modelx", "runner": "runnerx",
+        }).json()
+        for pair in data["pairs"]:
+            for side in ("left", "right"):
+                assert ".agent-plans" not in pair[side]["diff"]
+                assert "phase 1: write the failing test" not in pair[side]["diff"]
+                proxy = pair[side]["proxy"]
+                assert all(".agent-plans" not in f for f in proxy["file_list"])
+                assert proxy["files_touched"] == 1  # only the visible file counts
+        body = c.get("/api/pair-originals", params={
+            "session_id": data["session_id"], "pair_index": 0,
+        }).json()
+        assert ".agent-plans" not in str(body)
+
+
 def test_pair_originals_out_of_range(client):
     data = _start_session(client, axis="methodology")
     resp = client.get("/api/pair-originals", params={
