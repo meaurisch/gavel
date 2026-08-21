@@ -1,0 +1,19 @@
+#!/bin/sh
+# studio convention: no push path bypasses gitleaks (spec D12)
+#
+# Scans only the range this push publishes, not full history — a full
+# `gitleaks git` scan bricks every push on adopted repos with pre-existing
+# secret debt. Uses git's pre-push stdin contract, one line per ref:
+#   <local_ref> <local_sha> <remote_ref> <remote_sha>
+command -v gitleaks >/dev/null 2>&1 || { echo "gitleaks not installed"; exit 1; }
+
+zero="0000000000000000000000000000000000000000"
+while read local_ref local_sha remote_ref remote_sha; do
+    [ "$local_sha" = "$zero" ] && continue   # deleting a ref — nothing to scan
+    if [ "$remote_sha" = "$zero" ]; then
+        log_opts="$local_sha --not --remotes"    # new branch: everything not already on a remote
+    else
+        log_opts="$remote_sha..$local_sha"       # existing branch: just the new commits
+    fi
+    gitleaks git --no-banner --redact --log-opts "$log_opts" || { echo "gitleaks: push blocked"; exit 1; }
+done
