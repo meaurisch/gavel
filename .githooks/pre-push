@@ -1,5 +1,12 @@
 #!/bin/sh
-# studio convention: no push path bypasses gitleaks (spec D12)
+# studio convention: no push path bypasses gitleaks (spec D12), and master is
+# pull-request-only — anything that changes a repo opens a PR for review.
+#
+# This hook is the gate that actually binds every actor: `core.hooksPath` is
+# wired to .githooks by `studio new`/`adopt`/`conform` AND by every clone the
+# worker makes (studio_worker/jobs.py), so agents inherit it too. GitHub-side
+# branch protection would be the stronger gate but is unavailable on private
+# repos on the Free plan (403 "Upgrade to GitHub Pro").
 #
 # Scans only the range this push publishes, not full history — a full
 # `gitleaks git` scan bricks every push on adopted repos with pre-existing
@@ -10,6 +17,22 @@ command -v gitleaks >/dev/null 2>&1 || { echo "gitleaks not installed"; exit 1; 
 zero="0000000000000000000000000000000000000000"
 while read local_ref local_sha remote_ref remote_sha; do
     [ "$local_sha" = "$zero" ] && continue   # deleting a ref — nothing to scan
+
+    # master/main is pull-request-only. A zero remote_sha means the branch
+    # does not exist on the remote yet — that is the initial push that
+    # creates it (`studio new`, `studio adopt`), which must still work.
+    # Every later push to it is blocked.
+    case "$remote_ref" in
+        refs/heads/master|refs/heads/main)
+            if [ "$remote_sha" != "$zero" ] && [ "$STUDIO_ALLOW_MASTER_PUSH" != "1" ]; then
+                echo "studio: $remote_ref is pull-request-only — open a PR instead:"
+                echo "    git switch -c <branch> && git push -u origin <branch>"
+                echo "    gh pr create"
+                echo "  (genuine emergency: STUDIO_ALLOW_MASTER_PUSH=1 git push ...)"
+                exit 1
+            fi
+            ;;
+    esac
     if [ "$remote_sha" = "$zero" ]; then
         log_opts="$local_sha --not --remotes"    # new branch: everything not already on a remote
     else
