@@ -1,0 +1,83 @@
+diff --git a/studio_worker/ledger.py b/studio_worker/ledger.py
+index 0201787..4975994 100644
+--- a/studio_worker/ledger.py
++++ b/studio_worker/ledger.py
+@@ -86,6 +86,23 @@ class Ledger:
+         d = {r["outcome"]: r["c"] for r in rows}
+         return d.get("accepted", 0), d.get("rejected", 0)
+ 
++    MAX_DETAIL_EXPORT = 200
++
++    @classmethod
++    def _flatten_detail(cls, detail):
++        """One line, at most MAX_DETAIL_EXPORT chars, for the CSV export.
++
++        Multi-line details (pytest tails, tracebacks) are joined on single
++        spaces; anything over the cap is truncated with an ellipsis. A short
++        single-line detail passes through unchanged, and None/'' stay as-is so
++        the CSV cell semantics don't shift."""
++        if not detail:
++            return detail
++        flat = " ".join(part.strip() for part in str(detail).splitlines() if part.strip())
++        if len(flat) > cls.MAX_DETAIL_EXPORT:
++            flat = flat[:cls.MAX_DETAIL_EXPORT - 1] + "…"
++        return flat
++
+     def export_csv(self, dest_path):
+         rows = self.db.execute("SELECT ts,kind,project,issue,attempt,adapter,model_tier,"
+                                "outcome,wallclock_s,detail FROM events ORDER BY id").fetchall()
+@@ -93,5 +110,8 @@ class Ledger:
+             w = csv.writer(f)
+             w.writerow(["ts","kind","project","issue","attempt","adapter","model_tier",
+                         "outcome","wallclock_s","detail"])
+-            for r in rows: w.writerow(list(r))
++            for r in rows:
++                cells = list(r)
++                cells[-1] = self._flatten_detail(cells[-1])
++                w.writerow(cells)
+         return len(rows)
+diff --git a/tests/test_ledger.py b/tests/test_ledger.py
+index fe38a38..b56ac6d 100644
+--- a/tests/test_ledger.py
++++ b/tests/test_ledger.py
+@@ -60,3 +60,40 @@ def test_count_since_filters_by_project_and_outcomes(tmp_path):
+     lg.record("ideation_run", project="other", outcome="adapter-failed")
+     assert lg.count_since("ideation_run", since, project="demo",
+                            outcomes=("adapter-failed", "error")) == 1
++
++# --- export_csv detail flattening -------------------------------------------
++
++def _exported_detail_cells(path):
++    import csv
++    with open(path, newline="", encoding="utf-8") as f:
++        rows = list(csv.reader(f))
++    return [r[-1] for r in rows[1:]]
++
++def test_export_csv_flattens_multiline_overlong_detail(tmp_path):
++    lg = Ledger(tmp_path / "s.db")
++    tail = "\n".join(f"FAILED tests/test_x.py::test_{i} - AssertionError" for i in range(40))
++    lg.record("implement_attempt", outcome="check-failed", detail=tail)
++    n = lg.export_csv(tmp_path / "ledger.csv")
++    cells = _exported_detail_cells(tmp_path / "ledger.csv")
++    assert n == 1 and len(cells) == 1          # row count preserved
++    cell = cells[0]
++    assert "\n" not in cell and "\r" not in cell
++    assert len(cell) <= 200
++    assert cell.endswith("…")
++
++def test_export_csv_leaves_short_detail_unchanged(tmp_path):
++    lg = Ledger(tmp_path / "s.db")
++    lg.record("cycle", outcome="ok", detail="comment=1234 handled")
++    lg.export_csv(tmp_path / "ledger.csv")
++    assert _exported_detail_cells(tmp_path / "ledger.csv") == ["comment=1234 handled"]
++
++def test_export_csv_row_count_preserved_across_mixed_details(tmp_path):
++    lg = Ledger(tmp_path / "s.db")
++    lg.record("a", detail="short")
++    lg.record("b", detail="x" * 500)
++    lg.record("c")                              # detail defaults to ""
++    n = lg.export_csv(tmp_path / "ledger.csv")
++    cells = _exported_detail_cells(tmp_path / "ledger.csv")
++    assert n == 3 and len(cells) == 3
++    assert cells[0] == "short"
++    assert len(cells[1]) <= 200 and cells[1].endswith("…")

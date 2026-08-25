@@ -1,0 +1,100 @@
+diff --git a/studio_worker/implementation.py b/studio_worker/implementation.py
+index 0b94cce..deffc5d 100644
+--- a/studio_worker/implementation.py
++++ b/studio_worker/implementation.py
+@@ -439,7 +439,25 @@ def _inapplicable_reason(summary):
+     return summary[match.end():].strip()
+ 
+ 
+-def push_and_pr(cfg, gh, project, issue, branch, summary, attempt) -> dict:
++def build_pr_body(issue_number, summary, attempt, check_cmd=None, check_passed=None):
++    """Assemble a worker PR body.
++
++    Always closes the issue, carries the adapter's summary and the attempt
++    marker, and ends with a ``## Verified`` section: the exact check command
++    that was run and its outcome, or the line "Not verified." when nothing was
++    run (conventions/pull-requests.md — a PR body states what was actually run
++    to verify it, or says it wasn't)."""
++    body = f"Closes #{issue_number}\n\n{summary}\n\n_studio-worker attempt {attempt}_"
++    if check_cmd:
++        outcome = "passed" if check_passed else "failed"
++        verified = f"Ran `{check_cmd}` — {outcome}."
++    else:
++        verified = "Not verified."
++    return f"{body}\n\n## Verified\n\n{verified}"
++
++
++def push_and_pr(cfg, gh, project, issue, branch, summary, attempt,
++                check_cmd=None, check_passed=None) -> dict:
+     """Push the attempt's branch and open the PR.
+ 
+     Idempotent about an already-open PR: a run that pushed `branch` but died
+@@ -452,7 +470,8 @@ def push_and_pr(cfg, gh, project, issue, branch, summary, attempt) -> dict:
+     dest = _workspace_root(cfg, project, issue["number"]) / "repo"
+     jobs.push_branch(dest, branch, cfg.gh_token)
+     base = gh_ops.default_branch(gh, project.repo)
+-    body = f"Closes #{issue['number']}\n\n{summary}\n\n_studio-worker attempt {attempt}_"
++    body = build_pr_body(issue["number"], summary, attempt,
++                         check_cmd=check_cmd, check_passed=check_passed)
+     try:
+         pr = gh_ops.create_pr(gh, project.repo, branch, base, issue["title"], body)
+     except GitHubError:
+@@ -763,7 +782,9 @@ def implement_issue(cfg, gh, ledger, runner, project, issue) -> str:
+                 prev_was_gitleaks = True
+                 continue
+ 
+-            pr = push_and_pr(cfg, gh, project, issue, branch, summary, attempt)
++            pr = push_and_pr(cfg, gh, project, issue, branch, summary, attempt,
++                             check_cmd=project.check,
++                             check_passed=check_result.exit_code == 0)
+ 
+             set_labels(gh, project.repo, n, [PR_LABEL], [LOCK_LABEL])
+             notify(cfg, "PR ready",
+diff --git a/tests/test_implementation.py b/tests/test_implementation.py
+index d289a60..2262ba7 100644
+--- a/tests/test_implementation.py
++++ b/tests/test_implementation.py
+@@ -1187,3 +1187,43 @@ def test_workflow_push_rejection_names_the_missing_app_permission(monkeypatch, t
+     assert "workflows" in comments[0]
+     assert "permission" in comments[0].lower()
+     assert "GitHub App" in comments[0]
++
++
++# --- build_pr_body: Verified section (conventions/pull-requests.md) ---------
++
++def test_build_pr_body_states_check_command_and_outcome():
++    body = impl.build_pr_body(7, "did the thing", 1,
++                              check_cmd="python tasks.py check", check_passed=True)
++    assert body.startswith("Closes #7")
++    assert "did the thing" in body
++    assert "_studio-worker attempt 1_" in body
++    assert "## Verified" in body
++    assert "python tasks.py check" in body
++    assert "passed" in body
++
++def test_build_pr_body_states_failed_outcome():
++    body = impl.build_pr_body(7, "s", 2, check_cmd="npm test", check_passed=False)
++    assert "## Verified" in body and "npm test" in body and "failed" in body
++
++def test_build_pr_body_not_verified_when_no_check_ran():
++    body = impl.build_pr_body(9, "summary text", 2)
++    assert body.startswith("Closes #9")
++    assert "## Verified" in body
++    assert "Not verified." in body
++
++def test_push_and_pr_body_carries_verification(monkeypatch, tmp_path):
++    """The worker call site's verification info reaches the PR body."""
++    gh = FakeGH()
++    seen = {}
++    monkeypatch.setattr(impl.jobs, "push_branch", lambda dest, branch, token: None)
++    monkeypatch.setattr(impl.gh_ops, "default_branch", lambda gh, repo: "main")
++    def fake_create_pr(gh_obj, repo, head, base, title, body):
++        seen["body"] = body
++        return {"number": 42}
++    monkeypatch.setattr(impl.gh_ops, "create_pr", fake_create_pr)
++    proj = project()
++    proj.owner = None
++    impl.push_and_pr(cfgish(tmp_path), gh, proj, issue(), "agent/issue-7", "summary", 1,
++                     check_cmd="python tasks.py check", check_passed=True)
++    assert "## Verified" in seen["body"]
++    assert "python tasks.py check" in seen["body"]

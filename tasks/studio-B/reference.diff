@@ -1,0 +1,133 @@
+diff --git a/studio_cli/cli.py b/studio_cli/cli.py
+index 0164cfd..f9408e6 100644
+--- a/studio_cli/cli.py
++++ b/studio_cli/cli.py
+@@ -1,4 +1,5 @@
+ import json as _json
++import re
+ import subprocess
+ from datetime import datetime
+ from pathlib import Path
+@@ -178,6 +179,32 @@ def adopt(path, tier, owner, name_, check_):
+         raise click.ClickException(f"GitHub repo {repo} is set up but registration failed: {e}")
+     click.echo(f"adopted {repo} (private), registered tier={tier}")
+ 
++# naming.md rule 6: the GitHub description completes "This repo ..." and the
++# README's "What & why" opens with the same sentence — they must never disagree.
++_WHAT_WHY_RE = re.compile(r"^##\s*What\s*&\s*why[ \t]*\r?\n(.*?)(?=^##\s|\Z)",
++                          re.MULTILINE | re.DOTALL)
++
++def _readme_what_why_sentence(readme_path):
++    """First sentence of the README's "## What & why" section, or None when
++    the README or the section is absent/empty."""
++    try:
++        text = Path(readme_path).read_text(encoding="utf-8")
++    except OSError:
++        return None
++    m = _WHAT_WHY_RE.search(text)
++    if not m:
++        return None
++    body = " ".join(m.group(1).split())
++    if not body:
++        return None
++    sentence = re.match(r"(.+?[.!?])(?=\s|$)", body)
++    return sentence.group(1) if sentence else body
++
++def _normalised_sentence(s):
++    """Comparison form of a description/README sentence: collapsed whitespace,
++    casefolded, trailing period dropped."""
++    return " ".join(s.split()).casefold().rstrip(".")
++
+ @main.command()
+ @click.argument("name", required=False)
+ @click.option("--all", "all_", is_flag=True)
+@@ -232,6 +259,14 @@ def conform(name, all_, description):
+             if desc_state == "MISSING":
+                 click.echo(f"WARNING: {p.repo} has no GitHub description (naming.md rule 6) — "
+                            f"rerun with --description")
++            effective_desc = description if desc_state == "set" else current
++            if effective_desc and p.path:
++                sentence = _readme_what_why_sentence(STUDIO_ROOT / p.path / "README.md")
++                if (sentence is not None
++                        and _normalised_sentence(effective_desc) != _normalised_sentence(sentence)):
++                    click.echo(f'WARNING: {p.repo} description disagrees with the README '
++                               f'"What & why" opening sentence (naming.md rule 6): '
++                               f'description "{effective_desc}" vs README "{sentence}"')
+         except (GitHubError, RuntimeError, click.ClickException) as e:
+             click.echo(f"ERROR {p.repo}: {e}")
+ 
+diff --git a/tests/test_cli_conform.py b/tests/test_cli_conform.py
+index 488c9a3..b169443 100644
+--- a/tests/test_cli_conform.py
++++ b/tests/test_cli_conform.py
+@@ -180,3 +180,70 @@ def test_conform_protects_master_and_survives_a_free_plan_repo(tmp_path, monkeyp
+     assert res.exit_code == 0, res.output
+     assert "master protection unavailable" in res.output
+     assert "pre-push gate" in res.output
++
++
++# --- behaviour 4: description vs README "What & why" (naming.md rule 6) -----
++
++@pytest.fixture
++def registry_with_local_readme(monkeypatch, tmp_path):
++    """A registered project whose local path holds only a README (no .git, so
++    conform skips the template-file block and touches no git state)."""
++    proj = tmp_path / "gavel"
++    proj.mkdir()
++    registry_path = tmp_path / "studio.yaml"
++    registry_path.write_text(
++        "projects:\n"
++        "  gavel:\n"
++        "    repo: meaurisch/gavel\n"
++        "    tier: monthly\n"
++        "    check: python3 tasks.py check\n"
++        "    path: gavel\n"
++    )
++    monkeypatch.setattr(cli_mod, "REGISTRY_PATH", registry_path)
++    monkeypatch.setattr(cli_mod, "STUDIO_ROOT", tmp_path)
++    return proj
++
++def _write_readme(proj, sentence):
++    (proj / "README.md").write_text(
++        f"# gavel\n\n## What & why\n{sentence} More detail follows\nhere.\n\n## Quickstart\nx\n",
++        encoding="utf-8")
++
++def test_conform_warns_when_description_disagrees_with_readme(runner, fake_gh,
++                                                              registry_with_local_readme):
++    _write_readme(registry_with_local_readme,
++                  "This repo benchmarks agentic coding setups blind.")
++    fake_gh.repos["/repos/meaurisch/gavel"] = {"description": "This repo grades cheese."}
++    res = runner.invoke(main, ["conform", "gavel"])
++    assert res.exit_code == 0, res.output
++    assert "WARNING" in res.output and "naming.md rule 6" in res.output
++    # the warning names both sides of the disagreement
++    assert "This repo grades cheese." in res.output
++    assert "This repo benchmarks agentic coding setups blind." in res.output
++
++def test_conform_accepts_description_agreeing_modulo_normalisation(runner, fake_gh,
++                                                                   registry_with_local_readme):
++    _write_readme(registry_with_local_readme,
++                  "This repo benchmarks   agentic coding setups blind.")
++    # differs in case, internal whitespace, and trailing period only
++    fake_gh.repos["/repos/meaurisch/gavel"] = {
++        "description": "this repo Benchmarks agentic coding setups blind"}
++    res = runner.invoke(main, ["conform", "gavel"])
++    assert res.exit_code == 0, res.output
++    assert "disagrees" not in res.output
++
++def test_conform_no_agreement_warning_without_what_why_section(runner, fake_gh,
++                                                               registry_with_local_readme):
++    (registry_with_local_readme / "README.md").write_text("# gavel\n\nno sections\n",
++                                                          encoding="utf-8")
++    fake_gh.repos["/repos/meaurisch/gavel"] = {"description": "This repo does things."}
++    res = runner.invoke(main, ["conform", "gavel"])
++    assert res.exit_code == 0, res.output
++    assert "disagrees" not in res.output
++
++def test_conform_missing_description_still_warns_not_errors(runner, fake_gh,
++                                                            registry_with_local_readme):
++    _write_readme(registry_with_local_readme, "This repo benchmarks things.")
++    fake_gh.repos["/repos/meaurisch/gavel"] = {"description": None}
++    res = runner.invoke(main, ["conform", "gavel"])
++    assert res.exit_code == 0 and "MISSING" in res.output
++    assert "disagrees" not in res.output
