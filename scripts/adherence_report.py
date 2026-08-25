@@ -24,9 +24,9 @@ def load(db_path):
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
-        """SELECT t.trial_id, t.task_id, t.repo_context_id, t.runner, t.rep,
+        """SELECT t.id AS trial_id, t.task_id, t.repo_context_id, t.runner, t.rep,
                   g.passed, g.hidden_output
-           FROM trial t JOIN gate_result g ON g.trial_id = t.trial_id
+           FROM trial t JOIN gate_result g ON g.trial_id = t.id
            WHERE t.runner = 'claude-code'"""
     ).fetchall()
     trials = []
