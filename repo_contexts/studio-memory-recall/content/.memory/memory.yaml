@@ -1,0 +1,8 @@
+# Worktree-relative memspace root: the trial worktree lays this dir at
+# <worktree>/.memory, so `MEMSPACE_ROOT=.memory memspace recall ...` works
+# from the worktree root with no reference to any absolute checkout path.
+spaces:
+  studio:
+    root: .
+    remote: local
+    policy: {storage: local, embeddings: local}

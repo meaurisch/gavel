@@ -1,0 +1,13 @@
+# studio#48 WP4 ablation control: the same CLAUDE.md pointer every variant
+# lays, and nothing else — the studio worktree keeps its own conventions/;
+# the ablation measures salient memory vs. documentation present but unread.
+id: studio-none
+description: "studio ablation control: CLAUDE.md = @AGENTS.md, no memory payload (studio#48)"
+task_affinity:
+  - studio-A
+  - studio-B
+  - studio-C
+harnesses:
+  claude-code:
+    - src: content/CLAUDE.md
+      dest: CLAUDE.md
