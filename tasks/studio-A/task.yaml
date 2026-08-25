@@ -1,0 +1,25 @@
+id: studio-A
+repo: studio
+repo_url: https://github.com/meaurisch/studio
+# base_commit is a LOCAL synthesized commit rebuilt deterministically by
+# `python cli.py setup`: the gavel/studio-A-reference branch tip with
+# reference.diff reverse-applied, reproducing the pinned master tree
+# (bea58bfd8fde99dfbfffda141a1c65dc273fefbd). See tasks/_repo_setup/repos.lock.yaml.
+base_commit: 1b629aead8921c973f70c3838b3865632331155c
+instruction: |
+  The job ledger's CSV export writes the `detail` column raw — one exported row currently
+  carries a 40-line pytest tail. Change the export so `detail` is always a single line of at
+  most 200 characters (truncate with an ellipsis), leave short details unchanged, and keep
+  the row count intact. Add unit tests. Work as a normal studio session on this checkout:
+  commit your work as you go, and finish by writing PR_BODY.md in the repo root containing
+  the pull-request description you would open for this change.
+run_cmd: "python tests/run_hidden.py"
+# NEVER pip install -e here: core/toolchain.needs_wsl would silently reroute
+# the whole trial into WSL on Windows. The deps are in the ambient Python.
+build_cmd: 'python -c "import click, requests, ruamel.yaml, jwt, cryptography, pytest"'
+visible_test_cmd: "python tasks.py test"
+held_out_tests_path: tasks/studio-A/held_out_tests
+reference_diff_path: tasks/studio-A/reference.diff
+# Pre-calibration estimate (label by hand after a sweep): a contained change in
+# one exporter with a clearly specified contract.
+difficulty: easy

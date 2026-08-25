@@ -1,0 +1,30 @@
+id: studio-C
+repo: studio
+repo_url: https://github.com/meaurisch/studio
+# base_commit is a LOCAL synthesized commit rebuilt deterministically by
+# `python cli.py setup`: the gavel/studio-C-reference branch tip with
+# reference.diff reverse-applied, reproducing the pinned master tree
+# (bea58bfd8fde99dfbfffda141a1c65dc273fefbd). See tasks/_repo_setup/repos.lock.yaml.
+base_commit: 596a2a16cafbc487cbd1935a5bb52de2a4de763a
+instruction: |
+  The worker assembles its pull-request bodies inline in studio_worker/implementation.py, so
+  a PR can never say whether the change behind it was verified. Factor that assembly into a
+  function `build_pr_body(issue_number, summary, attempt, check_cmd=None, check_passed=None)`
+  in the same module and make the worker's PR-opening call site use it, passing along the
+  check it actually ran. The body keeps everything it carries today and gains a "## Verified"
+  section: when a check command was run it states the exact command and whether it passed or
+  failed; when nothing was run it states the line "Not verified." Add unit tests covering
+  both paths. Work as a normal studio session on this checkout: commit your work as you go,
+  and finish by writing PR_BODY.md in the repo root containing the pull-request description
+  you would open for this change.
+run_cmd: "python tests/run_hidden.py"
+# NEVER pip install -e here: core/toolchain.needs_wsl would silently reroute
+# the whole trial into WSL on Windows. The deps are in the ambient Python.
+build_cmd: 'python -c "import click, requests, ruamel.yaml, jwt, cryptography, pytest"'
+visible_test_cmd: "python tasks.py test"
+held_out_tests_path: tasks/studio-C/held_out_tests
+reference_diff_path: tasks/studio-C/reference.diff
+# Pre-calibration estimate (label by hand after a sweep): the API is pinned by
+# the instruction; the work is wiring the call site's verification info through
+# without breaking the existing worker flow and tests.
+difficulty: easy

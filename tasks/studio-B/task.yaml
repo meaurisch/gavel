@@ -1,0 +1,32 @@
+id: studio-B
+repo: studio
+repo_url: https://github.com/meaurisch/studio
+# base_commit is a LOCAL synthesized commit rebuilt deterministically by
+# `python cli.py setup`: the gavel/studio-B-reference branch tip with
+# reference.diff reverse-applied, reproducing the pinned master tree
+# (bea58bfd8fde99dfbfffda141a1c65dc273fefbd). See tasks/_repo_setup/repos.lock.yaml.
+base_commit: a2c5fd7071384f64a96ffde07b4a6c1bca66a0c0
+instruction: |
+  `studio conform` warns when an adopted repo has no GitHub description, but never looks at
+  the description it does find — conventions/naming.md rule 6 promises more: the description
+  and the opening sentence of the README's "## What & why" section must never disagree.
+  Implement the missing half in `studio conform`: a missing description keeps exactly its
+  current warning-and-exit-0 behaviour, and a description that is present but does not agree
+  with the first sentence of that README section — compared case-insensitively, with
+  whitespace collapsed and a trailing period ignored — gets a WARNING that names both the
+  description and the README sentence. When they agree under that comparison, nothing new is
+  printed. Add unit tests following the stubbing pattern already used in
+  tests/test_cli_conform.py. Work as a normal studio session on this checkout: commit your
+  work as you go, and finish by writing PR_BODY.md in the repo root containing the
+  pull-request description you would open for this change.
+run_cmd: "python tests/run_hidden.py"
+# NEVER pip install -e here: core/toolchain.needs_wsl would silently reroute
+# the whole trial into WSL on Windows. The deps are in the ambient Python.
+build_cmd: 'python -c "import click, requests, ruamel.yaml, jwt, cryptography, pytest"'
+visible_test_cmd: "python tasks.py test"
+held_out_tests_path: tasks/studio-B/held_out_tests
+reference_diff_path: tasks/studio-B/reference.diff
+# Pre-calibration estimate (label by hand after a sweep): requires reading how
+# conform obtains the description, extracting/normalising the README sentence,
+# and testing through the existing stubbing pattern.
+difficulty: medium
