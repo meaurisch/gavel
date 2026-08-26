@@ -11,3 +11,6 @@
 
 cosmos:
   visible_test_cmd: 'dotnet test tests/CleanArchitectureCosmosDB.UnitTests/CleanArchitectureCosmosDB.UnitTests.csproj'
+
+studio:
+  visible_test_cmd: 'python tasks.py test'

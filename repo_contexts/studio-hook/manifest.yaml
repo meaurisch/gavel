@@ -1,0 +1,18 @@
+# studio#83 E1 arm: studio-none's CLAUDE.md pointer plus the `memspace compile
+# studio --target claude` output (settings.json Stop hook + hooks/ + rules/)
+# for fact proc-0003-readme-state-refresh, so the trial worktree gets a live
+# Stop hook enforcing README "Current state"/"Next up" refresh. Payload is
+# GENERATED — rebuild via `memspace compile studio --target claude --out ...`
+# from studio-memory, don't hand-edit the .claude/ files.
+id: studio-hook
+description: "studio E1 arm: CLAUDE.md pointer + memspace-compiled Stop hook for proc-0003 (studio#83)"
+task_affinity:
+  - studio-A
+  - studio-B
+  - studio-C
+harnesses:
+  claude-code:
+    - src: content/CLAUDE.md
+      dest: CLAUDE.md
+    - src: content/.claude
+      dest: .claude

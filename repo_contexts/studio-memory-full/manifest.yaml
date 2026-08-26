@@ -1,0 +1,17 @@
+# studio#48 WP4 ablation variant. The .memory/ payload under content/ is
+# GENERATED from the studio-memory checkout, branch seed/studio-conventions
+# (space + subject index.md and
+# fact files copied verbatim). REBUILD the payload from merged studio-memory
+# master once studio-memory PRs #2/#3 land, before the paid matrix runs.
+id: studio-memory-full
+description: "studio ablation: full studio-space memory payload under .memory/ (studio#48)"
+task_affinity:
+  - studio-A
+  - studio-B
+  - studio-C
+harnesses:
+  claude-code:
+    - src: content/CLAUDE.md
+      dest: CLAUDE.md
+    - src: content/.memory
+      dest: .memory

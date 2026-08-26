@@ -7,6 +7,14 @@
 # under a FIXED author/committer/date, so the resulting sha is identical on
 # every machine and matches the `expect` value here and `base_commit` in each
 # task.yaml.
+#
+# Optional per-repo flag `sanitized: true` (default false): the upstream clone
+# is parked in repos/_sources/<repo> and repos/<repo> is built from scratch
+# instead — each base becomes an orphan lineage (a parentless root commit
+# holding the anchor tree + the usual task-base commit). A trial worktree then
+# sees no upstream commits, branches, remotes or reflogs. Turning it on changes
+# a base's `expect` sha (the parent differs), so re-pin it and task.yaml
+# together.
 
 pyvrp:
   url: https://github.com/PyVRP/PyVRP
@@ -43,3 +51,23 @@ cosmos:
       anchor: f8a0105c9ce46c25a980b09ad6eb3649f1f44416
       apply_patch: tasks/_repo_setup/cosmos-net8.patch
       expect: 456ec3958e9d23ab9ae83e5f80aa82da88bc80b7
+
+studio:
+  url: https://github.com/meaurisch/studio
+  bases:
+    # Anchors are the gavel/studio-{A,B,C}-reference branch tips (studio#48
+    # WP4). Each base reverse-applies its reference diff, so all three bases
+    # reproduce the pinned master tree (bea58bfd8fde99dfbfffda141a1c65dc273fefbd);
+    # the commit shas differ per base id (message + parent differ).
+    studio-A:
+      anchor: 1c48f23481d9f53a017dfe35408442b2c3e30865
+      reverse_diff: tasks/studio-A/reference.diff
+      expect: 1b629aead8921c973f70c3838b3865632331155c
+    studio-B:
+      anchor: 379d069013728590966bda8e88b3f12ec8296ab6
+      reverse_diff: tasks/studio-B/reference.diff
+      expect: a2c5fd7071384f64a96ffde07b4a6c1bca66a0c0
+    studio-C:
+      anchor: 7a7cbaa160301803af321b6d2d98b279b1a40115
+      reverse_diff: tasks/studio-C/reference.diff
+      expect: 596a2a16cafbc487cbd1935a5bb52de2a4de763a
