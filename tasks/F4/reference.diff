@@ -1,0 +1,99 @@
+diff --git a/src/config/config_loader.py b/src/config/config_loader.py
+index bcd1d53..58ebe99 100644
+--- a/src/config/config_loader.py
++++ b/src/config/config_loader.py
+@@ -19,7 +19,7 @@ import re
+ from typing import Any, Dict, List, Literal, Annotated
+ 
+ import yaml
+-from pydantic import BaseModel, Field, HttpUrl, AfterValidator
++from pydantic import BaseModel, Field, HttpUrl, AfterValidator, model_validator
+ 
+ 
+ # ============================================================================
+@@ -108,6 +108,11 @@ class ContentConfig(BaseModel):
+     news: NewsConfig
+ 
+ 
++# topic_weights is a distribution, so it has to add up. Floats being floats,
++# 0.4 + 0.3 + 0.2 + 0.1 is not exactly 1.0 — compare with a tolerance.
++TOPIC_WEIGHT_TOLERANCE = 1e-6
++
++
+ class PersonalizationConfig(BaseModel):
+     """Configuration for personalization settings."""
+     serendipity: float = Field(ge=0.0, le=1.0)
+@@ -116,6 +121,20 @@ class PersonalizationConfig(BaseModel):
+     exploration_rate: float = Field(ge=0.0, le=1.0)
+     topic_weights: Dict[str, float]
+ 
++    @model_validator(mode="after")
++    def _topic_weights_sum_to_one(self) -> "PersonalizationConfig":
++        """An empty mapping means "no topic preferences" and is allowed; any
++        non-empty one must be a distribution."""
++        if not self.topic_weights:
++            return self
++        total = sum(self.topic_weights.values())
++        if abs(total - 1.0) > TOPIC_WEIGHT_TOLERANCE:
++            raise ValueError(
++                f"personalization.topic_weights must sum to 1.0, got {total} "
++                f"from {dict(self.topic_weights)}"
++            )
++        return self
++
+ 
+ class PresentationConfig(BaseModel):
+     """Configuration for presentation/theme settings."""
+diff --git a/tests/unit/test_config/test_topic_weights.py b/tests/unit/test_config/test_topic_weights.py
+new file mode 100644
+index 0000000..1b14681
+--- /dev/null
++++ b/tests/unit/test_config/test_topic_weights.py
+@@ -0,0 +1,47 @@
++"""`personalization.topic_weights` is a distribution and must sum to 1.
++
++Nothing used to check it, so a set summing to 1.3 skewed the paper silently.
++"""
++import pytest
++from pydantic import ValidationError
++
++from src.config.config_loader import PersonalizationConfig
++
++
++def personalization(topic_weights):
++    return PersonalizationConfig(
++        serendipity=0.2,
++        learning_enabled=True,
++        learning_rate="medium",
++        exploration_rate=0.1,
++        topic_weights=topic_weights,
++    )
++
++
++def test_weights_summing_to_one_are_accepted():
++    config = personalization({"science": 0.4, "philosophy": 0.3,
++                              "technology": 0.2, "history": 0.1})
++    assert config.topic_weights["science"] == 0.4
++
++
++def test_empty_weights_are_accepted():
++    assert personalization({}).topic_weights == {}
++
++
++def test_weights_summing_above_one_are_rejected():
++    with pytest.raises(ValidationError) as excinfo:
++        personalization({"science": 0.7, "philosophy": 0.6})
++    assert "topic_weights must sum to 1.0" in str(excinfo.value)
++
++
++def test_weights_summing_below_one_are_rejected():
++    with pytest.raises(ValidationError) as excinfo:
++        personalization({"science": 0.3, "philosophy": 0.2})
++    assert "topic_weights must sum to 1.0" in str(excinfo.value)
++
++
++def test_the_error_names_the_offending_weights():
++    with pytest.raises(ValidationError) as excinfo:
++        personalization({"science": 0.9, "history": 0.4})
++    message = str(excinfo.value)
++    assert "science" in message and "1.3" in message

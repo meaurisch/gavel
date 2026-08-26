@@ -52,6 +52,21 @@ cosmos:
       apply_patch: tasks/_repo_setup/cosmos-net8.patch
       expect: 456ec3958e9d23ab9ae83e5f80aa82da88bc80b7
 
+ai-newspaper:
+  url: https://github.com/meaurisch/ai-newspaper
+  # Private repo: the clone uses ambient git credentials. `sanitized: true`, so a
+  # trial worktree sees only the synthesized lineage — no upstream history that
+  # could reveal the per-stage model decision (studio#83 E6).
+  sanitized: true
+  bases:
+    enews-D4:
+      anchor: 1252280ac94ac21dc7927e7da594db1f1d71d66f
+      apply_patch: tasks/_repo_setup/enews-D4-fixture.patch
+      expect: bf8861a5c0d1c77402c8e187495f32433537c987
+    enews-F4:
+      anchor: 1252280ac94ac21dc7927e7da594db1f1d71d66f
+      expect: 69b661c86bd8735c9034ddcb37731455ff8b6fd1
+
 studio:
   url: https://github.com/meaurisch/studio
   bases:
