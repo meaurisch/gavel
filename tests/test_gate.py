@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -65,7 +66,10 @@ def _make_task(tiny_repo, held_out_dir, tmp_path) -> TaskSpec:
         repo_url="file://" + str(tiny_repo).replace("\\", "/"),
         base_commit=_head_commit(tiny_repo),
         instruction="Add world to hello",
-        run_cmd="python tests/check_hello.py",
+        # sys.executable, not a bare "python": the studio-job image (and many
+        # Linux distros) ship only `python3`, and the gate runs this through
+        # the shell — an unversioned `python` fails the hidden tier there.
+        run_cmd=f'"{sys.executable}" tests/check_hello.py',
         held_out_tests_path=str(held_out_dir),
         reference_diff_path=str(ref_diff),
     )
