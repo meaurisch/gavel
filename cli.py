@@ -14,6 +14,7 @@ from core.models import Trial
 from core.methodology_loader import list_methodologies
 from core.repo_context_loader import list_repo_contexts
 from core.task_loader import list_tasks
+from ui.runs import CONFIRM_PHRASE, PAID_RUNNERS
 
 
 def _force_utf8(streams):
@@ -106,6 +107,7 @@ def run(
     keep_worktree: bool = typer.Option(False, "--keep-worktree", help="Don't tear down worktrees (debug: inspect laid-down files)"),
     db: Path = typer.Option(Path("results.db"), help="Database path"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Debug logging"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip the spend confirmation for paid runners (scripted/CI runs)"),
 ):
     """Expand the trial matrix and execute all trials."""
     logging.basicConfig(
@@ -150,6 +152,21 @@ def run(
     if dry_run:
         console.print(_grid_table(trials))
         raise typer.Exit(code=0)
+
+    if runner in PAID_RUNNERS and not yes:
+        console.print(
+            f"\n[yellow]Runner {runner!r} spends real API budget for {len(trials)} trials.[/]"
+        )
+        if not sys.stdin.isatty():
+            console.print(
+                f"[red]Refusing to start without confirmation on a non-interactive stdin — "
+                f"rerun with --yes to confirm.[/]"
+            )
+            raise typer.Exit(code=2)
+        typed = typer.prompt(f"Type {CONFIRM_PHRASE!r} to continue")
+        if typed != CONFIRM_PHRASE:
+            console.print("[red]Confirmation phrase mismatch — aborting.[/]")
+            raise typer.Exit(code=1)
 
     conn = connect(db)
     results: dict[str, dict] = {}
