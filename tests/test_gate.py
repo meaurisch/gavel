@@ -373,3 +373,94 @@ def test_gate_shell_command_uses_utf8_encoding(tmp_path, monkeypatch):
     for call in task_calls:
         assert call.kwargs.get("encoding") == "utf-8"
         assert call.kwargs.get("errors") == "ignore"
+
+
+# --- observational (non-gating) tier ---
+
+
+def test_observational_tier_absent_when_task_declares_none(tiny_repo, held_out_dir, tmp_path):
+    task = _make_task(tiny_repo, held_out_dir, tmp_path)
+    trial = Trial(id="t-noobs", task_id="test-task", methodology_id="off", repo_context_id="none", model="none", runner="oracle", rep=0)
+    wt = create_worktree(tiny_repo, task.base_commit)
+    try:
+        runner = OracleRunner(task)
+        runner.prepare(trial, wt, METHODOLOGY, REPO_CONTEXT)
+        runner.execute(trial, wt)
+        result = apply(trial, wt, task)
+        assert result.observe_passed is None
+        assert result.observe_output is None
+    finally:
+        destroy_worktree(wt)
+
+
+def test_observational_failure_is_recorded_but_does_not_gate(tiny_repo, held_out_dir, tmp_path):
+    """The whole point of the tier: a failing observation must not change
+    `passed` (only gate-passers are gradeable, so gating on e.g. convention
+    adherence would bias the grading pool)."""
+    task = _make_task(tiny_repo, held_out_dir, tmp_path)
+    task.observe_cmd = (
+        f'"{sys.executable}" -c "print(\'ADHERENCE conventions FAIL\'); raise SystemExit(1)"'
+    )
+    trial = Trial(id="t-obs-fail", task_id="test-task", methodology_id="off", repo_context_id="none", model="none", runner="oracle", rep=0)
+    wt = create_worktree(tiny_repo, task.base_commit)
+    try:
+        runner = OracleRunner(task)
+        runner.prepare(trial, wt, METHODOLOGY, REPO_CONTEXT)
+        runner.execute(trial, wt)
+        result = apply(trial, wt, task)
+        assert result.passed is True          # hidden tier alone decides
+        assert result.hidden_passed is True
+        assert result.observe_passed is False
+        assert "ADHERENCE conventions FAIL" in result.observe_output
+    finally:
+        destroy_worktree(wt)
+
+
+def test_observational_tier_passes_independently_of_gate(tiny_repo, held_out_dir, tmp_path):
+    """A nop trial fails the hidden gate; its observation is still recorded."""
+    task = _make_task(tiny_repo, held_out_dir, tmp_path)
+    task.observe_cmd = f'"{sys.executable}" -c "print(\'ADHERENCE conventions PASS\')"'
+    trial = Trial(id="t-obs-pass", task_id="test-task", methodology_id="off", repo_context_id="none", model="none", runner="nop", rep=0)
+    wt = create_worktree(tiny_repo, task.base_commit)
+    try:
+        runner = NopRunner()
+        runner.prepare(trial, wt, METHODOLOGY, REPO_CONTEXT)
+        runner.execute(trial, wt)
+        result = apply(trial, wt, task)
+        assert result.passed is False
+        assert result.observe_passed is True
+        assert "ADHERENCE conventions PASS" in result.observe_output
+    finally:
+        destroy_worktree(wt)
+
+
+def test_observational_tier_runs_after_a_build_failure(tmp_path, monkeypatch):
+    """The compile tier short-circuits the gate; the observation still runs —
+    a convention check is meaningful on a trial that didn't build."""
+    held_out = tmp_path / "held_out"
+    held_out.mkdir()
+    task = TaskSpec(
+        id="obs-X", repo_url="x", base_commit="x", instruction="add something",
+        run_cmd="pytest -q", held_out_tests_path=str(held_out), reference_diff_path="x",
+        build_cmd="build-it", observe_cmd="observe-it",
+    )
+    trial = Trial(
+        id="t-obs-build", task_id="obs-X", methodology_id="off",
+        repo_context_id="none", model="none", runner="nop", rep=0,
+    )
+
+    def fake_run(cmd, *args, **kwargs):
+        m = MagicMock()
+        m.returncode = 1 if cmd == "build-it" else 0
+        m.stdout, m.stderr = ("out:" + str(cmd)), ""
+        return m
+
+    with patch("grading.gate.subprocess.run", side_effect=fake_run) as mock_run:
+        result = apply(trial, tmp_path, task)
+
+    assert result.compile_passed is False
+    assert result.passed is False
+    assert result.hidden_passed is None          # gate short-circuited
+    assert result.observe_passed is True         # observation still recorded
+    assert "observe-it" in result.observe_output
+    assert any(c.args[0] == "observe-it" for c in mock_run.call_args_list)

@@ -210,6 +210,7 @@ def render_report_html(report: ReportData, generated_at: str = "") -> str:
             f"<td class='num'>{_fmt_rate(s.tier_pass_rates.get('compile'))}</td>"
             f"<td class='num'>{_fmt_rate(s.tier_pass_rates.get('visible'))}</td>"
             f"<td class='num'>{_fmt_rate(s.tier_pass_rates.get('hidden'))}</td>"
+            f"<td class='num'>{_fmt_rate(s.tier_pass_rates.get('observe'))}</td>"
             f"<td class='num'>{s.n_trials}</td>"
             f"<td class='num'>{_fmt_usd(s.mean_usd)}</td>"
             f"<td class='num'>{_fmt_usd(s.total_usd)}</td>"
@@ -349,6 +350,7 @@ def render_report_html(report: ReportData, generated_at: str = "") -> str:
         <th>{_esc(report.axis)}</th><th class="num">Elo</th><th class="num">95% CI</th>
         <th class="num">Comparisons</th>
         <th class="num">Compile</th><th class="num">Visible</th><th class="num">Hidden</th>
+        <th class="num" title="observational check — recorded, never gating">Observed</th>
         <th class="num">Trials</th><th class="num">Mean $</th><th class="num">Total $</th>
         <th>Frontier</th>
       </tr></thead>

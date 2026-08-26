@@ -410,6 +410,8 @@ def _payload(conn: sqlite3.Connection, trial_id: str,
     gr = get_gate_result(conn, trial_id)
     gate = None
     if gr is not None:
+        # Functional tiers only — the observational tier never reaches a judge
+        # (same reasoning as ui.server.GateScorecard).
         gate = {
             "compile_passed": gr.compile_passed,
             "visible_passed": gr.visible_passed,

@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS task_spec (
     reference_diff_path TEXT NOT NULL,
     build_cmd TEXT,
     visible_test_cmd TEXT,
-    difficulty TEXT
+    difficulty TEXT,
+    observe_cmd TEXT
 );
 
 CREATE TABLE IF NOT EXISTS methodology_spec (
@@ -78,7 +79,9 @@ CREATE TABLE IF NOT EXISTS gate_result (
     visible_passed INTEGER,
     visible_output TEXT,
     hidden_passed INTEGER,
-    hidden_output TEXT
+    hidden_output TEXT,
+    observe_passed INTEGER,
+    observe_output TEXT
 );
 
 CREATE TABLE IF NOT EXISTS grading_session (
@@ -153,6 +156,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "task_spec", "build_cmd", "TEXT")
     _ensure_column(conn, "task_spec", "visible_test_cmd", "TEXT")
     _ensure_column(conn, "task_spec", "difficulty", "TEXT")
+    # Observational (non-gating) tier (2026-08-26): absent on older DBs.
+    _ensure_column(conn, "task_spec", "observe_cmd", "TEXT")
+    _ensure_column(conn, "gate_result", "observe_passed", "INTEGER")
+    _ensure_column(conn, "gate_result", "observe_output", "TEXT")
     _ensure_column(conn, "run_result", "error", "TEXT")
     _ensure_column(conn, "grading_session", "revealed_at", "TEXT")
     # LLM-judge mode (2026-07-06): pre-existing rows read as human-mode.
@@ -174,10 +181,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
 
 def insert_task_spec(conn: sqlite3.Connection, t: TaskSpec) -> None:
     conn.execute(
-        "INSERT INTO task_spec VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO task_spec VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (t.id, t.repo_url, t.base_commit, t.instruction, t.run_cmd,
          t.held_out_tests_path, t.reference_diff_path,
-         t.build_cmd, t.visible_test_cmd, t.difficulty),
+         t.build_cmd, t.visible_test_cmd, t.difficulty, t.observe_cmd),
     )
     conn.commit()
 
@@ -241,11 +248,12 @@ def _bool_to_int(v: bool | None) -> int | None:
 
 def _execute_gate_result_insert(conn: sqlite3.Connection, g: GateResult) -> None:
     conn.execute(
-        "INSERT INTO gate_result VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO gate_result VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (g.trial_id, int(g.passed),
          _bool_to_int(g.compile_passed), g.compile_output,
          _bool_to_int(g.visible_passed), g.visible_output,
-         _bool_to_int(g.hidden_passed), g.hidden_output),
+         _bool_to_int(g.hidden_passed), g.hidden_output,
+         _bool_to_int(g.observe_passed), g.observe_output),
     )
 
 
@@ -288,6 +296,7 @@ def get_task_spec(conn: sqlite3.Connection, id: str) -> TaskSpec | None:
     d.setdefault("build_cmd", None)
     d.setdefault("visible_test_cmd", None)
     d.setdefault("difficulty", None)
+    d.setdefault("observe_cmd", None)
     return TypeAdapter(TaskSpec).validate_python(d)
 
 
@@ -336,7 +345,7 @@ def get_gate_result(conn: sqlite3.Connection, trial_id: str) -> GateResult | Non
         return None
     d = dict(row)
     d["passed"] = bool(d["passed"])
-    for col in ("compile_passed", "visible_passed", "hidden_passed"):
+    for col in ("compile_passed", "visible_passed", "hidden_passed", "observe_passed"):
         if d.get(col) is not None:
             d[col] = bool(d[col])
     return TypeAdapter(GateResult).validate_python(d)
@@ -348,7 +357,7 @@ def list_gate_results(conn: sqlite3.Connection) -> dict[str, GateResult]:
     for row in conn.execute("SELECT * FROM gate_result").fetchall():
         d = dict(row)
         d["passed"] = bool(d["passed"])
-        for col in ("compile_passed", "visible_passed", "hidden_passed"):
+        for col in ("compile_passed", "visible_passed", "hidden_passed", "observe_passed"):
             if d.get(col) is not None:
                 d[col] = bool(d[col])
         out[d["trial_id"]] = TypeAdapter(GateResult).validate_python(d)

@@ -104,6 +104,27 @@ The effective `visible_test_cmd` resolves as:
 > satisfy the gate. Task-supplied visible tests must not duplicate the held-out
 > oracle; the gate keeps asserting held-out files aren't pre-present in the worktree.
 
+### Observational checks (non-gating)
+
+`observe_cmd` (task, optional) runs a command whose exit code and output are
+recorded on the scorecard (`observe_passed` / `observe_output`) but never gate:
+`passed` stays the hidden tier's verdict alone. It runs whatever the gate tiers
+did — a convention check is still meaningful on a trial that failed to build.
+
+Use it for anything measured *about* a trial rather than *of* its correctness —
+convention adherence, lint counts, a style probe. Do NOT fold such a check into
+`run_cmd`: `run_cmd`'s exit code IS the hidden gate, so a non-functional check
+there would decide who is gradeable and bias the grading pool.
+
+```yaml
+run_cmd: "python -m pytest tests/test_feature_hidden.py -q"
+observe_cmd: "python tasks/<id>/check_conventions.py"
+```
+
+Observational results are unblinded-surface-only (Browse, trial detail, report):
+an adherence verdict tracks the methodology, so it is never served during blind
+comparison to a human or to the LLM judge.
+
 ### Facet 2 — Instruction language
 - [ ] Reads like a real senior-engineer issue (motivation + symptom + expectation),
       not a restated unit test; describes outcomes, not test assertions. `(eyeball)`

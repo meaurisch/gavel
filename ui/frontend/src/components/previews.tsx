@@ -46,6 +46,7 @@ function TaskPreviewBody({ t }: { t: TaskEntry }) {
         {t.build_cmd && (<><dt>build</dt><dd className="mono">{t.build_cmd}</dd></>)}
         {t.run_cmd && (<><dt>hidden gate</dt><dd className="mono">{t.run_cmd}</dd></>)}
         {t.visible_test_cmd && (<><dt>visible gate</dt><dd className="mono">{t.visible_test_cmd}</dd></>)}
+        {t.observe_cmd && (<><dt>observed (non-gating)</dt><dd className="mono">{t.observe_cmd}</dd></>)}
         <dt>trials</dt><dd>{t.n_trials} ({t.n_passers} passed hidden gate)</dd>
       </dl>
     </>

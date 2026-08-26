@@ -5,8 +5,8 @@ so the grading UI and the report command can be tried in minutes, with zero
 API spend and no repos cloned:
 
 - one task (`demo-lru-cache`), four methodologies in distinct coding styles,
-  three reps each — realistic Python diffs, three-tier gate scorecards, and
-  costs;
+  three reps each — realistic Python diffs, three-tier gate scorecards (plus
+  the non-gating observational tier), and costs;
 - a second model (`demo-model-m`) on the baseline methodology, so the model
   axis is gradeable too;
 - one pre-graded session on the methodology axis, so `cli.py report
@@ -44,6 +44,16 @@ METHODOLOGIES = {
     "demo-checklist": (0.09, [True, True, True]),
     "demo-tdd": (0.16, [True, True, True]),
     "demo-agentpack": (0.62, [True, True, False]),
+}
+
+# Observational (non-gating) tier per rep: a convention-adherence check. It is
+# recorded next to the gate but never part of pass/fail, so the demo shows the
+# adherence column moving independently of the hidden-gate column.
+ADHERENCE = {
+    "demo-baseline": [False, False, True],
+    "demo-checklist": [True, True, True],
+    "demo-tdd": [True, True, True],
+    "demo-agentpack": [True, False, True],
 }
 
 
@@ -207,6 +217,7 @@ def seed_demo(db_path: Path) -> sqlite3.Connection:
     conn = connect(db_path)
 
     def add_trial(methodology: str, model: str, rep: int, passed: bool, usd: float):
+        adhered = ADHERENCE[methodology][rep]
         tid = _trial_id(methodology, model, rep)
         insert_trial(conn, Trial(
             id=tid, task_id=TASK, methodology_id=methodology,
@@ -222,6 +233,8 @@ def seed_demo(db_path: Path) -> sqlite3.Connection:
             visible_passed=True if passed else rep % 2 == 0,
             hidden_passed=passed,
             hidden_output="demo",
+            observe_passed=adhered,
+            observe_output=f"ADHERENCE demo-conventions {'PASS' if adhered else 'FAIL'}",
         ))
         insert_cost_record(conn, CostRecord(
             trial_id=tid, native_unit="usd", native_amount=usd, usd_equiv=usd,

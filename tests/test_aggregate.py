@@ -196,6 +196,31 @@ def rich_db(tmp_path):
     return conn
 
 
+def test_observe_rate_is_reported_but_never_gates(tmp_path):
+    """The observational tier gets its own rate per axis value, computed over
+    the trials that recorded one — and it never feeds gate_pass_rate."""
+    conn = connect(tmp_path / "obs.db")
+    for tid, methodology, adhered in (
+        ("a0", "alpha", True), ("a1", "alpha", True),
+        ("b0", "beta", False), ("b1", "beta", None),
+    ):
+        insert_trial(conn, _trial(tid, methodology))
+        insert_run_result(conn, RunResult(trial_id=tid, diff="d", exit_status=0, wall_seconds=1.0))
+        insert_gate_result(conn, GateResult(
+            trial_id=tid, passed=True, compile_passed=True,
+            visible_passed=True, hidden_passed=True, observe_passed=adhered,
+        ))
+
+    report = build_report(conn, "methodology", bootstrap_n=10)
+    by_value = {s.value: s for s in report.summaries}
+    assert by_value["alpha"].tier_pass_rates["observe"] == 1.0
+    # beta: one FAIL, one not-run -> the not-run trial is excluded, not counted 0.
+    assert by_value["beta"].tier_pass_rates["observe"] == 0.0
+    # Both values still pass the gate outright: the observation changed nothing.
+    assert by_value["alpha"].gate_pass_rate == 1.0
+    assert by_value["beta"].gate_pass_rate == 1.0
+
+
 def test_build_report_ranking_and_frontier(rich_db):
     report = build_report(rich_db, "methodology", bootstrap_n=100)
 

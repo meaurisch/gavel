@@ -1,4 +1,12 @@
-"""Held-out-test gate: copies tests into a worktree, runs them, cleans up."""
+"""Held-out-test gate: copies tests into a worktree, runs them, cleans up.
+
+The gate proper is functional-only (compile → visible → hidden); `passed`
+is the hidden tier's verdict. A task may additionally declare `observe_cmd`,
+an OBSERVATIONAL tier: it runs and is recorded, but never gates. That keeps
+measurements like convention adherence out of the pass/fail decision — only
+gate-passers are gradeable, so a gating adherence check would bias the
+grading pool.
+"""
 
 import shutil
 import subprocess
@@ -112,6 +120,24 @@ def _run_hidden_tests(trial: Trial, worktree_path: Path, task: TaskSpec) -> tupl
     return (passed, output)
 
 
+def _run_observational(result: GateResult, worktree_path: Path, task: TaskSpec) -> GateResult:
+    """Record the observational tier's verdict, if the task declares one.
+
+    Runs whatever the gate tiers did — a convention-adherence check is still
+    meaningful on a trial that failed to build — and never touches
+    `result.passed`. A crash here is recorded, not raised: an observation must
+    not be able to sink a trial.
+    """
+    if not task.observe_cmd:
+        return result
+    try:
+        ok, out = _run_command(task.observe_cmd, worktree_path, task)
+    except Exception as e:  # non-gating: record the failure, never raise
+        ok, out = False, f"observational check error: {e}"
+    result.observe_passed, result.observe_output = ok, out
+    return result
+
+
 def apply(trial: Trial, worktree_path: Path, task: TaskSpec) -> GateResult:
     result = GateResult(trial_id=trial.id, passed=False)
 
@@ -119,7 +145,7 @@ def apply(trial: Trial, worktree_path: Path, task: TaskSpec) -> GateResult:
         ok, out = _run_command(task.build_cmd, worktree_path, task)
         result.compile_passed, result.compile_output = ok, out
         if not ok:
-            return result
+            return _run_observational(result, worktree_path, task)
 
     if task.visible_test_cmd:
         ok, out = _run_command(task.visible_test_cmd, worktree_path, task)
@@ -129,4 +155,4 @@ def apply(trial: Trial, worktree_path: Path, task: TaskSpec) -> GateResult:
     result.hidden_passed, result.hidden_output = hidden_ok, hidden_out
     result.passed = hidden_ok
 
-    return result
+    return _run_observational(result, worktree_path, task)
