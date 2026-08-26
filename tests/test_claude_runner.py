@@ -27,6 +27,17 @@ def _make_trial() -> Trial:
     return Trial(id="t-cc", task_id="t", methodology_id="off", repo_context_id="none", model="claude-sonnet-4-20250514", runner="claude_code", rep=0)
 
 
+@pytest.fixture()
+def fake_claude_bin(monkeypatch):
+    """The execute() mock tests patch subprocess.run, but the runner resolves
+    the claude binary first — on a machine without claude on PATH (GitHub CI)
+    that raised FileNotFoundError before the mock was ever reached. Pretend
+    resolution succeeded; the mocked subprocess.run never executes the value.
+    Deliberately not autouse: the integration smoke test needs the real
+    lookup, both for its skip guard and to actually run claude."""
+    monkeypatch.setattr("runners.claude_code.shutil.which", lambda name: "claude")
+
+
 _FIXTURES = Path(__file__).parent / "fixtures"
 
 
@@ -190,7 +201,7 @@ def test_default_max_turns_matches_settled_cap():
 
 # --- Runner execute with mocked subprocess ---
 
-def test_execute_success_mock(tiny_repo):
+def test_execute_success_mock(tiny_repo, fake_claude_bin):
     commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)
     try:
@@ -218,7 +229,7 @@ def test_execute_success_mock(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_nonzero_exit_mock(tiny_repo):
+def test_execute_nonzero_exit_mock(tiny_repo, fake_claude_bin):
     commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)
     try:
@@ -242,7 +253,7 @@ def test_execute_nonzero_exit_mock(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_empty_result_overrides_exit(tiny_repo):
+def test_execute_empty_result_overrides_exit(tiny_repo, fake_claude_bin):
     commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)
     try:
@@ -267,7 +278,7 @@ def test_execute_empty_result_overrides_exit(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_passes_instruction_via_stdin(tiny_repo):
+def test_execute_passes_instruction_via_stdin(tiny_repo, fake_claude_bin):
     """Multi-line instructions must go through stdin, not argv.
 
     A newline inside a -p argument is treated as a command terminator by the
@@ -308,7 +319,7 @@ def test_execute_passes_instruction_via_stdin(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_claude_call_uses_utf8_encoding(tiny_repo):
+def test_execute_claude_call_uses_utf8_encoding(tiny_repo, fake_claude_bin):
     """The `claude` subprocess call must decode stdout/stderr as UTF-8 (errors
     ignored), not the platform default codec (cp1252 on Windows). Claude's
     `--output-format json` output can contain bytes outside cp1252's range;
@@ -341,7 +352,7 @@ def test_execute_claude_call_uses_utf8_encoding(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_last_cost_none_on_parse_failure(tiny_repo):
+def test_last_cost_none_on_parse_failure(tiny_repo, fake_claude_bin):
     commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)
     try:
@@ -364,7 +375,7 @@ def test_last_cost_none_on_parse_failure(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_parse_failure_sets_error(tiny_repo):
+def test_execute_parse_failure_sets_error(tiny_repo, fake_claude_bin):
     """Unparseable stdout yields RunResult with error set and last_cost None."""
     commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)
@@ -389,7 +400,7 @@ def test_execute_parse_failure_sets_error(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_empty_diff_sets_error(tiny_repo):
+def test_execute_empty_diff_sets_error(tiny_repo, fake_claude_bin):
     """A parseable, billed run that leaves NO changes in the worktree is a real
     signal (since 5fb9787 an empty diff is no longer a false negative). It must
     surface as an explicit error so an all-no-op trial is distinguishable in the DB.
@@ -427,7 +438,7 @@ def test_execute_empty_diff_sets_error(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_timeout_sets_error(tiny_repo):
+def test_execute_timeout_sets_error(tiny_repo, fake_claude_bin):
     """A timed-out trial must never look like a clean $0 run: the RunResult
     carries an explicit error so the DB row is flagged."""
     commit = head_commit(tiny_repo)
@@ -458,7 +469,7 @@ def test_execute_timeout_sets_error(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_timeout_salvages_cost_from_partial_stdout(tiny_repo):
+def test_execute_timeout_salvages_cost_from_partial_stdout(tiny_repo, fake_claude_bin):
     """If the killed process left parseable usage JSON on stdout, the billed
     cost is still recorded rather than silently dropped."""
     commit = head_commit(tiny_repo)
@@ -489,7 +500,7 @@ def test_execute_timeout_salvages_cost_from_partial_stdout(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_no_parseable_output_raises(tiny_repo):
+def test_execute_no_parseable_output_raises(tiny_repo, fake_claude_bin):
     """A `claude` invocation that exits nonzero with no parseable output (e.g.
     rate-limited, killed before producing any JSON) never actually completed an
     attempt. It must raise so core.executor's existing except-block skips
@@ -518,7 +529,7 @@ def test_execute_no_parseable_output_raises(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_zero_token_failure_raises(tiny_repo):
+def test_execute_zero_token_failure_raises(tiny_repo, fake_claude_bin):
     """A `claude` invocation that exits nonzero but DOES produce valid JSON —
     e.g. an immediate rejection formatted as a well-formed error envelope with
     zero billed tokens — is the same "never actually did an attempt" case as
@@ -551,7 +562,7 @@ def test_execute_zero_token_failure_raises(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_nonempty_diff_no_empty_error(tiny_repo):
+def test_execute_nonempty_diff_no_empty_error(tiny_repo, fake_claude_bin):
     """Guard: a run that DID produce changes must not get the empty-diff error."""
     commit = head_commit(tiny_repo)
     wt = create_worktree(tiny_repo, commit)
@@ -582,7 +593,7 @@ def test_execute_nonempty_diff_no_empty_error(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_usd_equiv_falls_back_to_self_reported_when_api_zero(tiny_repo):
+def test_usd_equiv_falls_back_to_self_reported_when_api_zero(tiny_repo, fake_claude_bin):
     """If token-based pricing computes $0 (zero tokens) but the run self-reports a
     non-zero total_cost_usd, usd_equiv must use the self-reported value, not $0.
 
@@ -645,7 +656,7 @@ def test_smoke_real_claude(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_timeout_with_no_output_raises_retryable(tiny_repo):
+def test_execute_timeout_with_no_output_raises_retryable(tiny_repo, fake_claude_bin):
     """A hang until timeout with no diff and no salvageable cost is a
     transient failure: raise (trial stays retryable) instead of burning the
     trial id with an empty persisted result."""
@@ -674,7 +685,7 @@ def test_execute_timeout_with_no_output_raises_retryable(tiny_repo):
         destroy_worktree(wt)
 
 
-def test_execute_timeout_salvage_survives_garbage_stdout(tiny_repo):
+def test_execute_timeout_salvage_survives_garbage_stdout(tiny_repo, fake_claude_bin):
     """Partial stdout can be valid JSON but not an object; the salvage must
     swallow ANY parse surprise, keep the diff, and persist the trial."""
     commit = head_commit(tiny_repo)
