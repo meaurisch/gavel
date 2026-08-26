@@ -99,10 +99,13 @@ def test_run_splits_comma_separated_axis_lists(tmp_path):
 
     from cli import app
 
+    # `custom`, not `karpathy`: vendored packs (methodologies/**/vendor/) are
+    # gitignored, so on a clean clone karpathy is unusable until `cli.py setup`
+    # vendors it — and the default suite must stay green on a clean clone.
     runner = CliRunner()
     result = runner.invoke(app, [
         "run", "--task", "cosmos-A,cosmos-B",
-        "--methodology", "baseline,karpathy",
+        "--methodology", "baseline,custom",
         "--repo-context", "none",
         "--model", "m1", "--runner", "nop", "--reps", "1",
         "--db", str(tmp_path / "t.db"), "--dry-run",
