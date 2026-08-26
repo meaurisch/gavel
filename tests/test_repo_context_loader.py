@@ -2,8 +2,10 @@ from pathlib import Path
 
 import pytest
 
+from core.methodology_loader import load_manifest
 from core.models import RepoContextSpec
 from core.repo_context_loader import (
+    REPO_CONTEXTS_DIR,
     get_task_affinity,
     list_repo_contexts,
     load_repo_context,
@@ -59,6 +61,25 @@ def test_load_repo_context_resolves_files(tmp_path):
     spec = load_repo_context("ctx", "claude-code", tmp_path)
     assert spec.id == "ctx"
     assert spec.files == {"CLAUDE.md": ["# rules", "be concise"]}
+
+
+def test_manifest_build_block_parses(tmp_path):
+    _write_context(
+        tmp_path, "derived",
+        "id: derived\ndescription: derived\nnoop: true\n"
+        "build:\n  command: python export_memory.py --out content/.memory\n"
+        "  source_ref: studio-memory@seed/studio-conventions\n",
+        {},
+    )
+    manifest = load_manifest("derived", tmp_path)
+    assert manifest.build is not None
+    assert manifest.build.command == "python export_memory.py --out content/.memory"
+    assert manifest.build.source_ref == "studio-memory@seed/studio-conventions"
+
+
+def test_manifest_build_defaults_to_none():
+    manifest = load_manifest("none", REPO_CONTEXTS_DIR)
+    assert manifest.build is None
 
 
 def test_load_repo_context_missing_harness(tmp_path):

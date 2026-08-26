@@ -76,6 +76,13 @@ setup-bench/
   repo_contexts/
     cosmos/ none/ pyvrp-instructions/
       manifest.yaml      # noop control + repo-specific instructions; `task_affinity` tags
+      # A context whose payload is exported/synthesized from another repo (not
+      # authored by hand in place) declares `build: {command, source_ref}` in its
+      # manifest instead of a "REBUILD ME" comment — `command` runs from the
+      # context's own directory to regenerate the payload; `source_ref` is a
+      # human-readable provenance pointer (repo@ref/branch/PR). Same convention
+      # works for methodologies (the model field is shared), refresh with
+      # `python scripts/build_repo_context.py <id>` / `--all` / `--list`.
   ui/                    # local web app for blind pairwise grading (axis picker + cascading cells)
   cli.py                 # `setup-bench run|grade|report|pricing`
 ```

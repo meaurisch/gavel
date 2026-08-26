@@ -22,6 +22,31 @@ def test_check_vendor_packs_covers_external_methodologies():
     assert not any("baseline" in n or "custom" in n for n in names)
 
 
+def test_check_repo_context_builds_none_shipped():
+    # None of the shipped repo contexts (cosmos/none/pyvrp-instructions) are
+    # derived payloads today, so the check contributes no rows but must not error.
+    rows = doctor.check_repo_context_builds()
+    assert rows == []
+
+
+def test_check_repo_context_builds_is_informational(tmp_path):
+    ctx_dir = tmp_path / "derived"
+    ctx_dir.mkdir()
+    (ctx_dir / "manifest.yaml").write_text(
+        "id: derived\ndescription: derived\n"
+        "build:\n  command: echo hi\n  source_ref: some-repo@some-ref\n",
+        encoding="utf-8",
+    )
+
+    rows = doctor.check_repo_context_builds(tmp_path)
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.name == "repo-context build derived"
+    assert row.ok is True
+    assert row.required is False
+    assert "some-repo@some-ref" in row.detail
+
+
 def test_check_pricing_ok():
     row = doctor.check_pricing()
     assert row.ok
