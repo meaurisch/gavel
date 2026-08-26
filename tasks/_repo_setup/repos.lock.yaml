@@ -67,6 +67,21 @@ ai-newspaper:
       anchor: 1252280ac94ac21dc7927e7da594db1f1d71d66f
       expect: 69b661c86bd8735c9034ddcb37731455ff8b6fd1
 
+vault-mcp-server:
+  url: https://github.com/meaurisch/vault-mcp-server
+  # Private repo: the clone uses ambient git credentials. `sanitized: true`, so a
+  # trial worktree sees only the synthesized lineage — no upstream history that
+  # could reveal how the agent-guide pointer was actually resolved (studio#83 E6).
+  # Both bases are the bare anchor tree; D6 and F6 differ only in the task.
+  sanitized: true
+  bases:
+    vault-D6:
+      anchor: b934395a0840fba59bac6767a297cd99a62c48ef
+      expect: 6ea6823aaed8a4c2f9d62027f09d7115ead1bc79
+    vault-F6:
+      anchor: b934395a0840fba59bac6767a297cd99a62c48ef
+      expect: 8ac9e5948a1d55a652d6f8851edd6424e0283a1d
+
 studio:
   url: https://github.com/meaurisch/studio
   bases:

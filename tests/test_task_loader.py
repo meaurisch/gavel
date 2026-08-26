@@ -101,6 +101,7 @@ def test_list_tasks():
         "moreiter-A",
         "studio-A", "studio-B", "studio-C",
         "D4", "F4",
+        "D6", "F6",
     }
 
 
