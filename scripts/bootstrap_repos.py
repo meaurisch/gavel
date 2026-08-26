@@ -166,10 +166,14 @@ def bootstrap(check_only: bool = False, repos_root: Path = REPOS_ROOT) -> list[t
         for base_id, spec in cfg.get("bases", {}).items():
             expect = spec.get("expect")
             try:
-                if check_only:
-                    if expect == "PENDING":
+                if expect == "PENDING" or spec.get("anchor") == "PENDING":
+                    if check_only:
                         results.append((base_id, "missing", "lock entry PENDING"))
-                    elif expect and commit_exists(repo_dir, expect):
+                    else:
+                        logger.warning("%s: lock entry is PENDING — skipping build", base_id)
+                        results.append((base_id, "missing", "lock entry PENDING, skipped"))
+                elif check_only:
+                    if expect and commit_exists(repo_dir, expect):
                         results.append((base_id, "ok", expect))
                     else:
                         results.append((base_id, "missing", f"base {expect} not built"))
