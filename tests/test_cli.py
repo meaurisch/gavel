@@ -112,3 +112,88 @@ def test_run_splits_comma_separated_axis_lists(tmp_path):
     ])
     assert result.exit_code == 0, result.output
     assert "4 trials = 2 tasks x 2 methodologies" in result.output
+
+
+def test_run_paid_runner_refuses_without_confirmation(tmp_path):
+    """CLI parity with the browser launcher's SPEND gate: a paid runner
+    (claude-code) must not start spending without an explicit confirmation.
+    CliRunner's stdin isn't a tty, so this exercises the non-interactive
+    refusal path — must exit before execute_all is ever called."""
+    from typer.testing import CliRunner
+
+    import cli
+
+    called = False
+
+    def _fake_execute_all(*args, **kwargs):
+        nonlocal called
+        called = True
+        return []
+
+    cli.execute_all = _fake_execute_all
+
+    runner = CliRunner()
+    result = runner.invoke(cli.app, [
+        "run", "--task", "cosmos-A",
+        "--methodology", "baseline",
+        "--repo-context", "none",
+        "--model", "m1", "--runner", "claude-code", "--reps", "1",
+        "--db", str(tmp_path / "t.db"),
+    ])
+    assert result.exit_code == 2, result.output
+    assert "--yes" in result.output
+    assert not called
+
+
+def test_run_paid_runner_yes_flag_skips_confirmation(tmp_path):
+    """--yes lets scripted/CI runs bypass the interactive spend confirmation."""
+    from typer.testing import CliRunner
+
+    import cli
+
+    called = False
+
+    def _fake_execute_all(*args, **kwargs):
+        nonlocal called
+        called = True
+        return []
+
+    cli.execute_all = _fake_execute_all
+
+    runner = CliRunner()
+    result = runner.invoke(cli.app, [
+        "run", "--task", "cosmos-A",
+        "--methodology", "baseline",
+        "--repo-context", "none",
+        "--model", "m1", "--runner", "claude-code", "--reps", "1",
+        "--db", str(tmp_path / "t.db"), "--yes",
+    ])
+    assert result.exit_code == 0, result.output
+    assert called
+
+
+def test_run_free_runner_never_prompts(tmp_path):
+    """Free runners (nop/oracle) start unconditionally, --yes or not."""
+    from typer.testing import CliRunner
+
+    import cli
+
+    called = False
+
+    def _fake_execute_all(*args, **kwargs):
+        nonlocal called
+        called = True
+        return []
+
+    cli.execute_all = _fake_execute_all
+
+    runner = CliRunner()
+    result = runner.invoke(cli.app, [
+        "run", "--task", "cosmos-A",
+        "--methodology", "baseline",
+        "--repo-context", "none",
+        "--model", "m1", "--runner", "nop", "--reps", "1",
+        "--db", str(tmp_path / "t.db"),
+    ])
+    assert result.exit_code == 0, result.output
+    assert called
