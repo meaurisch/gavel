@@ -26,6 +26,15 @@ TEST_SUFFIXES = (".test.ts", ".test.js", ".test.mts", ".test.mjs",
 SKIP_DIRS = {"node_modules", "dist", ".git"}
 ASSERTION_MARKERS = ("expect(", "assert")
 VITEST_TIMEOUT = 900
+# `test/deploy-rollback.test.ts` shells out to `scripts/deploy-health-gate.sh`
+# via spawnSync. Under gavel's gate shell (cmd.exe, whose PATH has no bash on
+# this host) that exits 127 instead of the exit code the file asserts, so the
+# file is red on the untouched base for reasons no trial can fix or cause.
+# Excluding exactly this one file — never any other — is identical for every
+# arm and every trial, and is recorded in the run report. `--exclude` appends
+# to vitest's defaults, so node_modules/dist stay excluded too (verified: the
+# run still collects the same 22 repo test files).
+VITEST_CMD = "npx vitest run --exclude test/deploy-rollback.test.ts"
 
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)$")
 # "Commands", "Common commands", "Commands / entry points", ...
@@ -100,8 +109,8 @@ def test_a_test_asserts_the_check_command_is_documented():
 def test_vitest_suite_is_green():
     """The repo's own suite, plus whatever the trial added to it."""
     proc = subprocess.run(
-        "npx vitest run", shell=True, cwd=str(ROOT), capture_output=True,
+        VITEST_CMD, shell=True, cwd=str(ROOT), capture_output=True,
         text=True, encoding="utf-8", errors="ignore", timeout=VITEST_TIMEOUT,
     )
     if proc.returncode != 0:
-        pytest.fail("`npx vitest run` failed:\n" + (proc.stdout + proc.stderr)[-4000:])
+        pytest.fail(f"`{VITEST_CMD}` failed:\n" + (proc.stdout + proc.stderr)[-4000:])

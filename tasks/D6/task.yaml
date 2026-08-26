@@ -21,9 +21,12 @@ run_cmd: "python tests/run_hidden.py"
 # Nothing here is an editable pip install, so core.toolchain.needs_wsl stays
 # False and the whole task runs natively on Windows.
 build_cmd: "npm ci --ignore-scripts --no-audit --no-fund"
-# The repo's whole vitest suite (22 files / 240 tests, ~11s) is green on the
-# base once the build step has run, so there is nothing to scope down.
-visible_test_cmd: "npx vitest run"
+# The repo's vitest suite is green on the base once the build step has run,
+# minus exactly one file: test/deploy-rollback.test.ts spawns a bash deployment
+# script that exits 127 under gavel's gate shell (cmd.exe, no bash on PATH), so
+# it is red on the untouched base for reasons no trial can fix or cause. Same
+# single-file exclusion as the hidden gate; identical for every arm and trial.
+visible_test_cmd: "npx vitest run --exclude test/deploy-rollback.test.ts"
 held_out_tests_path: tasks/D6/held_out_tests
 reference_diff_path: tasks/D6/reference.diff
 # Pre-calibration estimate (label by hand after a sweep): two small files, but
