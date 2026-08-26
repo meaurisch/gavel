@@ -1,0 +1,29 @@
+id: D4
+repo: ai-newspaper
+repo_url: https://github.com/meaurisch/ai-newspaper
+# base_commit is a LOCAL synthesized commit rebuilt deterministically by
+# `python cli.py setup`: the pinned anchor tree plus the pinned OpenRouter
+# catalogue snapshot (tests/fixtures/openrouter-models.json), as an orphan
+# lineage in a sanitized repo. See tasks/_repo_setup/repos.lock.yaml.
+base_commit: bf8861a5c0d1c77402c8e187495f32433537c987
+instruction: |
+  The configured model has been withdrawn from the provider's catalogue: generation now
+  fails with a 404 and the daily paper comes out empty. Point the app at a model that is
+  actually in the catalogue (`tests/fixtures/openrouter-models.json` is a pinned snapshot
+  of it) and add a test that fails loudly if the configured model is not in the catalogue,
+  so this cannot recur silently. Work as a normal session on this checkout: commit your
+  work as you go, and finish by writing PR_BODY.md in the repo root containing the
+  pull-request description you would open for this change.
+run_cmd: "python tests/run_hidden.py"
+# NEVER pip install -e here: core/toolchain.needs_wsl would silently reroute the
+# whole trial into WSL on Windows. The repo's runtime deps for config loading
+# (yaml + pydantic) and its DatabaseManager (stdlib sqlite3) are all ambient.
+build_cmd: 'python -c "import yaml, pydantic, pytest"'
+# The repo's full suite is slow and touches the network; its config package is
+# the cheapest slice that is green on the base and relevant to this change.
+visible_test_cmd: "python -m pytest tests/unit/test_config -q"
+held_out_tests_path: tasks/D4/held_out_tests
+reference_diff_path: tasks/D4/reference.diff
+# Pre-calibration estimate (label by hand after a sweep): a small config +
+# loader change, but the shape of the fix is a judgement call.
+difficulty: medium

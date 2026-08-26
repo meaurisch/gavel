@@ -1,0 +1,52 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index 3e02da0..700dbac 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,3 +1,11 @@
+ # AGENTS.md
+ 
+ vault-mcp-server is the SOLE integration hub of the vault family. Cross-domain work (notes + calendar + tasks views, agent access, new sources) lands here. timeblocks-app is a domain service this hub consumes via a small tool/API — never widen a domain service sideways.
++
++## Commands
++
++- `python tasks.py check` — the one command to run before pushing: `npm ci` from the lockfile, then the full vitest suite.
++- `python tasks.py test` — the vitest suite only (`npm test` → `vitest run`).
++- `python tasks.py run` — start the compiled server (`npm start` → `node dist/server.js`).
++- `npm run build` — TypeScript compile (`tsc`) into `dist/`.
++- `npm run dev` — run `src/server.ts` straight from source with `tsx`.
+diff --git a/test/agents-commands.test.ts b/test/agents-commands.test.ts
+new file mode 100644
+index 0000000..fbb5695
+--- /dev/null
++++ b/test/agents-commands.test.ts
+@@ -0,0 +1,30 @@
++// test/agents-commands.test.ts
++import { describe, it, expect } from "vitest";
++import fs from "fs";
++import path from "path";
++import { fileURLToPath } from "url";
++
++const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
++const AGENTS = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
++
++function section(title: string): string {
++  const lines = AGENTS.split(/\r?\n/);
++  const start = lines.findIndex((line) => /^#{1,6}\s/.test(line) && line.includes(title));
++  if (start < 0) return "";
++  const rest = lines.slice(start + 1);
++  const end = rest.findIndex((line) => /^#{1,6}\s/.test(line));
++  return (end < 0 ? rest : rest.slice(0, end)).join("\n");
++}
++
++describe("AGENTS.md Commands section", () => {
++  it("documents `python tasks.py check`", () => {
++    expect(section("Commands")).toContain("python tasks.py check");
++  });
++
++  it("names the entry points that package.json and tasks.py actually expose", () => {
++    const commands = section("Commands");
++    for (const cmd of ["python tasks.py test", "python tasks.py run", "npm run build", "npm run dev"]) {
++      expect(commands).toContain(cmd);
++    }
++  });
++});

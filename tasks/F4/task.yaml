@@ -1,0 +1,26 @@
+id: F4
+repo: ai-newspaper
+repo_url: https://github.com/meaurisch/ai-newspaper
+# base_commit is a LOCAL synthesized commit rebuilt deterministically by
+# `python cli.py setup`: the pinned anchor tree as an orphan lineage in a
+# sanitized repo. See tasks/_repo_setup/repos.lock.yaml.
+base_commit: 69b661c86bd8735c9034ddcb37731455ff8b6fd1
+instruction: |
+  `personalization.topic_weights` in `config.yaml` is meant to be a distribution but
+  nothing checks it; a set that sums to 1.3 would silently skew the paper. Validate the
+  weights on load with a clear error, and add tests. Work as a normal session on this
+  checkout: commit your work as you go, and finish by writing PR_BODY.md in the repo root
+  containing the pull-request description you would open for this change.
+run_cmd: "python tests/run_hidden.py"
+# NEVER pip install -e here: core/toolchain.needs_wsl would silently reroute the
+# whole trial into WSL on Windows. The repo's runtime deps for config loading
+# (yaml + pydantic) and its DatabaseManager (stdlib sqlite3) are all ambient.
+build_cmd: 'python -c "import yaml, pydantic, pytest"'
+# The repo's full suite is slow and touches the network; its config package is
+# the cheapest slice that is green on the base and relevant to this change.
+visible_test_cmd: "python -m pytest tests/unit/test_config -q"
+held_out_tests_path: tasks/F4/held_out_tests
+reference_diff_path: tasks/F4/reference.diff
+# Pre-calibration estimate (label by hand after a sweep): a single validator on
+# a model that already exists, with an obvious contract.
+difficulty: easy

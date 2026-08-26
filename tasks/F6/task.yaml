@@ -1,0 +1,33 @@
+id: F6
+repo: vault-mcp-server
+repo_url: https://github.com/meaurisch/vault-mcp-server
+# base_commit is a LOCAL synthesized commit rebuilt deterministically by
+# `python cli.py setup`: the bare pinned anchor tree, as an orphan lineage in a
+# sanitized repo. See tasks/_repo_setup/repos.lock.yaml.
+base_commit: 8ac9e5948a1d55a652d6f8851edd6424e0283a1d
+instruction: |
+  `AGENTS.md` says nothing about how to check, test or run this repo, so an agent has to
+  reverse-engineer the commands from `package.json` and `tasks.py`. Add a short 'Commands'
+  section naming the real entry points, and add a test asserting `AGENTS.md` documents
+  `python tasks.py check`. Work as a normal session on this checkout: commit your work as
+  you go, and finish by writing PR_BODY.md in the repo root containing the pull-request
+  description you would open for this change.
+run_cmd: "python tests/run_hidden.py"
+# `npm ci` (not `npm install`): it never rewrites package-lock.json, so the
+# build step cannot perturb the diff the FALSEALARM checker reads.
+# --ignore-scripts skips better-sqlite3's node-gyp rebuild, which needs a Visual
+# Studio C++ toolchain this host does not have; the full vitest suite is green
+# without it. Nothing here is an editable pip install, so core.toolchain.needs_wsl
+# stays False and the whole task runs natively on Windows.
+build_cmd: "npm ci --ignore-scripts --no-audit --no-fund"
+# The repo's vitest suite is green on the base once the build step has run,
+# minus exactly one file: test/deploy-rollback.test.ts spawns a bash deployment
+# script that exits 127 under gavel's gate shell (cmd.exe, no bash on PATH), so
+# it is red on the untouched base for reasons no trial can fix or cause. Same
+# single-file exclusion as the hidden gate; identical for every arm and trial.
+visible_test_cmd: "npx vitest run --exclude test/deploy-rollback.test.ts"
+held_out_tests_path: tasks/F6/held_out_tests
+reference_diff_path: tasks/F6/reference.diff
+# Pre-calibration estimate (label by hand after a sweep): the foil is meant to
+# be routine — read two files, write down what they already do.
+difficulty: easy

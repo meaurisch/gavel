@@ -1,0 +1,123 @@
+diff --git a/config.yaml b/config.yaml
+index c5ae387..d7c12d0 100644
+--- a/config.yaml
++++ b/config.yaml
+@@ -63,7 +63,12 @@ presentation:
+   theme: "light"
+ 
+ llm:
+-  model: "xiaomi/mimo-v2-flash:free"
++  # One model per pipeline stage; every id must exist in the provider's
++  # catalogue (see tests/test_model_catalogue.py).
++  models:
++    cluster: "anthropic/claude-haiku-4.5"
++    writer: "anthropic/claude-sonnet-5"
++    editor: "anthropic/claude-sonnet-5"
+ 
+ database:
+   quotes_db: "data/quotes.db"
+diff --git a/src/config/config_loader.py b/src/config/config_loader.py
+index bcd1d53..0613f98 100644
+--- a/src/config/config_loader.py
++++ b/src/config/config_loader.py
+@@ -16,10 +16,10 @@ Usage:
+ """
+ import os
+ import re
+-from typing import Any, Dict, List, Literal, Annotated
++from typing import Any, Dict, List, Literal, Optional, Annotated
+ 
+ import yaml
+-from pydantic import BaseModel, Field, HttpUrl, AfterValidator
++from pydantic import BaseModel, Field, HttpUrl, AfterValidator, model_validator
+ 
+ 
+ # ============================================================================
+@@ -123,10 +123,21 @@ class PresentationConfig(BaseModel):
+ 
+ 
+ class LLMConfig(BaseModel):
+-    """Configuration for LLM/AI model settings."""
+-    model: str
++    """Configuration for LLM/AI model settings.
++
++    Either a single `model` or a `models` mapping of pipeline stage to model id
++    may be configured; at least one of the two must be present.
++    """
++    model: Optional[str] = None
++    models: Optional[Dict[str, str]] = None
+     api_key: str = None  # Will be injected at runtime
+ 
++    @model_validator(mode="after")
++    def _require_a_model(self) -> "LLMConfig":
++        if not self.model and not self.models:
++            raise ValueError("llm must configure either `model` or `models`")
++        return self
++
+ 
+ class DatabaseConfig(BaseModel):
+     """Configuration for database paths."""
+diff --git a/tests/test_model_catalogue.py b/tests/test_model_catalogue.py
+new file mode 100644
+index 0000000..e6a47bf
+--- /dev/null
++++ b/tests/test_model_catalogue.py
+@@ -0,0 +1,45 @@
++"""Every model id in config.yaml must exist in the provider's catalogue.
++
++A withdrawn id only shows up at generation time, as a 404 and an empty paper.
++This turns it into a red build instead. `tests/fixtures/openrouter-models.json`
++is a pinned snapshot of the OpenRouter catalogue.
++"""
++import json
++from pathlib import Path
++
++import yaml
++
++ROOT = Path(__file__).resolve().parents[1]
++CONFIG = ROOT / "config.yaml"
++CATALOGUE = ROOT / "tests" / "fixtures" / "openrouter-models.json"
++
++
++def configured_model_ids() -> dict:
++    """{config key: model id} for every model configured under `llm:`."""
++    llm = (yaml.safe_load(CONFIG.read_text(encoding="utf-8")) or {}).get("llm") or {}
++    ids = {}
++    if llm.get("model"):
++        ids["model"] = llm["model"]
++    for stage, model_id in (llm.get("models") or {}).items():
++        ids[f"models.{stage}"] = model_id
++    return ids
++
++
++def catalogue_ids() -> set:
++    return {entry["id"] for entry in json.loads(CATALOGUE.read_text(encoding="utf-8"))["data"]}
++
++
++def test_catalogue_snapshot_is_readable():
++    assert catalogue_ids(), f"{CATALOGUE.name} lists no models"
++
++
++def test_configured_models_are_in_the_catalogue():
++    configured = configured_model_ids()
++    assert configured, "config.yaml configures no model under `llm:`"
++    catalogue = catalogue_ids()
++    missing = {key: model_id for key, model_id in configured.items()
++               if model_id not in catalogue}
++    assert not missing, (
++        f"withdrawn model id(s) in config.yaml, not present in {CATALOGUE.name}: "
++        f"{missing}"
++    )
+diff --git a/tests/unit/test_config/test_config_models.py b/tests/unit/test_config/test_config_models.py
+index cbe14a6..d50aeb3 100644
+--- a/tests/unit/test_config/test_config_models.py
++++ b/tests/unit/test_config/test_config_models.py
+@@ -525,7 +525,7 @@ class TestLLMConfig:
+         """Test serializing LLMConfig to dict."""
+         config = LLMConfig(model="test", api_key="secret")
+         config_dict = config.model_dump()
+-        assert config_dict == {"model": "test", "api_key": "secret"}
++        assert config_dict == {"model": "test", "models": None, "api_key": "secret"}
+ 
+     def test_llm_config_model_with_version(self):
+         """Test LLMConfig with model name including version."""

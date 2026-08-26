@@ -17,6 +17,9 @@ from core.repo_context_loader import (
 def test_list_repo_contexts():
     assert list_repo_contexts() == [
         "cosmos",
+        "e6-decision-time",
+        "e6-index",
+        "e6-none",
         "none",
         "pyvrp-instructions",
         "studio-hook",

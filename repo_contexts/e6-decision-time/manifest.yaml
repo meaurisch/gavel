@@ -1,0 +1,21 @@
+# studio#83 E6 decision-time arm: memspace-compiled native rules + Stop hooks,
+# no CLAUDE.md and no task-specific text — the payload is scoped to studio's
+# own conventions, not the E6 task instructions. Payload is GENERATED —
+# rebuild via `memspace compile studio --target claude --out content`
+# from studio-memory, don't hand-edit the content/.claude/ files.
+id: e6-decision-time
+description: "E6 decision-time arm: memspace-compiled native rules + Stop hooks (studio#83)"
+task_affinity:
+  - D4
+  - F4
+  - D6
+  - F6
+build:
+  command: "memspace compile studio --target claude --out content"
+  source_ref: "studio-memory@4926596 (master, post studio-memory#7)"
+harnesses:
+  claude-code:
+    - src: content/.claude
+      dest: .claude
+    - src: content/.memspace
+      dest: .memspace

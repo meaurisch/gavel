@@ -1,0 +1,38 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+new file mode 100644
+index 0000000..43c994c
+--- /dev/null
++++ b/CLAUDE.md
+@@ -0,0 +1 @@
++@AGENTS.md
+diff --git a/test/agents-guide.test.ts b/test/agents-guide.test.ts
+new file mode 100644
+index 0000000..6fe7709
+--- /dev/null
++++ b/test/agents-guide.test.ts
+@@ -0,0 +1,25 @@
++// test/agents-guide.test.ts
++import { describe, it, expect } from "vitest";
++import fs from "fs";
++import path from "path";
++import { fileURLToPath } from "url";
++
++const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
++const PINNED_PARAGRAPH = "vault-mcp-server is the SOLE integration hub of the vault family.";
++
++function nonBlankLines(text: string): string[] {
++  return text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
++}
++
++describe("agent guide", () => {
++  it("hands Claude Code the same guide the other CLIs load", () => {
++    const claudeMd = path.join(ROOT, "CLAUDE.md");
++    expect(fs.existsSync(claudeMd)).toBe(true);
++    expect(nonBlankLines(fs.readFileSync(claudeMd, "utf8"))).toEqual(["@AGENTS.md"]);
++  });
++
++  it("keeps AGENTS.md as the only copy of the guide", () => {
++    const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
++    expect(agents).toContain(PINNED_PARAGRAPH);
++  });
++});

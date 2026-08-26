@@ -1,0 +1,9 @@
+# studio#83 E6 §5 `none` arm: anchor tree as it stands, no payload injected.
+id: e6-none
+description: "E6 control arm: anchor tree as it stands, no payload (studio#83)"
+noop: true
+task_affinity:
+  - D4
+  - F4
+  - D6
+  - F6

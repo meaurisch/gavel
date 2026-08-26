@@ -23,10 +23,12 @@ def test_check_vendor_packs_covers_external_methodologies():
 
 
 def test_check_repo_context_builds_none_shipped():
-    # None of the shipped repo contexts (cosmos/none/pyvrp-instructions) are
-    # derived payloads today, so the check contributes no rows but must not error.
+    # Of the shipped repo contexts, only the E6 arms (studio#83) declare a
+    # build: step today; the rest are hand-authored and contribute no rows.
     rows = doctor.check_repo_context_builds()
-    assert rows == []
+    names = {r.name for r in rows}
+    assert names == {"repo-context build e6-decision-time", "repo-context build e6-index"}
+    assert all(r.ok and not r.required for r in rows)
 
 
 def test_check_repo_context_builds_is_informational(tmp_path):

@@ -271,7 +271,8 @@ def test_unsanitized_default_keeps_full_clone(upstream_with_side_branch, tmp_pat
 
 def test_lock_file_parses_and_matches_task_yamls():
     """Every lock entry's expect sha must equal the task.yaml base_commit it
-    backs (cosmos-base backs both cosmos tasks)."""
+    backs (cosmos-base backs both cosmos tasks; the E6 tasks' bases carry a
+    per-repo `enews-`/`vault-` prefix)."""
     import yaml
 
     lock = br.load_lock()
@@ -285,7 +286,8 @@ def test_lock_file_parses_and_matches_task_yamls():
         if not (task_dir / "task.yaml").exists():
             continue
         raw = yaml.safe_load((task_dir / "task.yaml").read_text(encoding="utf-8"))
-        base_id = raw["id"] if raw["id"] in expects else "cosmos-base"
+        candidates = (raw["id"], f"enews-{raw['id']}", f"vault-{raw['id']}")
+        base_id = next((b for b in candidates if b in expects), "cosmos-base")
         assert raw["base_commit"] == expects[base_id], (
             f"{raw['id']}: base_commit {raw['base_commit'][:12]} != lock expect "
             f"{expects[base_id][:12]}"

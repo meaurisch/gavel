@@ -1,0 +1,20 @@
+diff --git a/tests/fixtures/openrouter-models.json b/tests/fixtures/openrouter-models.json
+new file mode 100644
+index 0000000..db927b6
+--- /dev/null
++++ b/tests/fixtures/openrouter-models.json
+@@ -0,0 +1,14 @@
++{
++  "data": [
++    {"id": "anthropic/claude-haiku-4.5"},
++    {"id": "anthropic/claude-opus-4.1"},
++    {"id": "anthropic/claude-sonnet-5"},
++    {"id": "deepseek/deepseek-r1:free"},
++    {"id": "google/gemini-2.5-flash"},
++    {"id": "google/gemma-3-27b-it:free"},
++    {"id": "meta-llama/llama-3.3-70b-instruct:free"},
++    {"id": "mistralai/mistral-large-2411"},
++    {"id": "openai/gpt-5-mini"},
++    {"id": "qwen/qwen3-30b-a3b:free"}
++  ]
++}
