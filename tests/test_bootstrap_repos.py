@@ -90,6 +90,26 @@ def test_build_base_rejects_pending(tiny_repo_with_feature):
                       project_root=diff_path.parent)
 
 
+def test_bootstrap_skips_pending_without_crashing(tiny_repo_with_feature, tmp_path, monkeypatch):
+    """A PENDING lock entry must not blow up a real `python cli.py setup` run —
+    build should report it as `missing` (like --check does), not `error`."""
+    repo, _, diff_path = tiny_repo_with_feature
+    lock = {
+        "task-repo": {
+            "url": repo.as_uri(),
+            "bases": {"task-x": {"anchor": "PENDING", "expect": "PENDING"}},
+        },
+    }
+    monkeypatch.setattr(br, "load_lock", lambda: lock)
+    repos_root = tmp_path / "repos"
+
+    results = br.bootstrap(check_only=False, repos_root=repos_root)
+    assert results == [("task-x", "missing", "lock entry PENDING, skipped")]
+
+    check_results = br.bootstrap(check_only=True, repos_root=repos_root)
+    assert check_results == [("task-x", "missing", "lock entry PENDING")]
+
+
 def test_lock_file_parses_and_matches_task_yamls():
     """Every lock entry's expect sha must equal the task.yaml base_commit it
     backs (cosmos-base backs both cosmos tasks)."""
