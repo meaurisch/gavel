@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "bash .claude/hooks/proc-0003-readme-state-refresh.sh",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

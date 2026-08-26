@@ -1,0 +1,21 @@
+# studio#83 E6 index arm (also the #48 anchor arm): a session-start
+# .memory/index.md plus an always-on pointer rule, no CLAUDE.md and no hooks.
+# The .memory/index.md payload is GENERATED — rebuild via
+# `memspace export-context studio > content/.memory/index.md` from
+# studio-memory, don't hand-edit it.
+id: e6-index
+description: "E6 index arm: session-start .memory/index.md + always-on pointer rule (studio#83, #48 anchor arm)"
+task_affinity:
+  - D4
+  - F4
+  - D6
+  - F6
+build:
+  command: "memspace export-context studio > content/.memory/index.md"
+  source_ref: "studio-memory@4926596"
+harnesses:
+  claude-code:
+    - src: content/.memory
+      dest: .memory
+    - src: content/.claude
+      dest: .claude

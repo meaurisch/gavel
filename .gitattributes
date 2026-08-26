@@ -6,3 +6,7 @@ tasks/**/reference.diff text eol=lf
 # The cosmos net8 migration patch contains CRLF content lines (.sln); any
 # eol conversion would corrupt it. Treat repo-setup patches as binary.
 tasks/_repo_setup/*.patch -text
+
+# studio#83 E6 index arm: index.md is a byte-exact copy of a pre-staged
+# memspace export (CRLF). Treat as binary so autocrlf can't normalize it away.
+repo_contexts/e6-index/content/.memory/index.md -text
