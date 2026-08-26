@@ -34,7 +34,14 @@ knowledge (how this codebase is laid out, its conventions). They are separate
 axes so you can test each in isolation or in combination. In the worktree they
 are laid down sequentially — repo-context first, methodology on top, never merged.
 Repo-contexts carry a `task_affinity` tag so nonsensical task/context pairings are
-skipped by default (override with `--full-matrix`).
+skipped by default (override with `--full-matrix`). A repo-context (or
+methodology) whose payload is exported/synthesized from another repo, rather
+than authored by hand in place, declares a `build: {command, source_ref}`
+block in its `manifest.yaml` instead of a "REBUILD ME" prose comment —
+`command` regenerates the payload from the context's own directory,
+`source_ref` records what it was generated from. Refresh with
+`python scripts/build_repo_context.py <id>` (or `--all` / `--list`);
+`python cli.py doctor` lists every context that declares one.
 
 **Comparison is axis-general.** Every axis is a comparison target. At grade time
 you pick *which* axis to compare; that axis varies while every other axis is

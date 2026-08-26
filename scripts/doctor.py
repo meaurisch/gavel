@@ -123,6 +123,26 @@ def check_vendor_packs() -> list[DoctorRow]:
     ]
 
 
+def check_repo_context_builds(repo_contexts_dir: Path | None = None) -> list[DoctorRow]:
+    """Repo-contexts with a declared `build:` step (derived payloads). Informational
+    only — the payload is committed either way, this just surfaces that it can be
+    refreshed with `scripts/build_repo_context.py` instead of by hand."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import build_repo_context
+
+    contexts = build_repo_context.list_buildable_contexts(
+        repo_contexts_dir if repo_contexts_dir is not None else build_repo_context.REPO_CONTEXTS_DIR
+    )
+    return [
+        DoctorRow(
+            f"repo-context build {cid}", True, False,
+            f"derived from {source_ref}",
+            f"Run `python scripts/build_repo_context.py {cid}` to refresh",
+        )
+        for cid, source_ref in contexts
+    ]
+
+
 def check_node() -> DoctorRow:
     from frontend_setup import node_version, npm_path
 
@@ -159,5 +179,6 @@ def run_all_checks() -> list[DoctorRow]:
             check_claude_cli(), check_judge_providers(), check_dotnet(), check_wsl()]
     rows.extend(check_task_bases())
     rows.extend(check_vendor_packs())
+    rows.extend(check_repo_context_builds())
     rows.append(check_pricing())
     return rows

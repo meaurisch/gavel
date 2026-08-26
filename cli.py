@@ -432,7 +432,7 @@ def demo(
 
 @app.command()
 def doctor():
-    """Check toolchains, task repos, vendor packs, and pricing readiness."""
+    """Check toolchains, task repos, vendor packs, repo-context builds, and pricing readiness."""
     sys.path.insert(0, str(Path(__file__).parent / "scripts"))
     from doctor import run_all_checks
 
