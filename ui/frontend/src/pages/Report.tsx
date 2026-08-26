@@ -137,6 +137,7 @@ export function ReportPage() {
                       <th className="num">Build</th>
                       <th className="num">Visible</th>
                       <th className="num">Hidden</th>
+                      <th className="num" title="observational check — recorded, never gating">Observed</th>
                       <th className="num">Trials</th>
                       <th className="num">Mean $</th>
                       <th className="num">Total $</th>
@@ -159,6 +160,7 @@ export function ReportPage() {
                         <td className="num">{fmtPct(s.tier_pass_rates["compile"] ?? null)}</td>
                         <td className="num">{fmtPct(s.tier_pass_rates["visible"] ?? null)}</td>
                         <td className="num">{fmtPct(s.tier_pass_rates["hidden"] ?? null)}</td>
+                        <td className="num">{fmtPct(s.tier_pass_rates["observe"] ?? null)}</td>
                         <td className="num">{s.n_trials}</td>
                         <td className="num">{fmtUsd(s.mean_usd)}</td>
                         {/* no cost records → both columns say "unknown", not "$0" */}

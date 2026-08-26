@@ -179,6 +179,59 @@ def test_gate_result_insert_read(conn):
     assert got.hidden_passed is True
 
 
+def test_gate_result_records_observational_tier(conn):
+    """The non-gating tier round-trips with its own columns, and `passed`
+    stays the hidden tier's verdict even when the observation failed."""
+    obj = GateResult(
+        trial_id="t-obs",
+        passed=True,
+        hidden_passed=True,
+        observe_passed=False,
+        observe_output="ADHERENCE conventions FAIL",
+    )
+    insert_gate_result(conn, obj)
+    got = get_gate_result(conn, "t-obs")
+    assert got == obj
+    assert got.passed is True
+    assert got.observe_passed is False
+    assert got.observe_output == "ADHERENCE conventions FAIL"
+
+
+def test_gate_result_observational_defaults_none(conn):
+    insert_gate_result(conn, GateResult(trial_id="t-noobs", passed=True))
+    got = get_gate_result(conn, "t-noobs")
+    assert got.observe_passed is None
+    assert got.observe_output is None
+
+
+def test_init_schema_migrates_legacy_gate_result(tmp_path):
+    # A DB created before the observational tier existed.
+    db_path = tmp_path / "legacy_gr.db"
+    raw = sqlite3.connect(str(db_path))
+    raw.execute(
+        """CREATE TABLE gate_result (
+            trial_id TEXT PRIMARY KEY, passed INTEGER NOT NULL,
+            compile_passed INTEGER, compile_output TEXT,
+            visible_passed INTEGER, visible_output TEXT,
+            hidden_passed INTEGER, hidden_output TEXT)"""
+    )
+    raw.execute(
+        "INSERT INTO gate_result VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        ("legacy", 1, 1, "built", None, None, 1, "ok"),
+    )
+    raw.commit()
+    raw.close()
+
+    conn = connect(db_path)  # connect() -> init_schema() must migrate
+    got = get_gate_result(conn, "legacy")
+    assert got.passed is True
+    assert got.observe_passed is None
+    assert got.observe_output is None
+    # …and new rows still insert against the migrated column order.
+    insert_gate_result(conn, GateResult(trial_id="fresh", passed=False, observe_passed=True))
+    assert get_gate_result(conn, "fresh").observe_passed is True
+
+
 def test_append_only_reinsert_raises(conn):
     obj = Trial(
         id="t-dup",
@@ -238,6 +291,23 @@ def test_task_spec_difficulty_insert_read(conn):
     assert got.difficulty == "hard"
 
 
+def test_task_spec_observe_cmd_insert_read(conn):
+    obj = TaskSpec(
+        id="cosmos-002",
+        repo_url="https://github.com/example/cosmos",
+        base_commit="abc123",
+        instruction="Fix the broken import",
+        run_cmd="pytest tests/",
+        held_out_tests_path="tests/test_hidden.py",
+        reference_diff_path="diffs/cosmos-002.patch",
+        observe_cmd="python scripts/check_conventions.py",
+    )
+    insert_task_spec(conn, obj)
+    got = get_task_spec(conn, "cosmos-002")
+    assert got == obj
+    assert got.observe_cmd == "python scripts/check_conventions.py"
+
+
 def test_init_schema_migrates_legacy_task_spec(tmp_path):
     # A DB created before build_cmd/visible_test_cmd/difficulty existed.
     db_path = tmp_path / "legacy.db"
@@ -260,6 +330,7 @@ def test_init_schema_migrates_legacy_task_spec(tmp_path):
     assert got.difficulty is None
     assert got.build_cmd is None
     assert got.visible_test_cmd is None
+    assert got.observe_cmd is None
 
 
 def test_list_cell_trials_includes_failing(conn):

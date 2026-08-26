@@ -81,6 +81,7 @@ def _task_entries(conn: sqlite3.Connection) -> list[dict]:
             "build_cmd": None,
             "run_cmd": None,
             "visible_test_cmd": None,
+            "observe_cmd": None,
             **counts.get(task_id, {"n_trials": 0, "n_passers": 0}),
         }
         try:
@@ -93,6 +94,7 @@ def _task_entries(conn: sqlite3.Connection) -> list[dict]:
                 build_cmd=task.build_cmd,
                 run_cmd=task.run_cmd,
                 visible_test_cmd=task.visible_test_cmd,
+                observe_cmd=task.observe_cmd,
             )
         except Exception:
             pass  # DB-only id (e.g. demo data) — counts still shown

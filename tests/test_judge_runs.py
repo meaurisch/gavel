@@ -217,6 +217,29 @@ def test_judge_prompts_are_blind(seeded_db, monkeypatch):
         assert "Implement the frobnicator." in prompt
 
 
+def test_judge_never_sees_the_observational_tier(seeded_db, monkeypatch):
+    """The observational tier is recorded but non-gating, and adherence tracks
+    the methodology — so it stays out of the judge payload exactly like
+    cost/tokens/time do."""
+    conn = connect(seeded_db)
+    conn.execute(
+        "UPDATE gate_result SET observe_passed = 1, observe_output = ?",
+        ("ADHERENCE house-style PASS",),
+    )
+    conn.commit()
+    conn.close()
+
+    recorder = RecordingMock()
+    monkeypatch.setattr(judge_runs, "get_provider", lambda pid: recorder)
+    handle = judge_runs.start_judge("judge.db", seeded_db, _params(), confirm_phrase=None)
+    _wait(handle)
+    assert handle.status == "done", handle.error
+    assert recorder.prompts
+    for prompt in recorder.prompts:
+        assert "ADHERENCE" not in prompt
+        assert "observ" not in prompt.lower()
+
+
 def test_pair_events_expose_letters_but_never_axis_values(seeded_db, monkeypatch):
     recorder = RecordingMock()
     monkeypatch.setattr(judge_runs, "get_provider", lambda pid: recorder)

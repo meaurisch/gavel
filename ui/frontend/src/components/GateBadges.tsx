@@ -30,21 +30,29 @@ export function GateBadges({
   );
 }
 
-/** Compact B/V/H triplet for table rows — one quiet cell, not three badges. */
+/** Compact B/V/H triplet for table rows — one quiet cell, not three badges.
+ * `observePassed` appends the non-gating observational tier (O), and only
+ * when the task recorded one, so gate-only rows stay a clean triplet. */
 export function GateTriplet({
   compilePassed,
   visiblePassed,
   hiddenPassed,
+  observePassed,
 }: {
   compilePassed: boolean | null;
   visiblePassed: boolean | null;
   hiddenPassed: boolean | null;
+  observePassed?: boolean | null;
 }) {
   const tiers: [string, string, boolean | null][] = [
     ["B", "build", compilePassed],
     ["V", "visible tests", visiblePassed],
     ["H", "hidden tests", hiddenPassed],
   ];
+  const observed = observePassed ?? null;
+  if (observed !== null) {
+    tiers.push(["O", "observational check (recorded, never gating)", observed]);
+  }
   return (
     <span className="gate-triplet" data-testid="gate-triplet">
       {tiers.map(([letter, name, passed]) => (

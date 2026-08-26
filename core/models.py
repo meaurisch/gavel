@@ -16,6 +16,11 @@ class TaskSpec:
     difficulty: str | None = None        # "easy" | "medium" | "hard"
     repo: str | None = None              # local repos/<repo> dir; else repo_url basename
     visible_tests_path: str | None = None  # dir of EXTRA visible test files to inject
+    # Observational tier: a command whose verdict+output are RECORDED but never
+    # gate. For measurements that must stay separate from pass/fail (e.g. the
+    # studio#48 convention-adherence ablation) — gating on them would bias the
+    # grading pool, since only gate-passers are gradeable.
+    observe_cmd: str | None = None
 
 
 @dataclass
@@ -71,6 +76,11 @@ class GateResult:
     visible_output: str | None = None
     hidden_passed: bool | None = None
     hidden_output: str | None = None
+    # Observational (non-gating) tier — recorded only. `passed` above never
+    # depends on it, and it is NEVER served during blind comparison: an
+    # adherence verdict correlates with the methodology axis.
+    observe_passed: bool | None = None
+    observe_output: str | None = None
 
 
 @dataclass
