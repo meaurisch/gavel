@@ -39,6 +39,7 @@ export interface TaskEntry {
   build_cmd: string | null;
   run_cmd: string | null;
   visible_test_cmd: string | null;
+  observe_cmd: string | null;
   n_trials: number;
   n_passers: number;
 }
@@ -264,6 +265,8 @@ export interface TrialRow {
   compile_passed: boolean | null;
   visible_passed: boolean | null;
   hidden_passed: boolean | null;
+  // Observational (non-gating) tier — recorded, never part of `passed`.
+  observe_passed: boolean | null;
   usd_equiv: number | null;
   input_tokens: number | null;
   output_tokens: number | null;
@@ -297,6 +300,8 @@ export interface TrialDetail {
     visible_output: string | null;
     hidden_passed: boolean | null;
     hidden_output: string | null;
+    observe_passed: boolean | null;
+    observe_output: string | null;
   } | null;
   cost_record: {
     usd_equiv: number;

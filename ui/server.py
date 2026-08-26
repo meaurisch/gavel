@@ -285,6 +285,11 @@ class GradingStatusResponse(BaseModel):
 
 
 class GateScorecard(BaseModel):
+    """The three FUNCTIONAL tiers only. The observational tier
+    (GateResult.observe_*) is deliberately absent from every blind surface:
+    an adherence verdict tracks the methodology, so serving it during blind
+    comparison would name the axis. It lives on the unblinded surfaces
+    (Browse, trial detail, report)."""
     compile_passed: bool | None
     visible_passed: bool | None
     hidden_passed: bool | None
@@ -1339,6 +1344,7 @@ async def get_trials(db: str = "") -> list[dict]:
         rows = conn.execute(
             """SELECT t.*,
                       g.passed, g.compile_passed, g.visible_passed, g.hidden_passed,
+                      g.observe_passed,
                       c.usd_equiv, c.input_tokens, c.output_tokens, c.cache_read_tokens,
                       r.wall_seconds, r.exit_status, r.error
                FROM trial t
@@ -1350,7 +1356,8 @@ async def get_trials(db: str = "") -> list[dict]:
         out = []
         for r in rows:
             d = dict(r)
-            for col in ("passed", "compile_passed", "visible_passed", "hidden_passed"):
+            for col in ("passed", "compile_passed", "visible_passed", "hidden_passed",
+                        "observe_passed"):
                 if d.get(col) is not None:
                     d[col] = bool(d[col])
             out.append(d)

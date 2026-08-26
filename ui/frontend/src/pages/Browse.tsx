@@ -134,6 +134,7 @@ export function Browse() {
                         compilePassed={t.compile_passed}
                         visiblePassed={t.visible_passed}
                         hiddenPassed={t.hidden_passed}
+                        observePassed={t.observe_passed}
                       />
                     </td>
                     <td className="num">{fmtUsd(t.usd_equiv)}</td>

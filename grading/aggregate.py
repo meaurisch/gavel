@@ -30,7 +30,7 @@ class AxisValueSummary:
     n_trials: int = 0
     n_gated: int = 0
     gate_pass_rate: float | None = None
-    tier_pass_rates: dict = field(default_factory=dict)  # compile/visible/hidden -> float|None
+    tier_pass_rates: dict = field(default_factory=dict)  # compile/visible/hidden/observe -> float|None
     total_usd: float = 0.0
     mean_usd: float | None = None
     n_comparisons: int = 0
@@ -310,7 +310,9 @@ def build_report(
         s.n_gated = len(gated)
         if gated:
             s.gate_pass_rate = sum(1 for g in gated if g.passed) / len(gated)
-            for tier in ("compile", "visible", "hidden"):
+            # "observe" is the non-gating tier: reported alongside the gate
+            # tiers but excluded from gate_pass_rate by construction.
+            for tier in ("compile", "visible", "hidden", "observe"):
                 verdicts = [getattr(g, f"{tier}_passed") for g in gated]
                 known = [x for x in verdicts if x is not None]
                 s.tier_pass_rates[tier] = (sum(known) / len(known)) if known else None

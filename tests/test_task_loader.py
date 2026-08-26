@@ -44,6 +44,40 @@ def test_resolve_unset_with_no_repos_yaml(tmp_path):
     assert resolve_visible_test_cmd(task, tmp_path / "missing.yaml") is None
 
 
+def test_load_task_reads_observe_cmd(tmp_path):
+    """The non-gating observational command is a plain task field — declared
+    separately from run_cmd, whose exit code IS the hidden gate."""
+    task_dir = tmp_path / "tasks" / "cosmos-O"
+    task_dir.mkdir(parents=True)
+    data = {
+        "id": "cosmos-O", "repo": "cosmos",
+        "repo_url": "https://github.com/x/y", "base_commit": "abc",
+        "instruction": "Do something real here for the loader",
+        "run_cmd": "dotnet test", "held_out_tests_path": "h",
+        "reference_diff_path": "d", "visible_test_cmd": "none",
+        "observe_cmd": "python check_conventions.py",
+    }
+    (task_dir / "task.yaml").write_text(yaml.dump(data))
+    task = load_task("cosmos-O", tasks_dir=tmp_path / "tasks", repos_yaml=_repos_yaml(tmp_path))
+    assert task.observe_cmd == "python check_conventions.py"
+    assert task.visible_test_cmd is None
+
+
+def test_load_task_defaults_observe_cmd_to_none(tmp_path):
+    task_dir = tmp_path / "tasks" / "cosmos-N"
+    task_dir.mkdir(parents=True)
+    data = {
+        "id": "cosmos-N", "repo": "cosmos",
+        "repo_url": "https://github.com/x/y", "base_commit": "abc",
+        "instruction": "Do something real here for the loader",
+        "run_cmd": "dotnet test", "held_out_tests_path": "h",
+        "reference_diff_path": "d",
+    }
+    (task_dir / "task.yaml").write_text(yaml.dump(data))
+    task = load_task("cosmos-N", tasks_dir=tmp_path / "tasks", repos_yaml=_repos_yaml(tmp_path))
+    assert task.observe_cmd is None
+
+
 def test_load_task_bakes_resolved_visible_cmd(tmp_path):
     task_dir = tmp_path / "tasks" / "cosmos-Z"
     task_dir.mkdir(parents=True)

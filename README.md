@@ -34,7 +34,14 @@ knowledge (how this codebase is laid out, its conventions). They are separate
 axes so you can test each in isolation or in combination. In the worktree they
 are laid down sequentially — repo-context first, methodology on top, never merged.
 Repo-contexts carry a `task_affinity` tag so nonsensical task/context pairings are
-skipped by default (override with `--full-matrix`).
+skipped by default (override with `--full-matrix`). A repo-context (or
+methodology) whose payload is exported/synthesized from another repo, rather
+than authored by hand in place, declares a `build: {command, source_ref}`
+block in its `manifest.yaml` instead of a "REBUILD ME" prose comment —
+`command` regenerates the payload from the context's own directory,
+`source_ref` records what it was generated from. Refresh with
+`python scripts/build_repo_context.py <id>` (or `--all` / `--list`);
+`python cli.py doctor` lists every context that declares one.
 
 **Comparison is axis-general.** Every axis is a comparison target. At grade time
 you pick *which* axis to compare; that axis varies while every other axis is
@@ -51,6 +58,15 @@ only its passers enter grading.
 | 1 | **Compile** | Does the code build? |
 | 2 | **Visible tests** | Do the tests the agent could see pass? |
 | 3 | **Hidden tests** | Do the held-out tests pass? *(definitive)* |
+| — | **Observational** | Whatever a task's optional `observe_cmd` asks — **recorded, never gating** |
+
+The observational tier exists for measurements that must stay *out* of the
+pass/fail decision (e.g. convention adherence): only gate-passers are gradeable,
+so gating on adherence would bias the grading pool. It gets its own command
+(`observe_cmd` in `task.yaml`), its own stored verdict + log
+(`gate_result.observe_passed` / `observe_output`), and its own column in Browse
+and in the report — and it is never served during blind comparison, since an
+adherence verdict tracks the methodology axis.
 
 ### Execution flow
 
@@ -170,6 +186,9 @@ python cli.py run --task all --methodology all --repo-context all \
 - `--full-matrix` — ignore `task_affinity` and run every task/context pairing
 - `--dry-run` — print the trial grid and exit
 - `--delay` — seconds between trials (rate limiting)
+- `--keep-worktree` — don't tear down worktrees (debug: inspect laid-down
+  files); clean them up later with `python cli.py worktrees --prune` (or list
+  them first with `python cli.py worktrees`)
 
 After grading, `python cli.py report --axis methodology` prints the
 Bradley-Terry ranking (Elo + bootstrap CIs), three-tier gate pass rates, the
@@ -213,6 +232,11 @@ A task lives in `tasks/<id>/task.yaml`. Beyond the required fields (`id`,
 - `visible_tests_path` — a directory of EXTRA visible test files this task injects
   into the worktree (committed before the repo-context/methodology commits, so
   they're visible to the model but never appear in its diff).
+
+A task may also declare `observe_cmd`: an observational command whose exit code
+and output are recorded on the scorecard but never gate. Use it instead of
+smuggling extra checks through `run_cmd` — `run_cmd`'s exit code IS the hidden
+gate, so anything non-functional folded into it would decide who is gradeable.
 
 A **repo** can also declare a default visible suite once, instead of every task
 repeating it. `repos.yaml` at the project root maps a repo id to its defaults:

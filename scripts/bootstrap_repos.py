@@ -128,7 +128,8 @@ def build_base(repo: Path, base_id: str, spec: dict, project_root: Path = ROOT) 
             _git(repo, "apply", "--cached", "-", env=env, input_bytes=patch)
             message = f"setup-bench: {base_id} (patch applied onto upstream {anchor})"
         else:
-            raise BootstrapError(f"{base_id}: lock entry has neither reverse_diff nor apply_patch")
+            # Base is simply the pinned anchor; no patch to apply.
+            message = f"setup-bench: {base_id} (upstream {anchor})"
         tree = _git(repo, "write-tree", env=env)
         sha = _git(repo, "commit-tree", tree, "-p", anchor, "-m", message, env=env)
     finally:
@@ -166,10 +167,14 @@ def bootstrap(check_only: bool = False, repos_root: Path = REPOS_ROOT) -> list[t
         for base_id, spec in cfg.get("bases", {}).items():
             expect = spec.get("expect")
             try:
-                if check_only:
-                    if expect == "PENDING":
+                if expect == "PENDING" or spec.get("anchor") == "PENDING":
+                    if check_only:
                         results.append((base_id, "missing", "lock entry PENDING"))
-                    elif expect and commit_exists(repo_dir, expect):
+                    else:
+                        logger.warning("%s: lock entry is PENDING — skipping build", base_id)
+                        results.append((base_id, "missing", "lock entry PENDING, skipped"))
+                elif check_only:
+                    if expect and commit_exists(repo_dir, expect):
                         results.append((base_id, "ok", expect))
                     else:
                         results.append((base_id, "missing", f"base {expect} not built"))

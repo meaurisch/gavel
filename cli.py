@@ -14,6 +14,7 @@ from core.models import Trial
 from core.methodology_loader import list_methodologies
 from core.repo_context_loader import list_repo_contexts
 from core.task_loader import list_tasks
+from ui.runs import CONFIRM_PHRASE, PAID_RUNNERS
 
 
 def _force_utf8(streams):
@@ -106,6 +107,7 @@ def run(
     keep_worktree: bool = typer.Option(False, "--keep-worktree", help="Don't tear down worktrees (debug: inspect laid-down files)"),
     db: Path = typer.Option(Path("results.db"), help="Database path"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Debug logging"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip the spend confirmation for paid runners (scripted/CI runs)"),
 ):
     """Expand the trial matrix and execute all trials."""
     logging.basicConfig(
@@ -150,6 +152,21 @@ def run(
     if dry_run:
         console.print(_grid_table(trials))
         raise typer.Exit(code=0)
+
+    if runner in PAID_RUNNERS and not yes:
+        console.print(
+            f"\n[yellow]Runner {runner!r} spends real API budget for {len(trials)} trials.[/]"
+        )
+        if not sys.stdin.isatty():
+            console.print(
+                f"[red]Refusing to start without confirmation on a non-interactive stdin — "
+                f"rerun with --yes to confirm.[/]"
+            )
+            raise typer.Exit(code=2)
+        typed = typer.prompt(f"Type {CONFIRM_PHRASE!r} to continue")
+        if typed != CONFIRM_PHRASE:
+            console.print("[red]Confirmation phrase mismatch — aborting.[/]")
+            raise typer.Exit(code=1)
 
     conn = connect(db)
     results: dict[str, dict] = {}
@@ -432,7 +449,7 @@ def demo(
 
 @app.command()
 def doctor():
-    """Check toolchains, task repos, vendor packs, and pricing readiness."""
+    """Check toolchains, task repos, vendor packs, repo-context builds, and pricing readiness."""
     sys.path.insert(0, str(Path(__file__).parent / "scripts"))
     from doctor import run_all_checks
 
@@ -459,6 +476,52 @@ def doctor():
         console.print("[red]Some required checks failed.[/]")
         raise typer.Exit(code=1)
     console.print("[green]Environment ready[/] (warnings only affect the task families noted).")
+
+
+@app.command()
+def worktrees(
+    prune: bool = typer.Option(False, "--prune", help="Remove kept worktrees and clear stale admin state"),
+):
+    """List (or, with --prune, clean up) worktrees left behind by `run
+    --keep-worktree` or a killed run, across every repo under repos/."""
+    from core.worktree import list_kept_worktrees, prune_worktrees
+
+    if not prune:
+        rows = list_kept_worktrees()
+        if not rows:
+            console.print("[green]No kept worktrees found under repos/.[/]")
+            return
+        table = Table(title="Kept worktrees")
+        table.add_column("Repo", style="cyan")
+        table.add_column("Path")
+        table.add_column("Branch")
+        table.add_column("On disk", justify="center")
+        for r in rows:
+            if "error" in r:
+                table.add_row(r["repo"], f"[red]{r['error']}[/]", "", "")
+                continue
+            table.add_row(r["repo"], str(r["path"]), r["branch"], "yes" if r["exists"] else "[yellow]gone[/]")
+        console.print(table)
+        console.print(f"\n[bold]{len(rows)}[/] worktree(s). Run [bold]python cli.py worktrees --prune[/] to clean them up.")
+        return
+
+    cleaned = prune_worktrees()
+    if not cleaned:
+        console.print("[green]Nothing to prune — no kept worktrees under repos/.[/]")
+        return
+
+    failed = False
+    for r in cleaned:
+        if "error" in r:
+            failed = True
+            label = r.get("path", r["repo"])
+            console.print(f"[red]{r['repo']}: failed to remove {label}: {r['error']}[/]")
+        else:
+            console.print(f"[green]{r['repo']}: removed {r['path']}[/]")
+
+    console.print(f"\n[bold]Pruned {len(cleaned) - sum('error' in r for r in cleaned)}/{len(cleaned)} worktree(s).[/]")
+    if failed:
+        raise typer.Exit(code=1)
 
 
 @pricing_app.command("list")
