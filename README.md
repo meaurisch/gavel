@@ -51,6 +51,15 @@ only its passers enter grading.
 | 1 | **Compile** | Does the code build? |
 | 2 | **Visible tests** | Do the tests the agent could see pass? |
 | 3 | **Hidden tests** | Do the held-out tests pass? *(definitive)* |
+| — | **Observational** | Whatever a task's optional `observe_cmd` asks — **recorded, never gating** |
+
+The observational tier exists for measurements that must stay *out* of the
+pass/fail decision (e.g. convention adherence): only gate-passers are gradeable,
+so gating on adherence would bias the grading pool. It gets its own command
+(`observe_cmd` in `task.yaml`), its own stored verdict + log
+(`gate_result.observe_passed` / `observe_output`), and its own column in Browse
+and in the report — and it is never served during blind comparison, since an
+adherence verdict tracks the methodology axis.
 
 ### Execution flow
 
@@ -216,6 +225,11 @@ A task lives in `tasks/<id>/task.yaml`. Beyond the required fields (`id`,
 - `visible_tests_path` — a directory of EXTRA visible test files this task injects
   into the worktree (committed before the repo-context/methodology commits, so
   they're visible to the model but never appear in its diff).
+
+A task may also declare `observe_cmd`: an observational command whose exit code
+and output are recorded on the scorecard but never gate. Use it instead of
+smuggling extra checks through `run_cmd` — `run_cmd`'s exit code IS the hidden
+gate, so anything non-functional folded into it would decide who is gradeable.
 
 A **repo** can also declare a default visible suite once, instead of every task
 repeating it. `repos.yaml` at the project root maps a repo id to its defaults:

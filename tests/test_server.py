@@ -154,6 +154,47 @@ def test_pairs_diffs_have_no_axis_ids(client):
         assert token in all_diffs, f"Expected token {token!r} not found in anonymized diff"
 
 
+def test_pairs_never_serve_the_observational_tier(tmp_path):
+    """The observational tier (e.g. convention adherence) tracks the
+    methodology axis, so it must not reach a blind grader — same rule as
+    cost/tokens/time. Browse serves it; blind comparison never does."""
+    from fastapi.testclient import TestClient
+
+    db_path = tmp_path / "obs.db"
+    conn = connect(db_path)
+    for tid, mdl, adhered in (("o1", "modelone", True), ("o2", "modeltwo", False)):
+        insert_trial(conn, Trial(id=tid, task_id="t", methodology_id="m",
+                                 repo_context_id="c", model=mdl, runner="r", rep=0))
+        insert_run_result(conn, RunResult(trial_id=tid, diff=_make_diff_with_ids("m", "c", mdl, "r"),
+                                         exit_status=0, wall_seconds=1.0))
+        insert_gate_result(conn, GateResult(
+            trial_id=tid, passed=True, hidden_passed=True, hidden_output="ok",
+            observe_passed=adhered, observe_output="ADHERENCE house-style PASS",
+        ))
+    conn.close()
+
+    server.set_db_path(db_path)
+    with TestClient(server.app) as c:
+        resp = c.get("/api/pairs", params={
+            "axis": "model", "task": "t", "methodology": "m",
+            "repo_context": "c", "runner": "r",
+        })
+        assert resp.status_code == 200
+        assert "observe" not in resp.text
+        assert "ADHERENCE" not in resp.text
+        side = resp.json()["pairs"][0]["left"]
+        assert set(side["gate"]) == {"compile_passed", "visible_passed", "hidden_passed"}
+        assert set(side["gate_detail"]) == {"passed", "compile", "visible", "hidden"}
+
+        # The unblinded browse surface DOES carry it.
+        rows = {r["id"]: r for r in c.get("/api/trials").json()}
+        assert rows["o1"]["observe_passed"] is True
+        assert rows["o2"]["observe_passed"] is False
+        detail = c.get("/api/trials/o1").json()
+        assert detail["gate_result"]["observe_passed"] is True
+        assert detail["gate_result"]["observe_output"] == "ADHERENCE house-style PASS"
+
+
 def test_axes_lists_gradable(client):
     resp = client.get("/api/axes")
     assert resp.status_code == 200

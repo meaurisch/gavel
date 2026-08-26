@@ -34,11 +34,23 @@ export function TrialDetailPage() {
 
   const { trial, run_result, gate_result, cost_record } = data;
 
-  const tiers = [
+  type Tier = { key: string; label: string; passed: boolean | null; output: string | null; nonGating?: boolean };
+  const tiers: Tier[] = [
     { key: "compile", label: "Build", passed: gate_result?.compile_passed ?? null, output: gate_result?.compile_output ?? null },
     { key: "visible", label: "Visible tests", passed: gate_result?.visible_passed ?? null, output: gate_result?.visible_output ?? null },
     { key: "hidden", label: "Hidden tests", passed: gate_result?.hidden_passed ?? null, output: gate_result?.hidden_output ?? null },
   ];
+  // The observational tier is listed only when the task declared one — it is
+  // recorded, never gating, so it must not read as a fourth gate tier.
+  if ((gate_result?.observe_passed ?? null) !== null) {
+    tiers.push({
+      key: "observe",
+      label: "Observational check",
+      passed: gate_result?.observe_passed ?? null,
+      output: gate_result?.observe_output ?? null,
+      nonGating: true,
+    });
+  }
 
   return (
     <main className="app-main">
@@ -77,6 +89,7 @@ export function TrialDetailPage() {
                   <div key={t.key}>
                     <div className="row" style={{ marginBottom: "var(--space-1)" }}>
                       <TierBadge label={t.label} passed={t.passed} />
+                      {t.nonGating ? <span className="xsmall muted">(recorded, never gates)</span> : null}
                     </div>
                     {t.output ? (
                       <details className="logbox">
