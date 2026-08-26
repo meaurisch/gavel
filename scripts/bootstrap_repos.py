@@ -128,7 +128,8 @@ def build_base(repo: Path, base_id: str, spec: dict, project_root: Path = ROOT) 
             _git(repo, "apply", "--cached", "-", env=env, input_bytes=patch)
             message = f"setup-bench: {base_id} (patch applied onto upstream {anchor})"
         else:
-            raise BootstrapError(f"{base_id}: lock entry has neither reverse_diff nor apply_patch")
+            # Base is simply the pinned anchor; no patch to apply.
+            message = f"setup-bench: {base_id} (upstream {anchor})"
         tree = _git(repo, "write-tree", env=env)
         sha = _git(repo, "commit-tree", tree, "-p", anchor, "-m", message, env=env)
     finally:
