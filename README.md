@@ -170,6 +170,9 @@ python cli.py run --task all --methodology all --repo-context all \
 - `--full-matrix` — ignore `task_affinity` and run every task/context pairing
 - `--dry-run` — print the trial grid and exit
 - `--delay` — seconds between trials (rate limiting)
+- `--keep-worktree` — don't tear down worktrees (debug: inspect laid-down
+  files); clean them up later with `python cli.py worktrees --prune` (or list
+  them first with `python cli.py worktrees`)
 
 After grading, `python cli.py report --axis methodology` prints the
 Bradley-Terry ranking (Elo + bootstrap CIs), three-tier gate pass rates, the
