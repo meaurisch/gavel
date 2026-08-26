@@ -34,6 +34,10 @@ ROOT = Path(__file__).resolve().parent.parent
 LOCK_FILE = ROOT / "tasks" / "_repo_setup" / "repos.lock.yaml"
 REPOS_ROOT = ROOT / "repos"
 
+# For `sanitized: true` repos the upstream clone is kept out of the way here and
+# never becomes the trial repo; repos/<repo_id> is built from scratch instead.
+SOURCES_DIRNAME = "_sources"
+
 # Fixed identity for synthesized commits — part of the sha, never change it.
 _COMMIT_ENV = {
     "GIT_AUTHOR_NAME": "setup-bench",
@@ -94,6 +98,54 @@ def ensure_repo(repo_id: str, url: str, repos_root: Path = REPOS_ROOT) -> Path:
     return repo_dir
 
 
+def ensure_sanitized_repo(repo_id: str, repos_root: Path = REPOS_ROOT) -> Path:
+    """Create (once) the empty repo that will hold ONLY synthesized history.
+
+    No remote is configured and ref logs are off before anything is written, so
+    nothing here can ever name — or retain — an upstream commit.
+    """
+    repo_dir = repos_root / repo_id
+    if (repo_dir / ".git").exists():
+        return repo_dir
+    repo_dir.mkdir(parents=True, exist_ok=True)
+    _git(repo_dir, "init", "-q", "-b", "gavel-base")
+    _git(repo_dir, "config", "core.autocrlf", "false")
+    _git(repo_dir, "config", "core.logAllRefUpdates", "false")
+    logger.info("Initialized sanitized repo %s", repo_dir)
+    return repo_dir
+
+
+def _synthesize(
+    repo: Path, base_id: str, spec: dict, project_root: Path, parent: str, upstream: str | None
+) -> str:
+    """commit-tree the base's tree onto `parent`, via a throwaway index.
+
+    `upstream` is the anchor sha to name in the commit message, or None for
+    sanitized bases, whose messages must reveal no upstream sha at all.
+    """
+    anchor = spec["anchor"]
+    onto = f" onto upstream {upstream}" if upstream else ""
+    index_file = repo / ".git" / f"sb-bootstrap-index-{base_id}"
+    env = {**_COMMIT_ENV, "GIT_INDEX_FILE": str(index_file)}
+    try:
+        _git(repo, "read-tree", anchor, env=env)
+        if "reverse_diff" in spec:
+            patch = (project_root / spec["reverse_diff"]).read_bytes()
+            _git(repo, "apply", "-R", "--cached", "-", env=env, input_bytes=patch)
+            message = f"setup-bench: {base_id} task base (feature reverse-applied{onto})"
+        elif "apply_patch" in spec:
+            patch = (project_root / spec["apply_patch"]).read_bytes()
+            _git(repo, "apply", "--cached", "-", env=env, input_bytes=patch)
+            message = f"setup-bench: {base_id} (patch applied{onto})"
+        else:
+            # Base is simply the pinned anchor; no patch to apply.
+            message = f"setup-bench: {base_id}{f' (upstream {upstream})' if upstream else ''}"
+        tree = _git(repo, "write-tree", env=env)
+        return _git(repo, "commit-tree", tree, "-p", parent, "-m", message, env=env)
+    finally:
+        index_file.unlink(missing_ok=True)
+
+
 def build_base(repo: Path, base_id: str, spec: dict, project_root: Path = ROOT) -> str:
     """Deterministically rebuild one task base commit; returns its sha.
 
@@ -115,25 +167,7 @@ def build_base(repo: Path, base_id: str, spec: dict, project_root: Path = ROOT) 
         logger.info("%s: fetching anchor %s ...", base_id, anchor[:12])
         _git(repo, "fetch", "origin", anchor)
 
-    index_file = repo / ".git" / f"sb-bootstrap-index-{base_id}"
-    env = {**_COMMIT_ENV, "GIT_INDEX_FILE": str(index_file)}
-    try:
-        _git(repo, "read-tree", anchor, env=env)
-        if "reverse_diff" in spec:
-            patch = (project_root / spec["reverse_diff"]).read_bytes()
-            _git(repo, "apply", "-R", "--cached", "-", env=env, input_bytes=patch)
-            message = f"setup-bench: {base_id} task base (feature reverse-applied onto upstream {anchor})"
-        elif "apply_patch" in spec:
-            patch = (project_root / spec["apply_patch"]).read_bytes()
-            _git(repo, "apply", "--cached", "-", env=env, input_bytes=patch)
-            message = f"setup-bench: {base_id} (patch applied onto upstream {anchor})"
-        else:
-            # Base is simply the pinned anchor; no patch to apply.
-            message = f"setup-bench: {base_id} (upstream {anchor})"
-        tree = _git(repo, "write-tree", env=env)
-        sha = _git(repo, "commit-tree", tree, "-p", anchor, "-m", message, env=env)
-    finally:
-        index_file.unlink(missing_ok=True)
+    sha = _synthesize(repo, base_id, spec, project_root, parent=anchor, upstream=anchor)
 
     if expect and sha != expect:
         raise BootstrapError(
@@ -145,11 +179,64 @@ def build_base(repo: Path, base_id: str, spec: dict, project_root: Path = ROOT) 
     return sha
 
 
+def build_base_sanitized(
+    source: Path, repo: Path, base_id: str, spec: dict, project_root: Path = ROOT
+) -> str:
+    """Build one task base as an ORPHAN lineage inside a history-clean repo.
+
+    The lineage is synthesized in the upstream `source` clone (that's where the
+    anchor's objects live) as a parentless root commit holding the anchor tree
+    plus the usual task-base commit on top, then transferred into `repo` by a
+    single fetch of that one ref. Fetch sends only what the wanted ref reaches,
+    and the root has no parents — so no upstream commit object ever crosses
+    over, and `repo` has no remote, no remote-tracking refs and no reflogs to
+    walk back through. Same fixed identity/date as `build_base`, so the shas
+    are reproducible.
+    """
+    anchor = spec["anchor"]
+    expect = spec.get("expect")
+    if anchor == "PENDING" or expect == "PENDING":
+        raise BootstrapError(f"{base_id}: lock entry is PENDING — not buildable")
+
+    if expect and commit_exists(repo, expect):
+        logger.info("%s: base %s already present", base_id, expect[:12])
+        _git(repo, "update-ref", f"refs/heads/task-base-{base_id}", expect)
+        return expect
+
+    if not commit_exists(source, anchor):
+        logger.info("%s: fetching anchor %s ...", base_id, anchor[:12])
+        _git(source, "fetch", "origin", anchor)
+
+    root = _git(
+        source, "commit-tree", f"{anchor}^{{tree}}",
+        "-m", f"setup-bench: {base_id} repository snapshot", env=_COMMIT_ENV,
+    )
+    sha = _synthesize(source, base_id, spec, project_root, parent=root, upstream=None)
+
+    if expect and sha != expect:
+        raise BootstrapError(
+            f"{base_id}: rebuilt base {sha} does not match locked expect {expect} — "
+            "the lock file, the patch, or the anchor changed"
+        )
+
+    staging_ref = f"refs/gavel-sanitized/{base_id}"
+    _git(source, "update-ref", staging_ref, sha)
+    _git(repo, "fetch", "--no-tags", "--quiet", str(source),
+         f"+{staging_ref}:refs/heads/task-base-{base_id}")
+    (repo / ".git" / "FETCH_HEAD").unlink(missing_ok=True)
+    if not commit_exists(repo, sha):
+        raise BootstrapError(f"{base_id}: sanitized base {sha} did not transfer into {repo}")
+    logger.info("%s: built sanitized base %s", base_id, sha[:12])
+    return sha
+
+
 def bootstrap(check_only: bool = False, repos_root: Path = REPOS_ROOT) -> list[tuple[str, str, str]]:
     """Returns [(base_id, status, detail)] with status in ok/missing/error."""
     results: list[tuple[str, str, str]] = []
     lock = load_lock()
     for repo_id, cfg in lock.items():
+        sanitized = bool(cfg.get("sanitized", False))
+        source_dir = None
         try:
             if check_only:
                 repo_dir = repos_root / repo_id
@@ -157,6 +244,9 @@ def bootstrap(check_only: bool = False, repos_root: Path = REPOS_ROOT) -> list[t
                     for base_id in cfg.get("bases", {}):
                         results.append((base_id, "missing", f"repos/{repo_id} not cloned"))
                     continue
+            elif sanitized:
+                source_dir = ensure_repo(repo_id, cfg["url"], repos_root / SOURCES_DIRNAME)
+                repo_dir = ensure_sanitized_repo(repo_id, repos_root)
             else:
                 repo_dir = ensure_repo(repo_id, cfg["url"], repos_root)
         except BootstrapError as e:
@@ -178,6 +268,9 @@ def bootstrap(check_only: bool = False, repos_root: Path = REPOS_ROOT) -> list[t
                         results.append((base_id, "ok", expect))
                     else:
                         results.append((base_id, "missing", f"base {expect} not built"))
+                elif sanitized:
+                    sha = build_base_sanitized(source_dir, repo_dir, base_id, spec)
+                    results.append((base_id, "ok", sha))
                 else:
                     sha = build_base(repo_dir, base_id, spec)
                     results.append((base_id, "ok", sha))

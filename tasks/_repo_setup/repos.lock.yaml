@@ -7,6 +7,14 @@
 # under a FIXED author/committer/date, so the resulting sha is identical on
 # every machine and matches the `expect` value here and `base_commit` in each
 # task.yaml.
+#
+# Optional per-repo flag `sanitized: true` (default false): the upstream clone
+# is parked in repos/_sources/<repo> and repos/<repo> is built from scratch
+# instead — each base becomes an orphan lineage (a parentless root commit
+# holding the anchor tree + the usual task-base commit). A trial worktree then
+# sees no upstream commits, branches, remotes or reflogs. Turning it on changes
+# a base's `expect` sha (the parent differs), so re-pin it and task.yaml
+# together.
 
 pyvrp:
   url: https://github.com/PyVRP/PyVRP
