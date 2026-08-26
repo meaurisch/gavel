@@ -46,6 +46,12 @@ input_per_mtok = 3.0
 output_per_mtok = 15.0
 cache_read_per_mtok = 0.3
 
+[models.claude-sonnet-5]
+vendor = "anthropic"
+input_per_mtok = 2.0
+output_per_mtok = 10.0
+cache_read_per_mtok = 0.2
+
 [models."gpt-4.1"]
 vendor = "openai"
 input_per_mtok = 2.0
