@@ -13,7 +13,16 @@ from core.repo_context_loader import (
 # --- shipped repo contexts ---
 
 def test_list_repo_contexts():
-    assert list_repo_contexts() == ["cosmos", "none", "pyvrp-instructions"]
+    assert list_repo_contexts() == [
+        "cosmos",
+        "none",
+        "pyvrp-instructions",
+        "studio-hook",
+        "studio-memory-full",
+        "studio-memory-index",
+        "studio-memory-recall",
+        "studio-none",
+    ]
 
 
 def test_load_repo_context_noop():
