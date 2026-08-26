@@ -461,6 +461,52 @@ def doctor():
     console.print("[green]Environment ready[/] (warnings only affect the task families noted).")
 
 
+@app.command()
+def worktrees(
+    prune: bool = typer.Option(False, "--prune", help="Remove kept worktrees and clear stale admin state"),
+):
+    """List (or, with --prune, clean up) worktrees left behind by `run
+    --keep-worktree` or a killed run, across every repo under repos/."""
+    from core.worktree import list_kept_worktrees, prune_worktrees
+
+    if not prune:
+        rows = list_kept_worktrees()
+        if not rows:
+            console.print("[green]No kept worktrees found under repos/.[/]")
+            return
+        table = Table(title="Kept worktrees")
+        table.add_column("Repo", style="cyan")
+        table.add_column("Path")
+        table.add_column("Branch")
+        table.add_column("On disk", justify="center")
+        for r in rows:
+            if "error" in r:
+                table.add_row(r["repo"], f"[red]{r['error']}[/]", "", "")
+                continue
+            table.add_row(r["repo"], str(r["path"]), r["branch"], "yes" if r["exists"] else "[yellow]gone[/]")
+        console.print(table)
+        console.print(f"\n[bold]{len(rows)}[/] worktree(s). Run [bold]python cli.py worktrees --prune[/] to clean them up.")
+        return
+
+    cleaned = prune_worktrees()
+    if not cleaned:
+        console.print("[green]Nothing to prune — no kept worktrees under repos/.[/]")
+        return
+
+    failed = False
+    for r in cleaned:
+        if "error" in r:
+            failed = True
+            label = r.get("path", r["repo"])
+            console.print(f"[red]{r['repo']}: failed to remove {label}: {r['error']}[/]")
+        else:
+            console.print(f"[green]{r['repo']}: removed {r['path']}[/]")
+
+    console.print(f"\n[bold]Pruned {len(cleaned) - sum('error' in r for r in cleaned)}/{len(cleaned)} worktree(s).[/]")
+    if failed:
+        raise typer.Exit(code=1)
+
+
 @pricing_app.command("list")
 def pricing_list():
     """Show the current model pricing table."""
