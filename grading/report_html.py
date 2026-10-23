@@ -288,7 +288,7 @@ def render_report_html(report: ReportData, generated_at: str = "") -> str:
   main {{ max-width: 900px; margin: 0 auto; }}
   h1 {{ font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 4px;
        display: flex; align-items: center; gap: 9px; }}
-  h1 svg {{ flex: none; }}
+  h1 svg {{ flex: none; width: 22px; height: 22px; }}
   h2 {{ font-size: 16px; font-weight: 600; margin: 28px 0 8px; }}
   .sub {{ color: var(--ink-2); margin: 0 0 20px; }}
   .card {{

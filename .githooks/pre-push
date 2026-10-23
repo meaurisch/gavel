@@ -40,3 +40,26 @@ while read local_ref local_sha remote_ref remote_sha; do
     fi
     gitleaks git --no-banner --redact --log-opts "$log_opts" || { echo "gitleaks: push blocked"; exit 1; }
 done
+
+# --- README staleness warning (#81) — informational, never blocks ----------
+# The #48 ablation showed the README "Current state"/"Next up" convention is
+# not kept up from injected memory alone, so the push choke point surfaces it.
+# Doctor-style staleness, same thresholds as studio_cli/doctor.py: warn when
+# more than 15 commits or 300 changed lines have landed since README.md was
+# last touched. Everything here is best-effort — no failure in this block may
+# ever break a push, hence the trailing `|| true` and the silenced git calls.
+{
+    last=$(git log -1 --format=%H -- README.md 2>/dev/null)
+    if [ -n "$last" ]; then
+        commits=$(git rev-list --count "$last..HEAD" 2>/dev/null)
+        commits=${commits:-0}
+        lines=$(git diff --shortstat "$last" HEAD -- . ':!README.md' 2>/dev/null |
+            awk '{n=0; for (i=2; i<=NF; i++) if ($i ~ /^(insertion|deletion)/) n+=$(i-1); print n}')
+        lines=${lines:-0}
+        if [ "$commits" -gt 15 ] 2>/dev/null || [ "$lines" -gt 300 ] 2>/dev/null; then
+            echo "WARNING: README.md looks stale — $commits commits / $lines changed lines since it was last touched." >&2
+            echo "  conventions/session-wrap.md asks the session that changes the project to update" >&2
+            echo "  the README's \"Current state\"/\"Next up\" sections. The push proceeds regardless." >&2
+        fi
+    fi
+} || true

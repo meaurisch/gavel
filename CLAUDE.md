@@ -3,7 +3,8 @@
 - Local-first decision-support tool comparing agentic coding setups across five
   axes (task × methodology × repo-context × model × runner), with a three-tier
   gate (compile → visible → hidden), blind pairwise grading, and Bradley-Terry
-  ranking. `README.md` and `IMPLEMENTATION_PLAN.md` are the spec.
+  ranking. `IMPLEMENTATION_PLAN.md` and `docs/how-it-works.md` are the spec;
+  `README.md` is the short, plain-language overview.
 - Windows + PowerShell primary. `tasks.ps1` is the interface
   (Setup/Ui/Run/Test/Watch/Grade/Report/Demo/Doctor); it wraps `cli.py`.
 - The web UI (`python cli.py ui`, port 8247) is the single entry point:
