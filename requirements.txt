@@ -9,7 +9,7 @@ fastapi==0.138.0
 h11==0.16.0
 httpcore2==2.4.0
 httpx2==2.4.0
-idna==3.18
+idna==3.19
 iniconfig==2.3.0
 markdown-it-py==4.2.0
 mdurl==0.1.2
