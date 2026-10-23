@@ -107,7 +107,7 @@ The only manual parts in the `manual` runner are: you drive your IDE, and (for C
 - **Phase 1 — Claude Code surface (the precise surface).** Add the `claude-code` headless runner + cost JSON capture. Author the real tasks (revert + held-out tests + leakage check). Install + freeze the methodology packs. Build the pairwise grading UI. Run the Anthropic model sweep × methodology bake-off on the proxy repos. Grade.
 - **Phase 1.5 — Copilot CLI spike (15 min, personal machine, public repo).** Install Copilot CLI, auth with your own token, run one `copilot -p` task, eyeball behavior vs your VS Code agent-mode experience. Outcome selects the Phase-2 runner: `copilot-cli` if representative + permitted, else `manual`.
 - **Phase 2 — Copilot surface.** Add the chosen runner + build the standalone usage calculator. Run the work-model matrix on the proxy repos. Prune cells using Phase-1 results.
-- **Phase 3 — Research-driven evolution.** A research investigation (P3.0, saved to `docs/research-eval-frameworks.md`) drove a sequence of upgrades, each a reviewed prompt in `prompts/`:
+- **Phase 3 — Research-driven evolution.** A research investigation (P3.0, saved to `docs/research-eval-frameworks.md`) drove a sequence of upgrades, each a reviewed prompt in `docs/history/prompts/`:
   - **P3.2** — cost refactor (API-rate pricing table, self-report secondary).
   - **P3.3** — split "setup" into Methodology + Repo-Context (5-axis matrix), then **Part 3** generalizes grading to be axis-general (any axis as comparison target, all ids blinded).
   - **P3.4** — three-tier gate scorecard (compile → visible → hidden).
@@ -140,8 +140,8 @@ Green-light Phase 1's measurement (and again before the work-confirmation tier) 
 
 ## 4. Verbatim Claude Code prompts
 
-The ordered build prompts live as one file each in `prompts/` (P0.1 → P3.7). Paste them
-into Claude Code in order; each assumes prior steps are done. See `prompts/README.md`
+The ordered build prompts live as one file each in `docs/history/prompts/` (P0.1 → P3.7). Paste them
+into Claude Code in order; each assumes prior steps are done. See `docs/history/prompts/README.md`
 for the order table, declared dependencies, and live status. Pin your CLI version
 first (a known `-p` bug shipped in one 2.1.x release):
 `npm install -g @anthropic-ai/claude-code@latest`, then record the version in this
