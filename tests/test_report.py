@@ -23,6 +23,16 @@ def test_render_report_html_smoke(rich_db):  # noqa: F811
     assert "https://" not in html
 
 
+def test_header_logo_is_not_stretched_by_chart_svg_rule(tmp_path):
+    # The chart rule `svg { width: 100% }` beats the logo's width="22" attribute,
+    # so the header logo needs its own, more specific size rule.
+    import re
+
+    html = render_report_html(build_report(connect(tmp_path / "e.db"), "methodology"))
+    rule = re.search(r"h1 svg \{([^}]*)\}", html)
+    assert rule and "width: 22px" in rule.group(1) and "height: 22px" in rule.group(1)
+
+
 def test_render_pareto_svg_empty_state(tmp_path):
     conn = connect(tmp_path / "e.db")
     data = build_report(conn, "methodology")
